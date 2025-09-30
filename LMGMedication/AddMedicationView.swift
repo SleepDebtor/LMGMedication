@@ -14,6 +14,12 @@ struct AddMedicationView: View {
     
     let patient: Patient
     
+    @FetchRequest(
+        sortDescriptors: [NSSortDescriptor(keyPath: \Medication.name, ascending: true)],
+        animation: .default)
+    private var medicationTemplates: FetchedResults<Medication>
+    
+    @State private var selectedTemplate: Medication?
     @State private var medicationName = ""
     @State private var dose = ""
     @State private var doseUnit = "mg"
@@ -30,12 +36,46 @@ struct AddMedicationView: View {
     @State private var prescriberFirstName = ""
     @State private var prescriberLastName = ""
     @State private var injectable = false
+    @State private var useTemplate = true
     
     var body: some View {
         NavigationView {
             Form {
+                Section(header: Text("Medication Source")) {
+                    Toggle("Use Medication Template", isOn: $useTemplate)
+                    
+                    if useTemplate {
+                        if medicationTemplates.isEmpty {
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("No medication templates available")
+                                    .foregroundColor(.secondary)
+                                Text("Create templates in the main menu to speed up dispensing")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        } else {
+                            Picker("Select Template", selection: $selectedTemplate) {
+                                Text("Choose a medication...").tag(nil as Medication?)
+                                ForEach(medicationTemplates) { template in
+                                    Text(template.name ?? "Unknown").tag(template as Medication?)
+                                }
+                            }
+                            .pickerStyle(.menu)
+                        }
+                    }
+                }
+                
                 Section(header: Text("Medication Details")) {
-                    TextField("Medication Name", text: $medicationName)
+                    if !useTemplate || selectedTemplate == nil {
+                        TextField("Medication Name", text: $medicationName)
+                    } else {
+                        HStack {
+                            Text("Medication Name")
+                            Spacer()
+                            Text(selectedTemplate?.name ?? "")
+                                .foregroundColor(.secondary)
+                        }
+                    }
                     
                     HStack {
                         TextField("Dose", text: $dose)
@@ -49,22 +89,53 @@ struct AddMedicationView: View {
                         .pickerStyle(.menu)
                     }
                     
-                    Toggle("Injectable", isOn: $injectable)
+                    if !useTemplate || selectedTemplate == nil {
+                        Toggle("Injectable", isOn: $injectable)
+                    } else {
+                        HStack {
+                            Text("Injectable")
+                            Spacer()
+                            Text(selectedTemplate?.injectable == true ? "Yes" : "No")
+                                .foregroundColor(.secondary)
+                        }
+                    }
                 }
                 
-                Section(header: Text("Ingredients")) {
-                    HStack {
-                        TextField("Ingredient 1", text: $ingredient1)
-                        TextField("mg", value: $concentration1, format: .number)
-                            .keyboardType(.decimalPad)
-                            .frame(width: 80)
+                if !useTemplate || selectedTemplate == nil {
+                    Section(header: Text("Ingredients")) {
+                        HStack {
+                            TextField("Ingredient 1", text: $ingredient1)
+                            TextField("mg", value: $concentration1, format: .number)
+                                .keyboardType(.decimalPad)
+                                .frame(width: 80)
+                        }
+                        
+                        HStack {
+                            TextField("Ingredient 2 (optional)", text: $ingredient2)
+                            TextField("mg", value: $concentration2, format: .number)
+                                .keyboardType(.decimalPad)
+                                .frame(width: 80)
+                        }
                     }
-                    
-                    HStack {
-                        TextField("Ingredient 2 (optional)", text: $ingredient2)
-                        TextField("mg", value: $concentration2, format: .number)
-                            .keyboardType(.decimalPad)
-                            .frame(width: 80)
+                } else if let template = selectedTemplate {
+                    Section(header: Text("Ingredients")) {
+                        if let ingredient1 = template.ingredient1, !ingredient1.isEmpty {
+                            HStack {
+                                Text(ingredient1)
+                                Spacer()
+                                Text("\(template.concentration1, specifier: "%.1f")")
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        
+                        if let ingredient2 = template.ingredient2, !ingredient2.isEmpty {
+                            HStack {
+                                Text(ingredient2)
+                                Spacer()
+                                Text("\(template.concentration2, specifier: "%.1f")")
+                                    .foregroundColor(.secondary)
+                            }
+                        }
                     }
                 }
                 
@@ -81,7 +152,16 @@ struct AddMedicationView: View {
                 }
                 
                 Section(header: Text("Pharmacy")) {
-                    TextField("Pharmacy Name", text: $pharmacy)
+                    if !useTemplate || selectedTemplate == nil {
+                        TextField("Pharmacy Name", text: $pharmacy)
+                    } else {
+                        HStack {
+                            Text("Pharmacy Name")
+                            Spacer()
+                            Text(selectedTemplate?.pharmacy ?? pharmacy)
+                                .foregroundColor(.secondary)
+                        }
+                    }
                 }
                 
                 Section(header: Text("Prescriber")) {
@@ -89,7 +169,7 @@ struct AddMedicationView: View {
                     TextField("Last Name", text: $prescriberLastName)
                 }
             }
-            .navigationTitle("New Medication")
+            .navigationTitle("Dispense Medication")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
@@ -101,16 +181,41 @@ struct AddMedicationView: View {
                     Button("Save") {
                         saveMedication()
                     }
-                    .disabled(medicationName.isEmpty)
+                    .disabled((useTemplate && selectedTemplate == nil) || (!useTemplate && medicationName.isEmpty))
+                }
+            }
+            .onChange(of: selectedTemplate) { _, newTemplate in
+                if let template = newTemplate {
+                    loadFromTemplate(template)
+                }
+            }
+            .onAppear {
+                if useTemplate && !medicationTemplates.isEmpty {
+                    selectedTemplate = medicationTemplates.first
                 }
             }
         }
     }
     
+    private func loadFromTemplate(_ template: Medication) {
+        medicationName = template.name ?? ""
+        pharmacy = template.pharmacy ?? pharmacy
+        ingredient1 = template.ingredient1 ?? ""
+        concentration1 = template.concentration1
+        ingredient2 = template.ingredient2 ?? ""
+        concentration2 = template.concentration2
+        injectable = template.injectable
+    }
+    
     private func saveMedication() {
         withAnimation {
-            // Create or find existing medication
-            let medication = findOrCreateMedication()
+            // Use selected template or create/find medication
+            let medication: Medication
+            if useTemplate, let template = selectedTemplate {
+                medication = template
+            } else {
+                medication = findOrCreateMedication()
+            }
             
             // Create or find existing provider
             let provider = findOrCreateProvider()

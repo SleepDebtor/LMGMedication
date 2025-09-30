@@ -6,6 +6,19 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		275592A22E8B5FCE00A524A7 /* Provider+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 275592A02E8B5FCE00A524A7 /* Provider+CoreDataClass.swift */; };
+		275592A32E8B5FCE00A524A7 /* Person+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2755929F2E8B5FCE00A524A7 /* Person+CoreDataProperties.swift */; };
+		275592A42E8B5FCE00A524A7 /* Person+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2755929E2E8B5FCE00A524A7 /* Person+CoreDataClass.swift */; };
+		275592A52E8B5FCE00A524A7 /* DispencedMedication+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2755929B2E8B5FCE00A524A7 /* DispencedMedication+CoreDataProperties.swift */; };
+		275592A62E8B5FCE00A524A7 /* Medication+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2755929C2E8B5FCE00A524A7 /* Medication+CoreDataClass.swift */; };
+		275592A72E8B5FCE00A524A7 /* Provider+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 275592A12E8B5FCE00A524A7 /* Provider+CoreDataProperties.swift */; };
+		275592A82E8B5FCE00A524A7 /* Medication+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2755929D2E8B5FCE00A524A7 /* Medication+CoreDataProperties.swift */; };
+		275592A92E8B5FCE00A524A7 /* DispencedMedication+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2755929A2E8B5FCE00A524A7 /* DispencedMedication+CoreDataClass.swift */; };
+		275592AC2E8B60C700A524A7 /* Patient+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 275592AB2E8B60C700A524A7 /* Patient+CoreDataProperties.swift */; };
+		275592AD2E8B60C700A524A7 /* Patient+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 275592AA2E8B60C700A524A7 /* Patient+CoreDataClass.swift */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		BD5B52B42E89565000DD14F1 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -24,6 +37,16 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		2755929A2E8B5FCE00A524A7 /* DispencedMedication+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DispencedMedication+CoreDataClass.swift"; sourceTree = "<group>"; };
+		2755929B2E8B5FCE00A524A7 /* DispencedMedication+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DispencedMedication+CoreDataProperties.swift"; sourceTree = "<group>"; };
+		2755929C2E8B5FCE00A524A7 /* Medication+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Medication+CoreDataClass.swift"; sourceTree = "<group>"; };
+		2755929D2E8B5FCE00A524A7 /* Medication+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Medication+CoreDataProperties.swift"; sourceTree = "<group>"; };
+		2755929E2E8B5FCE00A524A7 /* Person+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Person+CoreDataClass.swift"; sourceTree = "<group>"; };
+		2755929F2E8B5FCE00A524A7 /* Person+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Person+CoreDataProperties.swift"; sourceTree = "<group>"; };
+		275592A02E8B5FCE00A524A7 /* Provider+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Provider+CoreDataClass.swift"; sourceTree = "<group>"; };
+		275592A12E8B5FCE00A524A7 /* Provider+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Provider+CoreDataProperties.swift"; sourceTree = "<group>"; };
+		275592AA2E8B60C700A524A7 /* Patient+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Patient+CoreDataClass.swift"; sourceTree = "<group>"; };
+		275592AB2E8B60C700A524A7 /* Patient+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Patient+CoreDataProperties.swift"; sourceTree = "<group>"; };
 		BD5B529F2E89564F00DD14F1 /* LMGMedication.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LMGMedication.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		BD5B52B32E89565000DD14F1 /* LMGMedicationTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LMGMedicationTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		BD5B52BD2E89565000DD14F1 /* LMGMedicationUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LMGMedicationUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -88,6 +111,16 @@
 		BD5B52962E89564F00DD14F1 = {
 			isa = PBXGroup;
 			children = (
+				275592AA2E8B60C700A524A7 /* Patient+CoreDataClass.swift */,
+				275592AB2E8B60C700A524A7 /* Patient+CoreDataProperties.swift */,
+				2755929A2E8B5FCE00A524A7 /* DispencedMedication+CoreDataClass.swift */,
+				2755929B2E8B5FCE00A524A7 /* DispencedMedication+CoreDataProperties.swift */,
+				2755929C2E8B5FCE00A524A7 /* Medication+CoreDataClass.swift */,
+				2755929D2E8B5FCE00A524A7 /* Medication+CoreDataProperties.swift */,
+				2755929E2E8B5FCE00A524A7 /* Person+CoreDataClass.swift */,
+				2755929F2E8B5FCE00A524A7 /* Person+CoreDataProperties.swift */,
+				275592A02E8B5FCE00A524A7 /* Provider+CoreDataClass.swift */,
+				275592A12E8B5FCE00A524A7 /* Provider+CoreDataProperties.swift */,
 				BD5B52A12E89564F00DD14F1 /* LMGMedication */,
 				BD5B52B62E89565000DD14F1 /* LMGMedicationTests */,
 				BD5B52C02E89565000DD14F1 /* LMGMedicationUITests */,
@@ -249,6 +282,16 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				275592A22E8B5FCE00A524A7 /* Provider+CoreDataClass.swift in Sources */,
+				275592A32E8B5FCE00A524A7 /* Person+CoreDataProperties.swift in Sources */,
+				275592A42E8B5FCE00A524A7 /* Person+CoreDataClass.swift in Sources */,
+				275592A52E8B5FCE00A524A7 /* DispencedMedication+CoreDataProperties.swift in Sources */,
+				275592A62E8B5FCE00A524A7 /* Medication+CoreDataClass.swift in Sources */,
+				275592A72E8B5FCE00A524A7 /* Provider+CoreDataProperties.swift in Sources */,
+				275592A82E8B5FCE00A524A7 /* Medication+CoreDataProperties.swift in Sources */,
+				275592A92E8B5FCE00A524A7 /* DispencedMedication+CoreDataClass.swift in Sources */,
+				275592AC2E8B60C700A524A7 /* Patient+CoreDataProperties.swift in Sources */,
+				275592AD2E8B60C700A524A7 /* Patient+CoreDataClass.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -287,6 +330,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = BN8DZ86DD9;
@@ -332,6 +376,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = BN8DZ86DD9;

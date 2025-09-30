@@ -1,9 +1,43 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="1" systemVersion="11A491" minimumToolsVersion="Automatic" sourceLanguage="Swift" usedWithCloudKit="true" userDefinedModelVersionIdentifier="">
-    <entity name="Item" representedClassName="Item" syncable="YES" codeGenerationType="class">
-        <attribute name="timestamp" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="24299" systemVersion="25A354" minimumToolsVersion="Automatic" sourceLanguage="Swift" usedWithCloudKit="YES" userDefinedModelVersionIdentifier="">
+    <entity name="DispencedMedication" representedClassName="DispencedMedication" syncable="YES">
+        <attribute name="creationDate" optional="YES" attributeType="Date" allowsCloudEncryption="YES" usesScalarValueType="NO"/>
+        <attribute name="dispenceAmt" optional="YES" attributeType="Integer 16" defaultValueString="0" allowsCloudEncryption="YES" usesScalarValueType="YES"/>
+        <attribute name="dispenceDate" optional="YES" attributeType="Date" allowsCloudEncryption="YES" usesScalarValueType="NO"/>
+        <attribute name="dispenceUnit" optional="YES" attributeType="String" allowsCloudEncryption="YES"/>
+        <attribute name="dose" optional="YES" attributeType="String" allowsCloudEncryption="YES"/>
+        <attribute name="doseUnit" optional="YES" attributeType="String" allowsCloudEncryption="YES"/>
+        <attribute name="expDate" optional="YES" attributeType="Date" allowsCloudEncryption="YES" usesScalarValueType="NO"/>
+        <attribute name="lotNum" optional="YES" attributeType="String" allowsCloudEncryption="YES"/>
+        <relationship name="baseMedication" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Medication" inverseName="dispenced" inverseEntity="Medication"/>
+        <relationship name="patient" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Patient" inverseName="medicationsPrescribed" inverseEntity="Patient"/>
+        <relationship name="prescriber" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Provider" inverseName="relationship" inverseEntity="Provider"/>
     </entity>
-    <elements>
-        <element name="Item" positionX="-63" positionY="-18" width="128" height="44"/>
-    </elements>
+    <entity name="Medication" representedClassName="Medication" syncable="YES">
+        <attribute name="concentration1" optional="YES" attributeType="Double" defaultValueString="0.0" allowsCloudEncryption="YES" usesScalarValueType="YES"/>
+        <attribute name="concentration2" optional="YES" attributeType="Double" defaultValueString="0.0" allowsCloudEncryption="YES" usesScalarValueType="YES"/>
+        <attribute name="ingredient1" optional="YES" attributeType="String" allowsCloudEncryption="YES"/>
+        <attribute name="ingredient2" optional="YES" attributeType="String" allowsCloudEncryption="YES"/>
+        <attribute name="injectable" optional="YES" attributeType="Boolean" allowsCloudEncryption="YES" usesScalarValueType="YES"/>
+        <attribute name="name" optional="YES" attributeType="String" allowsCloudEncryption="YES"/>
+        <attribute name="pharmacy" optional="YES" attributeType="String" allowsCloudEncryption="YES"/>
+        <attribute name="prarmacyURL" optional="YES" attributeType="String" allowsCloudEncryption="YES"/>
+        <attribute name="qrImage" optional="YES" attributeType="Binary" allowsCloudEncryption="YES"/>
+        <attribute name="timestamp" optional="YES" attributeType="Date" allowsCloudEncryption="YES" usesScalarValueType="NO"/>
+        <attribute name="urlForQR" optional="YES" attributeType="String" allowsCloudEncryption="YES"/>
+        <relationship name="dispenced" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="DispencedMedication" inverseName="baseMedication" inverseEntity="DispencedMedication"/>
+    </entity>
+    <entity name="Patient" representedClassName="Patient" parentEntity="Person" syncable="YES">
+        <relationship name="medicationsPrescribed" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="DispencedMedication" inverseName="patient" inverseEntity="DispencedMedication"/>
+    </entity>
+    <entity name="Person" representedClassName="Person" syncable="YES">
+        <attribute name="birthdate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="firstName" optional="YES" attributeType="String" allowsCloudEncryption="YES"/>
+        <attribute name="lastName" optional="YES" attributeType="String" allowsCloudEncryption="YES"/>
+        <attribute name="middleName" optional="YES" attributeType="String" allowsCloudEncryption="YES"/>
+        <attribute name="timeStamp" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+    </entity>
+    <entity name="Provider" representedClassName="Provider" parentEntity="Person" syncable="YES">
+        <relationship name="relationship" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="DispencedMedication" inverseName="prescriber" inverseEntity="DispencedMedication"/>
+    </entity>
 </model>

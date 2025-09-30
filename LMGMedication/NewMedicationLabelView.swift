@@ -7,6 +7,7 @@
 
 import SwiftUI
 import PDFKit
+import CoreData
 
 struct MedicationLabelView: View {
     let medication: DispencedMedication
