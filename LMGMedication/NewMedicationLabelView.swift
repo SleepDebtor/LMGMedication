@@ -29,13 +29,19 @@ struct MedicationLabelView: View {
                     .buttonStyle(.borderedProminent)
                     .controlSize(.large)
                     
-                    Button("Share PDF") {
-                        Task {
-                            await sharePDF()
+                    HStack(spacing: 16) {
+                        Button("Share PDF") {
+                            Task {
+                                await sharePDF()
+                            }
                         }
+                        .buttonStyle(.bordered)
+                        .controlSize(.large)
+                        
+                        ShareLabelButton(medication: medication)
+                            .buttonStyle(.bordered)
+                            .controlSize(.large)
                     }
-                    .buttonStyle(.bordered)
-                    .controlSize(.large)
                 }
                 .padding()
             }

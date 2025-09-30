@@ -78,8 +78,14 @@ struct PatientDetailView: View {
         .navigationBarTitleDisplayMode(.large)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
-                Button(action: { showingAddMedication = true }) {
-                    Image(systemName: "plus")
+                Menu {
+                    Button(action: { showingAddMedication = true }) {
+                        Label("Dispense Medication", systemImage: "plus")
+                    }
+                    
+                    SharePatientButton(patient: patient)
+                } label: {
+                    Image(systemName: "ellipsis.circle")
                 }
             }
         }

@@ -17,9 +17,13 @@ struct AddMedicationView: View {
     @FetchRequest(
         sortDescriptors: [NSSortDescriptor(keyPath: \Medication.name, ascending: true)],
         animation: .default)
-    private var medicationTemplates: FetchedResults<Medication>
+    private var localMedicationTemplates: FetchedResults<Medication>
     
-    @State private var selectedTemplate: Medication?
+    @StateObject private var cloudManager = CloudKitManager.shared
+    
+    @State private var selectedLocalTemplate: Medication?
+    @State private var selectedCloudTemplate: CloudMedicationTemplate?
+    @State private var templateSource = 0 // 0 = Local, 1 = Public
     @State private var medicationName = ""
     @State private var dose = ""
     @State private var doseUnit = "mg"
@@ -38,42 +42,90 @@ struct AddMedicationView: View {
     @State private var injectable = false
     @State private var useTemplate = true
     
+    private var hasValidTemplate: Bool {
+        if templateSource == 0 {
+            return selectedLocalTemplate != nil
+        } else {
+            return selectedCloudTemplate != nil
+        }
+    }
+    
     var body: some View {
-        NavigationView {
-            Form {
+        Form {
                 Section(header: Text("Medication Source")) {
                     Toggle("Use Medication Template", isOn: $useTemplate)
                     
                     if useTemplate {
-                        if medicationTemplates.isEmpty {
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("No medication templates available")
-                                    .foregroundColor(.secondary)
-                                Text("Create templates in the main menu to speed up dispensing")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
+                        Picker("Template Source", selection: $templateSource) {
+                            Text("My Templates").tag(0)
+                            Text("Public Templates").tag(1)
+                        }
+                        .pickerStyle(.segmented)
+                        
+                        if templateSource == 0 {
+                            // Local templates
+                            if localMedicationTemplates.isEmpty {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text("No local templates available")
+                                        .foregroundColor(.secondary)
+                                    Text("Create templates in the main menu to speed up dispensing")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                            } else {
+                                Picker("Select Local Template", selection: $selectedLocalTemplate) {
+                                    Text("Choose a medication...").tag(nil as Medication?)
+                                    ForEach(localMedicationTemplates) { template in
+                                        Text(template.name ?? "Unknown").tag(template as Medication?)
+                                    }
+                                }
+                                .pickerStyle(.menu)
                             }
                         } else {
-                            Picker("Select Template", selection: $selectedTemplate) {
-                                Text("Choose a medication...").tag(nil as Medication?)
-                                ForEach(medicationTemplates) { template in
-                                    Text(template.name ?? "Unknown").tag(template as Medication?)
+                            // Public templates
+                            if !cloudManager.isSignedInToiCloud {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text("Sign in to iCloud to access public templates")
+                                        .foregroundColor(.secondary)
+                                    Text("Public templates are shared by healthcare professionals")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
                                 }
+                            } else if cloudManager.publicMedicationTemplates.isEmpty {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text("No public templates available")
+                                        .foregroundColor(.secondary)
+                                    Text("Public templates are shared by the community")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                            } else {
+                                Picker("Select Public Template", selection: $selectedCloudTemplate) {
+                                    Text("Choose a medication...").tag(nil as CloudMedicationTemplate?)
+                                    ForEach(cloudManager.publicMedicationTemplates) { template in
+                                        Text(template.name).tag(template as CloudMedicationTemplate?)
+                                    }
+                                }
+                                .pickerStyle(.menu)
                             }
-                            .pickerStyle(.menu)
                         }
                     }
                 }
                 
                 Section(header: Text("Medication Details")) {
-                    if !useTemplate || selectedTemplate == nil {
+                    if !useTemplate || (templateSource == 0 && selectedLocalTemplate == nil) || (templateSource == 1 && selectedCloudTemplate == nil) {
                         TextField("Medication Name", text: $medicationName)
                     } else {
                         HStack {
                             Text("Medication Name")
                             Spacer()
-                            Text(selectedTemplate?.name ?? "")
-                                .foregroundColor(.secondary)
+                            if templateSource == 0 {
+                                Text(selectedLocalTemplate?.name ?? "")
+                                    .foregroundColor(.secondary)
+                            } else {
+                                Text(selectedCloudTemplate?.name ?? "")
+                                    .foregroundColor(.secondary)
+                            }
                         }
                     }
                     
@@ -89,19 +141,24 @@ struct AddMedicationView: View {
                         .pickerStyle(.menu)
                     }
                     
-                    if !useTemplate || selectedTemplate == nil {
+                    if !useTemplate || !hasValidTemplate {
                         Toggle("Injectable", isOn: $injectable)
                     } else {
                         HStack {
                             Text("Injectable")
                             Spacer()
-                            Text(selectedTemplate?.injectable == true ? "Yes" : "No")
-                                .foregroundColor(.secondary)
+                            if templateSource == 0 {
+                                Text(selectedLocalTemplate?.injectable == true ? "Yes" : "No")
+                                    .foregroundColor(.secondary)
+                            } else {
+                                Text(selectedCloudTemplate?.injectable == true ? "Yes" : "No")
+                                    .foregroundColor(.secondary)
+                            }
                         }
                     }
                 }
                 
-                if !useTemplate || selectedTemplate == nil {
+                if !useTemplate || !hasValidTemplate {
                     Section(header: Text("Ingredients")) {
                         HStack {
                             TextField("Ingredient 1", text: $ingredient1)
@@ -117,23 +174,47 @@ struct AddMedicationView: View {
                                 .frame(width: 80)
                         }
                     }
-                } else if let template = selectedTemplate {
+                } else {
                     Section(header: Text("Ingredients")) {
-                        if let ingredient1 = template.ingredient1, !ingredient1.isEmpty {
-                            HStack {
-                                Text(ingredient1)
-                                Spacer()
-                                Text("\(template.concentration1, specifier: "%.1f")")
-                                    .foregroundColor(.secondary)
+                        if templateSource == 0 {
+                            if let template = selectedLocalTemplate {
+                                if let ingredient1 = template.ingredient1, !ingredient1.isEmpty {
+                                    HStack {
+                                        Text(ingredient1)
+                                        Spacer()
+                                        Text("\(template.concentration1, specifier: "%.1f")")
+                                            .foregroundColor(.secondary)
+                                    }
+                                }
+                                
+                                if let ingredient2 = template.ingredient2, !ingredient2.isEmpty {
+                                    HStack {
+                                        Text(ingredient2)
+                                        Spacer()
+                                        Text("\(template.concentration2, specifier: "%.1f")")
+                                            .foregroundColor(.secondary)
+                                    }
+                                }
                             }
-                        }
-                        
-                        if let ingredient2 = template.ingredient2, !ingredient2.isEmpty {
-                            HStack {
-                                Text(ingredient2)
-                                Spacer()
-                                Text("\(template.concentration2, specifier: "%.1f")")
-                                    .foregroundColor(.secondary)
+                        } else {
+                            if let template = selectedCloudTemplate {
+                                if let ingredient1 = template.ingredient1, !ingredient1.isEmpty {
+                                    HStack {
+                                        Text(ingredient1)
+                                        Spacer()
+                                        Text("\(template.concentration1, specifier: "%.1f")")
+                                            .foregroundColor(.secondary)
+                                    }
+                                }
+                                
+                                if let ingredient2 = template.ingredient2, !ingredient2.isEmpty {
+                                    HStack {
+                                        Text(ingredient2)
+                                        Spacer()
+                                        Text("\(template.concentration2, specifier: "%.1f")")
+                                            .foregroundColor(.secondary)
+                                    }
+                                }
                             }
                         }
                     }
@@ -152,14 +233,19 @@ struct AddMedicationView: View {
                 }
                 
                 Section(header: Text("Pharmacy")) {
-                    if !useTemplate || selectedTemplate == nil {
+                    if !useTemplate || !hasValidTemplate {
                         TextField("Pharmacy Name", text: $pharmacy)
                     } else {
                         HStack {
                             Text("Pharmacy Name")
                             Spacer()
-                            Text(selectedTemplate?.pharmacy ?? pharmacy)
-                                .foregroundColor(.secondary)
+                            if templateSource == 0 {
+                                Text(selectedLocalTemplate?.pharmacy ?? pharmacy)
+                                    .foregroundColor(.secondary)
+                            } else {
+                                Text(selectedCloudTemplate?.pharmacy ?? pharmacy)
+                                    .foregroundColor(.secondary)
+                            }
                         }
                     }
                 }
@@ -181,24 +267,38 @@ struct AddMedicationView: View {
                     Button("Save") {
                         saveMedication()
                     }
-                    .disabled((useTemplate && selectedTemplate == nil) || (!useTemplate && medicationName.isEmpty))
+                    .disabled((useTemplate && !hasValidTemplate) || (!useTemplate && medicationName.isEmpty))
                 }
             }
-            .onChange(of: selectedTemplate) { _, newTemplate in
-                if let template = newTemplate {
-                    loadFromTemplate(template)
+            .onChange(of: selectedLocalTemplate) { _, newTemplate in
+                if let template = newTemplate, templateSource == 0 {
+                    loadFromLocalTemplate(template)
+                }
+            }
+            .onChange(of: selectedCloudTemplate) { _, newTemplate in
+                if let template = newTemplate, templateSource == 1 {
+                    loadFromCloudTemplate(template)
                 }
             }
             .onAppear {
-                if useTemplate && !medicationTemplates.isEmpty {
-                    selectedTemplate = medicationTemplates.first
+                if useTemplate && !localMedicationTemplates.isEmpty && templateSource == 0 {
+                    selectedLocalTemplate = localMedicationTemplates.first
                 }
             }
-        }
     }
     
-    private func loadFromTemplate(_ template: Medication) {
+    private func loadFromLocalTemplate(_ template: Medication) {
         medicationName = template.name ?? ""
+        pharmacy = template.pharmacy ?? pharmacy
+        ingredient1 = template.ingredient1 ?? ""
+        concentration1 = template.concentration1
+        ingredient2 = template.ingredient2 ?? ""
+        concentration2 = template.concentration2
+        injectable = template.injectable
+    }
+    
+    private func loadFromCloudTemplate(_ template: CloudMedicationTemplate) {
+        medicationName = template.name
         pharmacy = template.pharmacy ?? pharmacy
         ingredient1 = template.ingredient1 ?? ""
         concentration1 = template.concentration1
@@ -211,8 +311,13 @@ struct AddMedicationView: View {
         withAnimation {
             // Use selected template or create/find medication
             let medication: Medication
-            if useTemplate, let template = selectedTemplate {
-                medication = template
+            if useTemplate && hasValidTemplate {
+                if templateSource == 0, let template = selectedLocalTemplate {
+                    medication = template
+                } else {
+                    // For cloud templates, we need to create/find a local medication
+                    medication = findOrCreateMedication()
+                }
             } else {
                 medication = findOrCreateMedication()
             }
