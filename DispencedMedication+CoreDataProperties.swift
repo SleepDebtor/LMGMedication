@@ -2,7 +2,7 @@
 //  DispencedMedication+CoreDataProperties.swift
 //  LMGMedication
 //
-//  Created by Michael Lazar on 9/29/25.
+//  Created by Michael Lazar on 9/30/25.
 //
 //
 
@@ -26,6 +26,7 @@ extension DispencedMedication {
     @NSManaged public var doseUnit: String?
     @NSManaged public var expDate: Date?
     @NSManaged public var lotNum: String?
+    @NSManaged public var doseNum: Double
     @NSManaged public var baseMedication: Medication?
     @NSManaged public var patient: Patient?
     @NSManaged public var prescriber: Provider?
@@ -33,5 +34,18 @@ extension DispencedMedication {
 }
 
 extension DispencedMedication : Identifiable {
-
+    var doseMedication2: String {
+        if let mecication2 = baseMedication?.ingredient2, let concentration2 = baseMedication?.concentration2 {
+            return "\(fillAmount * concentration2)  \(baseMedication?.ingredient2 ?? "")"
+        }
+        return ""
+    }
+    
+    var fillAmount: Double {
+        if let concentration = baseMedication?.concentration1 {
+            return doseNum / concentration
+        } else {
+            return 0
+        }
+    }
 }

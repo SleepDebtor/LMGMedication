@@ -6,6 +6,7 @@
         <attribute name="dispenceDate" optional="YES" attributeType="Date" allowsCloudEncryption="YES" usesScalarValueType="NO"/>
         <attribute name="dispenceUnit" optional="YES" attributeType="String" allowsCloudEncryption="YES"/>
         <attribute name="dose" optional="YES" attributeType="String" allowsCloudEncryption="YES"/>
+        <attribute name="doseNum" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
         <attribute name="doseUnit" optional="YES" attributeType="String" allowsCloudEncryption="YES"/>
         <attribute name="expDate" optional="YES" attributeType="Date" allowsCloudEncryption="YES" usesScalarValueType="NO"/>
         <attribute name="lotNum" optional="YES" attributeType="String" allowsCloudEncryption="YES"/>
