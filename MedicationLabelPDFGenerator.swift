@@ -22,7 +22,7 @@ class MedicationLabelPDFGenerator {
     }
     
     private static func createMedicationLabelPDF(for medication: DispencedMedication) -> Data? {
-        let pageRect = CGRect(x: 0, y: 0, width: 612, height: 400) // Landscape label size
+        let pageRect = CGRect(x: 0, y: 0, width: 400, height: 200) // 2x1 inch label size at 200 DPI
         let renderer = UIGraphicsPDFRenderer(bounds: pageRect)
         
         let data = renderer.pdfData { context in
@@ -34,55 +34,57 @@ class MedicationLabelPDFGenerator {
         return data
     }
     
-    private static func drawMedicationLabel(in rect: CGRect, for medication: DispencedMedication, context: CGContext) {
-        let margin: CGFloat = 20
+    static func drawMedicationLabel(in rect: CGRect, for medication: DispencedMedication, context: CGContext) {
+        let margin: CGFloat = 6 // Scaled margin for 200 DPI
         let contentRect = rect.insetBy(dx: margin, dy: margin)
         
         // Draw border
         context.setStrokeColor(UIColor.black.cgColor)
-        context.setLineWidth(2)
+        context.setLineWidth(2) // Slightly thicker border for higher resolution
         context.stroke(rect.insetBy(dx: 1, dy: 1))
         
-        // Generate and draw QR code on the left
-        let qrCodeRect = CGRect(x: contentRect.minX, y: contentRect.minY + 20, width: 120, height: 120)
+        // QR code on the left - scaled for 200 DPI
+        let qrCodeSize: CGFloat = 166 // Scaled QR code size (60 * 200/72)
+        let qrCodeRect = CGRect(
+            x: contentRect.minX + 6, 
+            y: contentRect.minY + (contentRect.height - qrCodeSize) / 2, // Center vertically
+            width: qrCodeSize, 
+            height: qrCodeSize
+        )
+        
         if let qrCodeImage = generateQRCode(for: medication) {
             context.draw(qrCodeImage, in: qrCodeRect)
         }
         
-        // Patient information area
-        let patientInfoRect = CGRect(
-            x: qrCodeRect.maxX + 20,
+        // Text area on the right - remaining space
+        let textRect = CGRect(
+            x: qrCodeRect.maxX + 11,
             y: contentRect.minY,
-            width: contentRect.width - qrCodeRect.width - 20,
+            width: contentRect.width - qrCodeSize - 17,
             height: contentRect.height
         )
         
-        drawPatientAndMedicationInfo(in: patientInfoRect, for: medication, context: context)
-        
-        // Draw pharmacy info at bottom
-        drawPharmacyInfo(in: contentRect, for: medication, context: context)
+        drawCompactMedicationInfo(in: textRect, for: medication, context: context)
     }
     
-    private static func drawPatientAndMedicationInfo(in rect: CGRect, for medication: DispencedMedication, context: CGContext) {
-        var currentY = rect.minY + 10
+    private static func drawCompactMedicationInfo(in rect: CGRect, for medication: DispencedMedication, context: CGContext) {
+        var currentY = rect.minY + 3
         
-        // Patient name (large, bold)
+        // Patient name (compact, bold) - scaled for 200 DPI
         if let patient = medication.patient {
             let lastName = patient.lastName ?? "Unknown"
             let firstName = patient.firstName ?? "Patient"
             let patientName = "\(lastName), \(firstName)"
             currentY += drawText(
                 patientName,
-                font: UIFont.boldSystemFont(ofSize: 28),
+                font: UIFont.boldSystemFont(ofSize: 22), // 8 * 2.78 ≈ 22
                 color: UIColor.black,
-                rect: CGRect(x: rect.minX, y: currentY, width: rect.width, height: 40),
+                rect: CGRect(x: rect.minX, y: currentY, width: rect.width, height: 28),
                 context: context
             )
         }
         
-        currentY += 10
-        
-        // Medication name and dose (large, bold)
+        // Medication name and dose (compact, bold) - scaled for 200 DPI
         let medicationName = medication.baseMedication?.name ?? "Unknown Medication"
         let dose = medication.dose ?? ""
         let doseUnit = medication.doseUnit ?? ""
@@ -90,56 +92,50 @@ class MedicationLabelPDFGenerator {
         
         currentY += drawText(
             medicationTitle,
-            font: UIFont.boldSystemFont(ofSize: 24),
+            font: UIFont.boldSystemFont(ofSize: 19), // 7 * 2.78 ≈ 19
             color: UIColor.black,
-            rect: CGRect(x: rect.minX, y: currentY, width: rect.width, height: 35),
+            rect: CGRect(x: rect.minX, y: currentY, width: rect.width, height: 25),
             context: context
         )
         
-        currentY += 5
-        
-        // Secondary ingredient if exists (matching the image format)
+        // Secondary ingredient (compact) - scaled for 200 DPI
         if let ingredient2 = medication.baseMedication?.ingredient2,
            let concentration2 = medication.baseMedication?.concentration2,
            !ingredient2.isEmpty, concentration2 > 0 {
             let secondaryInfo = "\(ingredient2) \(String(format: "%.1f", concentration2))mg"
             currentY += drawText(
                 secondaryInfo,
-                font: UIFont.italicSystemFont(ofSize: 18),
+                font: UIFont.italicSystemFont(ofSize: 17), // 6 * 2.78 ≈ 17
                 color: UIColor.darkGray,
-                rect: CGRect(x: rect.minX, y: currentY, width: rect.width, height: 25),
+                rect: CGRect(x: rect.minX, y: currentY, width: rect.width, height: 22),
                 context: context
             )
         }
         
-        currentY += 15
-        
-        // Dispense information (bold, matching image)
+        // Dispense information (compact) - scaled for 200 DPI
         let dispenseAmt = medication.dispenceAmt > 0 ? Int(medication.dispenceAmt) : 1
         let dispenseUnit = medication.dispenceUnit ?? "units"
-        let dispenseInfo = "Dispense: \(dispenseAmt) \(dispenseUnit)"
+        let dispenseInfo = "Disp: \(dispenseAmt) \(dispenseUnit)"
         currentY += drawText(
             dispenseInfo,
-            font: UIFont.boldSystemFont(ofSize: 20),
+            font: UIFont.boldSystemFont(ofSize: 17), // 6 * 2.78 ≈ 17
             color: UIColor.black,
-            rect: CGRect(x: rect.minX, y: currentY, width: rect.width, height: 30),
+            rect: CGRect(x: rect.minX, y: currentY, width: rect.width, height: 22),
             context: context
         )
         
-        // Dosing instructions (matching the "1 syringe sq weekly" format)
+        // Dosing instructions (compact) - scaled for 200 DPI
         let unitSingular = dispenseUnit.hasSuffix("s") ? String(dispenseUnit.dropLast()) : dispenseUnit
         let dosingInstructions = "1 \(unitSingular) sq weekly"
         currentY += drawText(
             dosingInstructions,
-            font: UIFont.systemFont(ofSize: 18),
+            font: UIFont.systemFont(ofSize: 14), // 5 * 2.78 ≈ 14
             color: UIColor.black,
-            rect: CGRect(x: rect.minX, y: currentY, width: rect.width, height: 25),
+            rect: CGRect(x: rect.minX, y: currentY, width: rect.width, height: 19),
             context: context
         )
         
-        currentY += 20
-        
-        // Prescriber information (bold, matching image format)
+        // Prescriber information (compact) - scaled for 200 DPI
         if let prescriber = medication.prescriber {
             let firstName = prescriber.firstName ?? ""
             let lastName = prescriber.lastName ?? ""
@@ -147,78 +143,35 @@ class MedicationLabelPDFGenerator {
             
             currentY += drawText(
                 "Prescriber: \(prescriberName)",
-                font: UIFont.boldSystemFont(ofSize: 16),
+                font: UIFont.boldSystemFont(ofSize: 14), // 5 * 2.78 ≈ 14
                 color: UIColor.black,
-                rect: CGRect(x: rect.minX, y: currentY, width: rect.width - 120, height: 22),
+                rect: CGRect(x: rect.minX, y: currentY, width: rect.width, height: 19),
                 context: context
-            )
-            
-            // Add prescriber contact info (matching the image)
-            drawText(
-                "(570) 993-5507",
-                font: UIFont.systemFont(ofSize: 14),
-                color: UIColor.black,
-                rect: CGRect(x: rect.width - 120, y: currentY - 22, width: 120, height: 20),
-                context: context,
-                alignment: .right
             )
         }
         
-        // Practice information (matching the image)
+        // Practice and pharmacy information (very compact, at bottom) - scaled for 200 DPI
+        let practiceInfo = "Lazar Medical Group, 400 Market St, Suite 5, Williamsport, PA"
         currentY += drawText(
-            "Lazar Medical Group, 400 Market St, Suite 5, Williamsport, PA",
-            font: UIFont.systemFont(ofSize: 14),
+            practiceInfo,
+            font: UIFont.systemFont(ofSize: 11), // 4 * 2.78 ≈ 11
             color: UIColor.black,
-            rect: CGRect(x: rect.minX, y: currentY, width: rect.width, height: 20),
+            rect: CGRect(x: rect.minX, y: currentY, width: rect.width, height: 17),
             context: context
         )
-    }
-    
-    private static func drawPharmacyInfo(in rect: CGRect, for medication: DispencedMedication, context: CGContext) {
-        let bottomY = rect.maxY - 35
         
-        // Pharmacy info with fill volume (matching "Empower Pharmacy 0.15mL (15U) fill on each syringe")
+        // Pharmacy info with fill volume (compact) - scaled for 200 DPI
         if let pharmacy = medication.baseMedication?.pharmacy {
             let fillAmount = medication.fillAmount
             let fillText = String(format: "%.2f", fillAmount)
-            let pharmacyText = "\(pharmacy) \(fillText)mL (15U) fill on each syringe"
+            let fillTextUnits = String(format: "%.0f", fillAmount * 100)
+            let pharmacyText = "\(pharmacy) \(fillText)mL (\(fillTextUnits)U)"
             
-            drawText(
+            currentY += drawText(
                 pharmacyText,
-                font: UIFont.boldSystemFont(ofSize: 14),
+                font: UIFont.boldSystemFont(ofSize: 11), // 4 * 2.78 ≈ 11
                 color: UIColor.black,
-                rect: CGRect(x: rect.minX, y: bottomY, width: rect.width, height: 20),
-                context: context
-            )
-        }
-        
-        // Date information
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateStyle = .short
-        
-        var dateInfo: [String] = []
-        
-        if let dispenseDate = medication.dispenceDate {
-            dateInfo.append("Dispensed: \(dateFormatter.string(from: dispenseDate))")
-        }
-        
-        if let expDate = medication.expDate {
-            let expFormatter = DateFormatter()
-            expFormatter.dateFormat = "MMMMyyyy" // Matching "June2025" format from image
-            dateInfo.append("Exp: \(expFormatter.string(from: expDate))")
-        }
-        
-        if let lotNum = medication.lotNum {
-            dateInfo.append("Lot: \(lotNum)")
-        }
-        
-        if !dateInfo.isEmpty {
-            let dateString = dateInfo.joined(separator: " | ")
-            drawText(
-                dateString,
-                font: UIFont.systemFont(ofSize: 12),
-                color: UIColor.darkGray,
-                rect: CGRect(x: rect.minX, y: bottomY + 18, width: rect.width, height: 18),
+                rect: CGRect(x: rect.minX, y: currentY, width: rect.width, height: 17),
                 context: context
             )
         }

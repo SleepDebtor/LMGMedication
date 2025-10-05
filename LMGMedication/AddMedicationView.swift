@@ -41,12 +41,32 @@ struct AddMedicationView: View {
     @State private var prescriberLastName = ""
     @State private var injectable = false
     @State private var useTemplate = true
+    @State private var showingError = false
+    @State private var errorMessage = ""
     
     private var hasValidTemplate: Bool {
         if templateSource == 0 {
             return selectedLocalTemplate != nil
         } else {
             return selectedCloudTemplate != nil
+        }
+    }
+    
+    private var canSave: Bool {
+        if useTemplate {
+            return hasValidTemplate
+        } else {
+            return !medicationName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        }
+    }
+    
+    private var saveButtonStatusText: String {
+        if useTemplate && !hasValidTemplate {
+            return templateSource == 0 ? "Please select a local template" : "Please select a public template"
+        } else if !useTemplate && medicationName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return "Please enter a medication name"
+        } else {
+            return "Ready to save"
         }
     }
     
@@ -254,6 +274,37 @@ struct AddMedicationView: View {
                     TextField("First Name", text: $prescriberFirstName)
                     TextField("Last Name", text: $prescriberLastName)
                 }
+                
+                // Debug/Status section
+                Section {
+                    HStack {
+                        Text("Status:")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Spacer()
+                        Text(saveButtonStatusText)
+                            .font(.caption)
+                            .foregroundColor(canSave ? .green : .orange)
+                    }
+                    
+                    // Prominent Save Button
+                    Button(action: {
+                        saveMedication()
+                    }) {
+                        HStack {
+                            Image(systemName: "checkmark.circle.fill")
+                            Text("Save Medication")
+                        }
+                        .font(.headline)
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(canSave ? Color.blue : Color.gray)
+                        .cornerRadius(10)
+                    }
+                    .disabled(!canSave)
+                    .buttonStyle(.plain)
+                }
             }
             .navigationTitle("Dispense Medication")
             .navigationBarTitleDisplayMode(.inline)
@@ -267,7 +318,7 @@ struct AddMedicationView: View {
                     Button("Save") {
                         saveMedication()
                     }
-                    .disabled((useTemplate && !hasValidTemplate) || (!useTemplate && medicationName.isEmpty))
+                    .disabled(!canSave)
                 }
             }
             .onChange(of: selectedLocalTemplate) { _, newTemplate in
@@ -281,9 +332,17 @@ struct AddMedicationView: View {
                 }
             }
             .onAppear {
-                if useTemplate && !localMedicationTemplates.isEmpty && templateSource == 0 {
+                // Auto-switch to manual entry if no templates exist
+                if localMedicationTemplates.isEmpty {
+                    useTemplate = false
+                } else if useTemplate && templateSource == 0 {
                     selectedLocalTemplate = localMedicationTemplates.first
                 }
+            }
+            .alert("Error Saving Medication", isPresented: $showingError) {
+                Button("OK") { }
+            } message: {
+                Text(errorMessage)
             }
     }
     
@@ -343,10 +402,13 @@ struct AddMedicationView: View {
             
             do {
                 try viewContext.save()
+                print("✅ Successfully saved dispensed medication for \(patient.displayName ?? "Unknown Patient")")
                 dismiss()
             } catch {
                 let nsError = error as NSError
-                fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
+                print("❌ Error saving medication: \(nsError), \(nsError.userInfo)")
+                errorMessage = "Failed to save medication: \(nsError.localizedDescription)"
+                showingError = true
             }
         }
     }

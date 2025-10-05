@@ -24,6 +24,10 @@
 		BD59A1A82E92BAEB00C4516C /* MedicationLabelPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD59A1A72E92BAEB00C4516C /* MedicationLabelPreviewView.swift */; };
 		BD59A1AA2E92BAF600C4516C /* SharingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD59A1A92E92BAF600C4516C /* SharingTests.swift */; };
 		BD59A1AC2E92E5F500C4516C /* SharingTests 2.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD59A1AB2E92E5F500C4516C /* SharingTests 2.swift */; };
+		BD59A1AE2E92EE7600C4516C /* MedicationPrintManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD59A1AD2E92EE7600C4516C /* MedicationPrintManager.swift */; };
+		BD59A1B02E92FA4900C4516C /* QRCodeGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD59A1AF2E92FA4900C4516C /* QRCodeGenerator.swift */; };
+		BD59A1B22E92FAC200C4516C /* QRCodeTestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD59A1B12E92FAC200C4516C /* QRCodeTestView.swift */; };
+		BD59A1B42E92FB0100C4516C /* QR_Code_Implementation_README.md in Resources */ = {isa = PBXBuildFile; fileRef = BD59A1B32E92FB0100C4516C /* QR_Code_Implementation_README.md */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -61,6 +65,10 @@
 		BD59A1A72E92BAEB00C4516C /* MedicationLabelPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicationLabelPreviewView.swift; sourceTree = "<group>"; };
 		BD59A1A92E92BAF600C4516C /* SharingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharingTests.swift; sourceTree = "<group>"; };
 		BD59A1AB2E92E5F500C4516C /* SharingTests 2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SharingTests 2.swift"; sourceTree = "<group>"; };
+		BD59A1AD2E92EE7600C4516C /* MedicationPrintManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicationPrintManager.swift; sourceTree = "<group>"; };
+		BD59A1AF2E92FA4900C4516C /* QRCodeGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRCodeGenerator.swift; sourceTree = "<group>"; };
+		BD59A1B12E92FAC200C4516C /* QRCodeTestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRCodeTestView.swift; sourceTree = "<group>"; };
+		BD59A1B32E92FB0100C4516C /* QR_Code_Implementation_README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = QR_Code_Implementation_README.md; sourceTree = "<group>"; };
 		BD5B529F2E89564F00DD14F1 /* LMGMedication.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LMGMedication.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		BD5B52B32E89565000DD14F1 /* LMGMedicationTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LMGMedicationTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		BD5B52BD2E89565000DD14F1 /* LMGMedicationUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LMGMedicationUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -146,6 +154,10 @@
 				BD59A1A72E92BAEB00C4516C /* MedicationLabelPreviewView.swift */,
 				BD59A1A92E92BAF600C4516C /* SharingTests.swift */,
 				BD59A1AB2E92E5F500C4516C /* SharingTests 2.swift */,
+				BD59A1AD2E92EE7600C4516C /* MedicationPrintManager.swift */,
+				BD59A1AF2E92FA4900C4516C /* QRCodeGenerator.swift */,
+				BD59A1B12E92FAC200C4516C /* QRCodeTestView.swift */,
+				BD59A1B32E92FB0100C4516C /* QR_Code_Implementation_README.md */,
 			);
 			sourceTree = "<group>";
 		};
@@ -279,6 +291,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BD59A1B42E92FB0100C4516C /* QR_Code_Implementation_README.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -312,9 +325,12 @@
 				275592A42E8B5FCE00A524A7 /* Person+CoreDataClass.swift in Sources */,
 				275592A52E8B5FCE00A524A7 /* DispencedMedication+CoreDataProperties.swift in Sources */,
 				BD59A1AC2E92E5F500C4516C /* SharingTests 2.swift in Sources */,
+				BD59A1B02E92FA4900C4516C /* QRCodeGenerator.swift in Sources */,
 				BD59A1A62E92BA9900C4516C /* ParticipantSelectionView.swift in Sources */,
+				BD59A1AE2E92EE7600C4516C /* MedicationPrintManager.swift in Sources */,
 				275592A62E8B5FCE00A524A7 /* Medication+CoreDataClass.swift in Sources */,
 				275592A72E8B5FCE00A524A7 /* Provider+CoreDataProperties.swift in Sources */,
+				BD59A1B22E92FAC200C4516C /* QRCodeTestView.swift in Sources */,
 				275592A82E8B5FCE00A524A7 /* Medication+CoreDataProperties.swift in Sources */,
 				275592A92E8B5FCE00A524A7 /* DispencedMedication+CoreDataClass.swift in Sources */,
 				275592BD2E8B6F9C00A524A7 /* CloudKitManager.swift in Sources */,

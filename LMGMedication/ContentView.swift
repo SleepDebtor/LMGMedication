@@ -147,27 +147,59 @@ struct MainDashboardView: View {
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: 12) {
                                     ForEach(Array(patient.dispensedMedicationsArray.prefix(3)), id: \.objectID) { medication in
-                                        NavigationLink(destination: MedicationLabelView(medication: medication)) {
-                                            VStack(alignment: .leading, spacing: 4) {
-                                                Text(medication.displayName)
-                                                    .font(.caption)
-                                                    .fontWeight(.medium)
-                                                    .foregroundColor(.primary)
-                                                    .lineLimit(2)
-                                                
-                                                if let date = medication.dispenceDate {
-                                                    Text(date, style: .date)
-                                                        .font(.caption2)
-                                                        .foregroundColor(.secondary)
+                                        VStack(spacing: 8) {
+                                            NavigationLink(destination: MedicationLabelView(medication: medication)) {
+                                                VStack(alignment: .leading, spacing: 4) {
+                                                    Text(medication.displayName)
+                                                        .font(.caption)
+                                                        .fontWeight(.medium)
+                                                        .foregroundColor(.primary)
+                                                        .lineLimit(2)
+                                                    
+                                                    if let date = medication.dispenceDate {
+                                                        Text(date, style: .date)
+                                                            .font(.caption2)
+                                                            .foregroundColor(.secondary)
+                                                    }
                                                 }
+                                                .padding(8)
+                                                .frame(width: 120, height: 50)
+                                                .background(Color(.systemGray6))
+                                                .cornerRadius(8)
                                             }
-                                            .padding(8)
-                                            .frame(width: 120, height: 60)
-                                            .background(Color(.systemGray6))
-                                            .cornerRadius(8)
+                                            .buttonStyle(.plain)
+                                            
+                                            // Quick print button
+                                            Button(action: {
+                                                Task {
+                                                    await MedicationPrintManager.shared.printLabel(for: medication)
+                                                }
+                                            }) {
+                                                Image(systemName: "printer")
+                                                    .font(.caption)
+                                                    .foregroundColor(.blue)
+                                            }
+                                            .buttonStyle(.plain)
                                         }
-                                        .buttonStyle(.plain)
                                     }
+                                    
+                                    // View all medications button
+                                    NavigationLink(destination: PatientDetailView(patient: patient)) {
+                                        VStack(spacing: 4) {
+                                            Text("View All")
+                                                .font(.caption)
+                                                .fontWeight(.medium)
+                                                .foregroundColor(.blue)
+                                            
+                                            Image(systemName: "arrow.right.circle")
+                                                .font(.title2)
+                                                .foregroundColor(.blue)
+                                        }
+                                        .frame(width: 80, height: 58)
+                                        .background(Color(.systemGray6))
+                                        .cornerRadius(8)
+                                    }
+                                    .buttonStyle(.plain)
                                 }
                                 .padding(.horizontal, 1)
                             }

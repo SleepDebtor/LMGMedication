@@ -358,6 +358,7 @@ struct EditMedicationTemplateView: View {
     @State private var injectable = false
     @State private var pharmacyURL = ""
     @State private var urlForQR = ""
+    @State private var qrCodeImage: UIImage?
     
     var body: some View {
         NavigationView {
@@ -400,6 +401,47 @@ struct EditMedicationTemplateView: View {
                 Section(header: Text("URLs (Optional)")) {
                     TextField("Pharmacy URL", text: $pharmacyURL)
                     TextField("QR Code URL", text: $urlForQR)
+                        .onChange(of: urlForQR) { _, newValue in
+                            updateQRCodePreview()
+                        }
+                }
+                
+                Section(header: Text("QR Code Preview")) {
+                    VStack(spacing: 12) {
+                        if let qrImage = qrCodeImage {
+                            Image(uiImage: qrImage)
+                                .interpolation(.none)
+                                .resizable()
+                                .frame(width: 150, height: 150)
+                                .border(Color.gray.opacity(0.3), width: 1)
+                        } else {
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(Color.gray.opacity(0.5), style: StrokeStyle(lineWidth: 2, dash: [5]))
+                                .frame(width: 150, height: 150)
+                                .overlay(
+                                    VStack {
+                                        Image(systemName: "qrcode")
+                                            .font(.system(size: 40))
+                                            .foregroundColor(.gray)
+                                        Text("QR Code Preview")
+                                            .font(.caption)
+                                            .foregroundColor(.gray)
+                                    }
+                                )
+                        }
+                        
+                        Button("Generate QR Code") {
+                            generateQRCode()
+                        }
+                        .buttonStyle(.bordered)
+                        
+                        Text("URL: \(urlForQR.isEmpty ? "https://hushmedicalspa.com/medications" : urlForQR)")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
                 }
             }
             .navigationTitle("Edit Template")
@@ -420,7 +462,27 @@ struct EditMedicationTemplateView: View {
             }
             .onAppear {
                 loadFromMedication()
+                loadExistingQRCode()
             }
+        }
+    }
+    
+    private func updateQRCodePreview() {
+        let urlToUse = urlForQR.isEmpty ? "https://hushmedicalspa.com/medications" : QRCodeGenerator.formatURL(urlForQR)
+        qrCodeImage = QRCodeGenerator.generateQRCode(from: urlToUse, size: CGSize(width: 150, height: 150))
+    }
+    
+    private func generateQRCode() {
+        let urlToUse = urlForQR.isEmpty ? "https://hushmedicalspa.com/medications" : QRCodeGenerator.formatURL(urlForQR)
+        qrCodeImage = QRCodeGenerator.generateQRCode(from: urlToUse, size: CGSize(width: 200, height: 200))
+    }
+    
+    private func loadExistingQRCode() {
+        if let qrData = medication.qrImage,
+           let image = UIImage(data: qrData) {
+            qrCodeImage = image
+        } else {
+            updateQRCodePreview()
         }
     }
     
@@ -433,7 +495,7 @@ struct EditMedicationTemplateView: View {
         concentration2 = medication.concentration2
         injectable = medication.injectable
         pharmacyURL = medication.prarmacyURL ?? ""
-        urlForQR = medication.urlForQR ?? ""
+        urlForQR = medication.urlForQR ?? "https://hushmedicalspa.com/medications"
     }
     
     private func saveMedication() {
@@ -447,6 +509,16 @@ struct EditMedicationTemplateView: View {
         medication.prarmacyURL = pharmacyURL.isEmpty ? nil : pharmacyURL
         medication.urlForQR = urlForQR.isEmpty ? nil : urlForQR
         medication.timestamp = Date() // Update the timestamp to reflect the edit
+        
+        // Generate and save QR code if we have one or generate a new one
+        if qrCodeImage == nil {
+            generateQRCode()
+        }
+        
+        if let qrImage = qrCodeImage,
+           let qrData = qrImage.pngData() {
+            medication.qrImage = qrData
+        }
         
         do {
             try viewContext.save()
@@ -470,7 +542,8 @@ struct AddMedicationTemplateView: View {
     @State private var concentration2: Double = 0
     @State private var injectable = false
     @State private var pharmacyURL = ""
-    @State private var urlForQR = ""
+    @State private var urlForQR = "https://hushmedicalspa.com/medications"
+    @State private var qrCodeImage: UIImage?
     
     var body: some View {
         NavigationView {
@@ -513,6 +586,47 @@ struct AddMedicationTemplateView: View {
                 Section(header: Text("URLs (Optional)")) {
                     TextField("Pharmacy URL", text: $pharmacyURL)
                     TextField("QR Code URL", text: $urlForQR)
+                        .onChange(of: urlForQR) { _, newValue in
+                            updateQRCodePreview()
+                        }
+                }
+                
+                Section(header: Text("QR Code Preview")) {
+                    VStack(spacing: 12) {
+                        if let qrImage = qrCodeImage {
+                            Image(uiImage: qrImage)
+                                .interpolation(.none)
+                                .resizable()
+                                .frame(width: 150, height: 150)
+                                .border(Color.gray.opacity(0.3), width: 1)
+                        } else {
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(Color.gray.opacity(0.5), style: StrokeStyle(lineWidth: 2, dash: [5]))
+                                .frame(width: 150, height: 150)
+                                .overlay(
+                                    VStack {
+                                        Image(systemName: "qrcode")
+                                            .font(.system(size: 40))
+                                            .foregroundColor(.gray)
+                                        Text("QR Code Preview")
+                                            .font(.caption)
+                                            .foregroundColor(.gray)
+                                    }
+                                )
+                        }
+                        
+                        Button("Generate QR Code") {
+                            generateQRCode()
+                        }
+                        .buttonStyle(.bordered)
+                        
+                        Text("URL: \(urlForQR.isEmpty ? "https://hushmedicalspa.com/medications" : urlForQR)")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
                 }
             }
             .navigationTitle("New Local Template")
@@ -531,7 +645,21 @@ struct AddMedicationTemplateView: View {
                     .disabled(medicationName.isEmpty)
                 }
             }
+            .onAppear {
+                // Generate initial QR code with default URL
+                updateQRCodePreview()
+            }
         }
+    }
+    
+    private func updateQRCodePreview() {
+        let urlToUse = urlForQR.isEmpty ? "https://hushmedicalspa.com/medications" : QRCodeGenerator.formatURL(urlForQR)
+        qrCodeImage = QRCodeGenerator.generateQRCode(from: urlToUse, size: CGSize(width: 150, height: 150))
+    }
+    
+    private func generateQRCode() {
+        let urlToUse = urlForQR.isEmpty ? "https://hushmedicalspa.com/medications" : QRCodeGenerator.formatURL(urlForQR)
+        qrCodeImage = QRCodeGenerator.generateQRCode(from: urlToUse, size: CGSize(width: 200, height: 200))
     }
     
     private func saveMedication() {
@@ -546,6 +674,16 @@ struct AddMedicationTemplateView: View {
         newMedication.prarmacyURL = pharmacyURL.isEmpty ? nil : pharmacyURL
         newMedication.urlForQR = urlForQR.isEmpty ? nil : urlForQR
         newMedication.timestamp = Date()
+        
+        // Generate and save QR code if we have one or generate a new one
+        if qrCodeImage == nil {
+            generateQRCode()
+        }
+        
+        if let qrImage = qrCodeImage,
+           let qrData = qrImage.pngData() {
+            newMedication.qrImage = qrData
+        }
         
         do {
             try viewContext.save()
@@ -569,7 +707,8 @@ struct AddCloudMedicationTemplateView: View {
     @State private var concentration2: Double = 0
     @State private var injectable = false
     @State private var pharmacyURL = ""
-    @State private var urlForQR = ""
+    @State private var urlForQR = "https://hushmedicalspa.com/medications"
+    @State private var qrCodeImage: UIImage?
     @State private var isSubmitting = false
     @State private var errorMessage: String?
     
@@ -631,6 +770,47 @@ struct AddCloudMedicationTemplateView: View {
                     Section(header: Text("URLs (Optional)")) {
                         TextField("Pharmacy URL", text: $pharmacyURL)
                         TextField("QR Code URL", text: $urlForQR)
+                            .onChange(of: urlForQR) { _, newValue in
+                                updateQRCodePreview()
+                            }
+                    }
+                    
+                    Section(header: Text("QR Code Preview")) {
+                        VStack(spacing: 12) {
+                            if let qrImage = qrCodeImage {
+                                Image(uiImage: qrImage)
+                                    .interpolation(.none)
+                                    .resizable()
+                                    .frame(width: 150, height: 150)
+                                    .border(Color.gray.opacity(0.3), width: 1)
+                            } else {
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(Color.gray.opacity(0.5), style: StrokeStyle(lineWidth: 2, dash: [5]))
+                                    .frame(width: 150, height: 150)
+                                    .overlay(
+                                        VStack {
+                                            Image(systemName: "qrcode")
+                                                .font(.system(size: 40))
+                                                .foregroundColor(.gray)
+                                            Text("QR Code Preview")
+                                                .font(.caption)
+                                                .foregroundColor(.gray)
+                                        }
+                                    )
+                            }
+                            
+                            Button("Generate QR Code") {
+                                generateQRCode()
+                            }
+                            .buttonStyle(.bordered)
+                            
+                            Text("URL: \(urlForQR.isEmpty ? "https://hushmedicalspa.com/medications" : urlForQR)")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .multilineTextAlignment(.center)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
                     }
                     
                     Section {
@@ -671,7 +851,21 @@ struct AddCloudMedicationTemplateView: View {
                     .disabled(medicationName.isEmpty || !cloudManager.isSignedInToiCloud || isSubmitting)
                 }
             }
+            .onAppear {
+                // Generate initial QR code with default URL
+                updateQRCodePreview()
+            }
         }
+    }
+    
+    private func updateQRCodePreview() {
+        let urlToUse = urlForQR.isEmpty ? "https://hushmedicalspa.com/medications" : QRCodeGenerator.formatURL(urlForQR)
+        qrCodeImage = QRCodeGenerator.generateQRCode(from: urlToUse, size: CGSize(width: 150, height: 150))
+    }
+    
+    private func generateQRCode() {
+        let urlToUse = urlForQR.isEmpty ? "https://hushmedicalspa.com/medications" : QRCodeGenerator.formatURL(urlForQR)
+        qrCodeImage = QRCodeGenerator.generateQRCode(from: urlToUse, size: CGSize(width: 200, height: 200))
     }
     
     private func saveTemplate() async {

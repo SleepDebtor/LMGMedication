@@ -11,36 +11,198 @@ import CoreData
 
 struct MedicationLabelView: View {
     let medication: DispencedMedication
+    @Environment(\.managedObjectContext) private var viewContext
     
     @State private var showingPrintPreview = false
+    @State private var isProcessing = false
+    @State private var isEditing = false
+    @State private var hasChanges = false
+    
+    // Editable properties
+    @State private var editDose = ""
+    @State private var editDoseUnit = "mg"
+    @State private var editDispenceAmount: Int = 1
+    @State private var editDispenceUnit = "syringes"
+    @State private var editLotNumber = ""
+    @State private var editExpirationDate = Date()
     
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
-                // Preview of the label
-                MedicationLabelPreview(medication: medication)
-                    .frame(width: 288, height: 144) // 1x2 inch at 144 DPI
-                    .border(Color.gray, width: 1)
-                
+                // Patient and medication summary
                 VStack(spacing: 12) {
-                    Button("Print Label") {
-                        showingPrintPreview = true
+                    if let patient = medication.patient {
+                        Text(patient.displayName)
+                            .font(.title2)
+                            .fontWeight(.semibold)
                     }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.large)
                     
-                    HStack(spacing: 16) {
-                        Button("Share PDF") {
-                            Task {
-                                await sharePDF()
+                    Text(medication.displayName)
+                        .font(.title3)
+                        .foregroundColor(.secondary)
+                    
+                    if let date = medication.dispenceDate {
+                        Text("Dispensed: \(date, style: .date)")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    
+                    if isEditing {
+                        // Edit mode - show form fields
+                        VStack(spacing: 8) {
+                            HStack {
+                                Text("Dose:")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                TextField("Dose", text: $editDose)
+                                    .textFieldStyle(.roundedBorder)
+                                    .keyboardType(.decimalPad)
+                                    .frame(width: 60)
+                                
+                                Picker("Unit", selection: $editDoseUnit) {
+                                    Text("mg").tag("mg")
+                                    Text("mcg").tag("mcg")
+                                    Text("ml").tag("ml")
+                                    Text("units").tag("units")
+                                }
+                                .pickerStyle(.menu)
+                                .frame(width: 80)
                             }
+                            
+                            HStack {
+                                Text("Quantity:")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                Stepper("\(editDispenceAmount)", value: $editDispenceAmount, in: 1...100)
+                                    .onChange(of: editDispenceAmount) { _, _ in
+                                        hasChanges = true
+                                    }
+                                TextField("Unit", text: $editDispenceUnit)
+                                    .textFieldStyle(.roundedBorder)
+                                    .frame(width: 80)
+                            }
+                            
+                            HStack {
+                                Text("Lot Number:")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                TextField("Lot Number", text: $editLotNumber)
+                                    .textFieldStyle(.roundedBorder)
+                            }
+                            
+                            HStack {
+                                Text("Expires:")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                DatePicker("", selection: $editExpirationDate, displayedComponents: .date)
+                                    .onChange(of: editExpirationDate) { _, _ in
+                                        hasChanges = true
+                                    }
+                            }
+                        }
+                        .padding(.top, 8)
+                        .onChange(of: editDose) { _, _ in hasChanges = true }
+                        .onChange(of: editDoseUnit) { _, _ in hasChanges = true }
+                        .onChange(of: editDispenceUnit) { _, _ in hasChanges = true }
+                        .onChange(of: editLotNumber) { _, _ in hasChanges = true }
+                    } else {
+                        // Display mode - show current values
+                        if let expDate = medication.expDate {
+                            Text("Expires: \(expDate, style: .date)")
+                                .font(.caption)
+                                .foregroundColor(expDate < Date() ? .red : .secondary)
+                        }
+                        
+                        if let lotNum = medication.lotNum, !lotNum.isEmpty {
+                            Text("Lot: \(lotNum)")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+                .padding()
+                .background(Color(.systemGray6))
+                .cornerRadius(12)
+                
+                // Preview of the label
+                VStack(spacing: 8) {
+                    Text("Label Preview")
+                        .font(.headline)
+                    
+                    MedicationLabelPreview(medication: medication)
+                        .frame(width: 288, height: 144) // 2x1 inch at 144 DPI for preview
+                        .border(Color.gray, width: 1)
+                        .cornerRadius(4)
+                }
+                
+                // Action buttons
+                VStack(spacing: 12) {
+                    if isEditing {
+                        // Edit mode buttons
+                        HStack(spacing: 12) {
+                            Button("Cancel") {
+                                cancelEditing()
+                            }
+                            .buttonStyle(.bordered)
+                            .controlSize(.large)
+                            
+                            Button("Save Changes") {
+                                saveChanges()
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .controlSize(.large)
+                            .disabled(!hasChanges)
+                        }
+                    } else {
+                        // Normal mode buttons
+                        Button("Edit Medication") {
+                            startEditing()
                         }
                         .buttonStyle(.bordered)
                         .controlSize(.large)
                         
-                        ShareLabelButton(medication: medication)
+                        Button(action: { 
+                            Task { 
+                                isProcessing = true
+                                await MedicationPrintManager.shared.printLabel(for: medication)
+                                isProcessing = false
+                            }
+                        }) {
+                            HStack {
+                                if isProcessing {
+                                    ProgressView()
+                                        .controlSize(.small)
+                                } else {
+                                    Image(systemName: "printer.fill")
+                                }
+                                Text("Print Label")
+                            }
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.large)
+                        .disabled(isProcessing)
+                        
+                        HStack(spacing: 16) {
+                            Button(action: {
+                                Task {
+                                    await MedicationPrintManager.shared.sharePDF(for: medication)
+                                }
+                            }) {
+                                Label("Share PDF", systemImage: "square.and.arrow.up")
+                            }
                             .buttonStyle(.bordered)
                             .controlSize(.large)
+                            
+                            Button("Preview") {
+                                showingPrintPreview = true
+                            }
+                            .buttonStyle(.bordered)
+                            .controlSize(.large)
+                            
+                            ShareLabelButton(medication: medication)
+                                .buttonStyle(.bordered)
+                                .controlSize(.large)
+                        }
                     }
                 }
                 .padding()
@@ -49,28 +211,102 @@ struct MedicationLabelView: View {
         }
         .navigationTitle("Medication Label")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                if isEditing {
+                    HStack {
+                        Button("Cancel") {
+                            cancelEditing()
+                        }
+                        
+                        Button("Save") {
+                            saveChanges()
+                        }
+                        .disabled(!hasChanges)
+                    }
+                } else {
+                    Menu {
+                        Button(action: {
+                            startEditing()
+                        }) {
+                            Label("Edit Medication", systemImage: "pencil")
+                        }
+                        
+                        Button(action: { 
+                            Task { 
+                                await MedicationPrintManager.shared.printLabel(for: medication)
+                            }
+                        }) {
+                            Label("Print Label", systemImage: "printer")
+                        }
+                        
+                        Button(action: {
+                            Task {
+                                await MedicationPrintManager.shared.sharePDF(for: medication)
+                            }
+                        }) {
+                            Label("Share PDF", systemImage: "square.and.arrow.up")
+                        }
+                        
+                        Button("Show Preview") {
+                            showingPrintPreview = true
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                    }
+                }
+            }
+        }
         .sheet(isPresented: $showingPrintPreview) {
             PrintPreviewView(medication: medication)
         }
-    }
-    
-    private func sharePDF() async {
-        guard let pdfData = await generatePDFData() else { return }
-        
-        let activityController = UIActivityViewController(
-            activityItems: [pdfData],
-            applicationActivities: nil
-        )
-        
-        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-           let window = windowScene.windows.first,
-           let rootViewController = window.rootViewController {
-            rootViewController.present(activityController, animated: true)
+        .onAppear {
+            loadCurrentValues()
         }
     }
     
-    private func generatePDFData() async -> Data? {
-        return await SmallMedicationLabelPDFGenerator.generatePDF(for: medication)
+    // MARK: - Edit Functions
+    private func loadCurrentValues() {
+        editDose = medication.dose ?? ""
+        editDoseUnit = medication.doseUnit ?? "mg"
+        editDispenceAmount = Int(medication.dispenceAmt)
+        editDispenceUnit = medication.dispenceUnit ?? "syringes"
+        editLotNumber = medication.lotNum ?? ""
+        editExpirationDate = medication.expDate ?? Date().addingTimeInterval(365 * 24 * 60 * 60)
+    }
+    
+    private func startEditing() {
+        loadCurrentValues()
+        isEditing = true
+        hasChanges = false
+    }
+    
+    private func cancelEditing() {
+        loadCurrentValues()
+        isEditing = false
+        hasChanges = false
+    }
+    
+    private func saveChanges() {
+        guard hasChanges else { return }
+        
+        // Update the medication properties
+        medication.dose = editDose.isEmpty ? nil : editDose
+        medication.doseUnit = editDoseUnit
+        medication.dispenceAmt = Int16(editDispenceAmount)
+        medication.dispenceUnit = editDispenceUnit
+        medication.lotNum = editLotNumber.isEmpty ? nil : editLotNumber
+        medication.expDate = editExpirationDate
+        
+        // Save to Core Data
+        do {
+            try viewContext.save()
+            isEditing = false
+            hasChanges = false
+        } catch {
+            print("Error saving medication changes: \(error)")
+            // You might want to show an alert here
+        }
     }
 }
 
@@ -82,14 +318,14 @@ struct MedicationLabelPreview: View {
             Rectangle()
                 .fill(Color.white)
             
-            HStack(spacing: 8) {
-                // QR Code placeholder (left side)
+            HStack(spacing: 0) {
+                // QR Code on left - matching PDF layout proportions
                 VStack {
                     if let qrData = medication.baseMedication?.qrImage, !qrData.isEmpty {
                         if let uiImage = UIImage(data: qrData) {
                             Image(uiImage: uiImage)
                                 .resizable()
-                                .frame(width: 100, height: 100)
+                                .frame(width: 120, height: 120) // Proportional to PDF (166/400 * 288 ≈ 120)
                         } else {
                             qrCodePlaceholder
                         }
@@ -97,327 +333,197 @@ struct MedicationLabelPreview: View {
                         qrCodePlaceholder
                     }
                 }
-                .frame(width: 100, height: 100)
+                .frame(width: 120, height: 120)
+                .padding(.leading, 4)
                 
-                // Medication information (right side)
-                VStack(alignment: .leading, spacing: 2) {
-                    // Patient name
+                // Text area on right - matching PDF layout
+                VStack(alignment: .leading, spacing: 1) {
+                    // Patient name (matching PDF font proportions)
                     if let patient = medication.patient {
-                        Text(patient.fullName)
-                            .font(.system(size: 16, weight: .bold))
+                        let lastName = patient.lastName ?? "Unknown"
+                        let firstName = patient.firstName ?? "Patient"
+                        let patientName = "\(lastName), \(firstName)"
+                        Text(patientName)
+                            .font(.system(size: 16, weight: .bold)) // 22/200*144 ≈ 16
                             .foregroundColor(.black)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
                     }
                     
-                    // Medication name and dosage
-                    Text(medication.displayName)
-                        .font(.system(size: 14, weight: .semibold))
+                    // Medication name and dose
+                    let medicationName = medication.baseMedication?.name ?? "Unknown Medication"
+                    let dose = medication.dose ?? ""
+                    let doseUnit = medication.doseUnit ?? ""
+                    let medicationTitle = "\(medicationName) \(dose)\(doseUnit)"
+                    
+                    Text(medicationTitle)
+                        .font(.system(size: 14, weight: .bold)) // 19/200*144 ≈ 14
                         .foregroundColor(.black)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
                     
-                    // Concentration info (e.g., vitamin B6)
-                    if !medication.concentrationInfo.isEmpty {
-                        Text(medication.concentrationInfo)
-                            .font(.system(size: 11))
-                            .foregroundColor(.black)
+                    // Secondary ingredient
+                    if let ingredient2 = medication.baseMedication?.ingredient2,
+                       let concentration2 = medication.baseMedication?.concentration2,
+                       !ingredient2.isEmpty, concentration2 > 0 {
+                        let secondaryInfo = "\(ingredient2) \(String(format: "%.1f", concentration2))mg"
+                        Text(secondaryInfo)
+                            .font(.system(size: 12, weight: .regular)) // 17/200*144 ≈ 12
                             .italic()
+                            .foregroundColor(Color(.darkGray))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
                     }
                     
-                    // Dispensed quantity
-                    if !medication.dispensedQuantityText.isEmpty {
-                        Text("Disp: \(medication.dispensedQuantityText)")
-                            .font(.system(size: 11))
-                            .foregroundColor(.black)
-                    }
+                    // Dispense information
+                    let dispenseAmt = medication.dispenceAmt > 0 ? Int(medication.dispenceAmt) : 1
+                    let dispenseUnit = medication.dispenceUnit ?? "units"
+                    let dispenseInfo = "Disp: \(dispenseAmt) \(dispenseUnit)"
+                    Text(dispenseInfo)
+                        .font(.system(size: 12, weight: .bold)) // 17/200*144 ≈ 12
+                        .foregroundColor(.black)
+                        .lineLimit(1)
                     
-                    // Instructions placeholder (you can add this field to your model if needed)
-                    if medication.baseMedication?.injectable == true {
-                        Text("1 syringe sq weekly")
-                            .font(.system(size: 11))
-                            .foregroundColor(.black)
-                    }
+                    // Dosing instructions
+                    let unitSingular = dispenseUnit.hasSuffix("s") ? String(dispenseUnit.dropLast()) : dispenseUnit
+                    let dosingInstructions = "1 \(unitSingular) sq weekly"
+                    Text(dosingInstructions)
+                        .font(.system(size: 10, weight: .regular)) // 14/200*144 ≈ 10
+                        .foregroundColor(.black)
+                        .lineLimit(1)
                     
-                    Spacer(minLength: 4)
-                    
-                    // Prescriber info
-                    VStack(alignment: .leading, spacing: 1) {
-                        if !medication.prescriberName.isEmpty {
-                            Text("Prescriber: \(medication.prescriberName)")
-                                .font(.system(size: 8, weight: .semibold))
-                                .foregroundColor(.black)
-                        }
+                    // Prescriber information
+                    if let prescriber = medication.prescriber {
+                        let firstName = prescriber.firstName ?? ""
+                        let lastName = prescriber.lastName ?? ""
+                        let prescriberName = "\(firstName) \(lastName), MD".trimmingCharacters(in: .whitespacesAndNewlines)
                         
-                        // Practice info (hardcoded for now, could be made configurable)
-                        Text("Lazar Medical Group, 400 Market St, Suite 5, Williamsport, PA")
-                            .font(.system(size: 7))
+                        Text("Prescriber: \(prescriberName)")
+                            .font(.system(size: 10, weight: .bold)) // 14/200*144 ≈ 10
                             .foregroundColor(.black)
-                        
-                        // Pharmacy info
-                        if !medication.pharmacyInfo.isEmpty {
-                            Text("\(medication.pharmacyInfo): 0.5mL (50U) fill on each syringe")
-                                .font(.system(size: 7, weight: .semibold))
-                                .foregroundColor(.black)
-                        }
-                        
-                        // IV-specific information at bottom of label
-                        if medication.baseMedication?.injectable == true {
-                            Spacer(minLength: 2)
-                            
-                            // Fill amount on syringe
-                            Text("Fill: \(String(format: "%.1f", medication.fillAmount))mL")
-                                .font(.system(size: 8, weight: .semibold))
-                                .foregroundColor(.black)
-                            
-                            // Second compound dose and name (if available)
-                            if !medication.doseMedication2.isEmpty {
-                                Text(medication.doseMedication2)
-                                    .font(.system(size: 8))
-                                    .foregroundColor(.black)
-                            }
-                        }
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
                     }
+                    
+                    // Practice information
+                    Text("Lazar Medical Group, 400 Market St, Suite 5, Williamsport, PA")
+                        .font(.system(size: 8, weight: .regular)) // 11/200*144 ≈ 8
+                        .foregroundColor(.black)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.7)
+                    
+                    // Pharmacy info with fill volume
+                    if let pharmacy = medication.baseMedication?.pharmacy {
+                        let fillAmount = medication.fillAmount
+                        let fillText = String(format: "%.2f", fillAmount)
+                        let fillTextUnits = String(format: "%.0f", fillAmount * 100)
+                        let pharmacyText = "\(pharmacy) \(fillText)mL (\(fillTextUnits)U)"
+                        
+                        Text(pharmacyText)
+                            .font(.system(size: 8, weight: .bold)) // 11/200*144 ≈ 8
+                            .foregroundColor(.black)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
+                    }
+                    
+                    Spacer(minLength: 0)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                
-                Spacer()
+                .padding(.leading, 8)
+                .padding(.trailing, 4)
+                .padding(.vertical, 2)
             }
-            .padding(8)
         }
-        .frame(width: 288, height: 144)
+        .overlay(
+            Rectangle()
+                .stroke(Color.black, lineWidth: 1)
+        )
+        .frame(width: 288, height: 144) // 2x1 inch at 144 DPI for preview
     }
     
     private var qrCodePlaceholder: some View {
         Image(systemName: "qrcode")
-            .font(.system(size: 80))
+            .font(.system(size: 80)) // Smaller to fit the compact layout
             .foregroundColor(.black)
     }
 }
 
-class SmallMedicationLabelPDFGenerator {
-    static func generatePDF(for medication: DispencedMedication) async -> Data? {
-        return await withCheckedContinuation { continuation in
-            // Create a PDF renderer with 1x2 inch size at 72 DPI (standard PDF resolution)
-            let pageRect = CGRect(x: 0, y: 0, width: 72, height: 144) // 1x2 inches
-            let renderer = UIGraphicsPDFRenderer(bounds: pageRect)
-            
-            let data = renderer.pdfData { context in
-                context.beginPage()
-                
-                // Draw the label content
-                drawMedicationLabel(medication: medication, in: pageRect, context: context.cgContext)
-            }
-            
-            continuation.resume(returning: data)
-        }
-    }
-    
-    private static func drawMedicationLabel(medication: DispencedMedication, in rect: CGRect, context: CGContext) {
-        // Set up drawing context
-        UIGraphicsPushContext(context)
-        defer { UIGraphicsPopContext() }
-        
-        // White background
-        UIColor.white.setFill()
-        context.fill(rect)
-        
-        // Draw border
-        UIColor.black.setStroke()
-        context.setLineWidth(0.5)
-        context.stroke(rect)
-        
-        let padding: CGFloat = 4
-        let contentRect = rect.insetBy(dx: padding, dy: padding)
-        
-        // QR Code area (left side)
-        let qrRect = CGRect(x: contentRect.minX, y: contentRect.minY, width: 50, height: 50)
-        drawQRCode(for: medication, in: qrRect, context: context)
-        
-        // Text area (right side)
-        let textRect = CGRect(
-            x: qrRect.maxX + 4,
-            y: contentRect.minY,
-            width: contentRect.width - qrRect.width - 4,
-            height: contentRect.height
-        )
-        
-        drawMedicationText(medication: medication, in: textRect)
-    }
-    
-    private static func drawQRCode(for medication: DispencedMedication, in rect: CGRect, context: CGContext) {
-        // Try to use actual QR code data if available
-        if let qrData = medication.baseMedication?.qrImage,
-           let qrImage = UIImage(data: qrData) {
-            qrImage.draw(in: rect)
-        } else {
-            // Draw a simple QR code pattern as placeholder
-            drawQRCodePlaceholder(in: rect, context: context)
-        }
-    }
-    
-    private static func drawQRCodePlaceholder(in rect: CGRect, context: CGContext) {
-        UIColor.black.setFill()
-        
-        let cellSize: CGFloat = 2
-        let rows = Int(rect.height / cellSize)
-        let cols = Int(rect.width / cellSize)
-        
-        // Simple pattern for QR code appearance
-        for row in 0..<rows {
-            for col in 0..<cols {
-                if (row + col) % 3 == 0 || (row == 0 || row == rows-1 || col == 0 || col == cols-1) {
-                    let cellRect = CGRect(
-                        x: rect.minX + CGFloat(col) * cellSize,
-                        y: rect.minY + CGFloat(row) * cellSize,
-                        width: cellSize,
-                        height: cellSize
-                    )
-                    context.fill(cellRect)
-                }
-            }
-        }
-    }
-    
-    private static func drawMedicationText(medication: DispencedMedication, in rect: CGRect) {
-        var currentY = rect.minY
-        
-        // Patient name
-        if let patient = medication.patient {
-            let patientName = patient.fullName
-            currentY += drawText(patientName, at: CGPoint(x: rect.minX, y: currentY), 
-                               font: UIFont.boldSystemFont(ofSize: 8), maxWidth: rect.width)
-        }
-        
-        // Medication name
-        let medName = medication.displayName
-        currentY += drawText(medName, at: CGPoint(x: rect.minX, y: currentY), 
-                           font: UIFont.systemFont(ofSize: 7), maxWidth: rect.width)
-        
-        // Concentration info
-        if !medication.concentrationInfo.isEmpty {
-            currentY += drawText(medication.concentrationInfo, at: CGPoint(x: rect.minX, y: currentY), 
-                               font: UIFont.italicSystemFont(ofSize: 6), maxWidth: rect.width)
-        }
-        
-        // Dispensed quantity
-        if !medication.dispensedQuantityText.isEmpty {
-            currentY += drawText("Disp: \(medication.dispensedQuantityText)", at: CGPoint(x: rect.minX, y: currentY), 
-                               font: UIFont.systemFont(ofSize: 6), maxWidth: rect.width)
-        }
-        
-        // Instructions (placeholder)
-        if medication.baseMedication?.injectable == true {
-            currentY += drawText("1 syringe sq weekly", at: CGPoint(x: rect.minX, y: currentY), 
-                               font: UIFont.systemFont(ofSize: 6), maxWidth: rect.width)
-        }
-        
-        currentY += 8 // Add some space
-        
-        // Prescriber info
-        if !medication.prescriberName.isEmpty {
-            currentY += drawText("Prescriber: \(medication.prescriberName)", at: CGPoint(x: rect.minX, y: currentY), 
-                               font: UIFont.boldSystemFont(ofSize: 5), maxWidth: rect.width)
-        }
-        
-        // Practice info
-        currentY += drawText("Lazar Medical Group, 400 Market St, Suite 5, Williamsport, PA", 
-                           at: CGPoint(x: rect.minX, y: currentY), 
-                           font: UIFont.systemFont(ofSize: 4), maxWidth: rect.width)
-        
-        // Pharmacy info
-        if !medication.pharmacyInfo.isEmpty {
-            currentY += drawText("\(medication.pharmacyInfo): 0.5mL (50U) fill on each syringe", 
-                               at: CGPoint(x: rect.minX, y: currentY), 
-                               font: UIFont.boldSystemFont(ofSize: 4), maxWidth: rect.width)
-        }
-        
-        // IV-specific information at bottom of label
-        if medication.baseMedication?.injectable == true {
-            // Move to bottom area of label
-            let bottomY = rect.maxY - 20 // Reserve space at bottom
-            var ivY = bottomY
-            
-            // Fill amount on syringe
-            let fillAmountText = "Fill: \(String(format: "%.1f", medication.fillAmount))mL"
-            ivY += drawText(fillAmountText, at: CGPoint(x: rect.minX, y: ivY), 
-                           font: UIFont.boldSystemFont(ofSize: 5), maxWidth: rect.width)
-            
-            // Second compound dose and name (if available)
-            if !medication.doseMedication2.isEmpty {
-                ivY += drawText(medication.doseMedication2, at: CGPoint(x: rect.minX, y: ivY), 
-                               font: UIFont.systemFont(ofSize: 5), maxWidth: rect.width)
-            }
-        }
-    }
-    
-    private static func drawText(_ text: String, at point: CGPoint, font: UIFont, maxWidth: CGFloat) -> CGFloat {
-        let attributes: [NSAttributedString.Key: Any] = [
-            .font: font,
-            .foregroundColor: UIColor.black
-        ]
-        
-        let attributedString = NSAttributedString(string: text, attributes: attributes)
-        let textSize = attributedString.boundingRect(with: CGSize(width: maxWidth, height: CGFloat.greatestFiniteMagnitude), 
-                                                   options: .usesLineFragmentOrigin, 
-                                                   context: nil)
-        
-        attributedString.draw(at: point)
-        
-        return textSize.height + 2 // Add small spacing
-    }
-}
+
 
 struct PrintPreviewView: View {
     let medication: DispencedMedication
     @Environment(\.dismiss) private var dismiss
+    @State private var isPrinting = false
     
     var body: some View {
         NavigationView {
-            VStack {
+            VStack(spacing: 20) {
                 Text("Print Preview")
                     .font(.title2)
-                    .padding()
+                    .fontWeight(.semibold)
                 
+                // Patient info summary
+                VStack(spacing: 4) {
+                    if let patient = medication.patient {
+                        Text(patient.displayName)
+                            .font(.headline)
+                    }
+                    
+                    Text(medication.displayName)
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+                .padding()
+                
+                // Scaled up preview
                 MedicationLabelPreview(medication: medication)
-                    .scaleEffect(2.0) // Scale up for better visibility
+                    .scaleEffect(2.5) // Scale up for better visibility
                     .padding()
+                    .background(Color(.systemGray6))
+                    .cornerRadius(8)
                 
                 Spacer()
                 
-                Button("Print") {
-                    Task {
-                        await printLabel()
+                // Print actions
+                VStack(spacing: 12) {
+                    Button(action: {
+                        Task {
+                            isPrinting = true
+                            await MedicationPrintManager.shared.printLabel(for: medication)
+                            isPrinting = false
+                            dismiss()
+                        }
+                    }) {
+                        HStack {
+                            if isPrinting {
+                                ProgressView()
+                                    .controlSize(.small)
+                            } else {
+                                Image(systemName: "printer.fill")
+                            }
+                            Text("Print Label")
+                        }
                     }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+                    .disabled(isPrinting)
+                    
+                    Button(action: {
+                        Task {
+                            await MedicationPrintManager.shared.sharePDF(for: medication)
+                        }
+                    }) {
+                        Label("Share as PDF", systemImage: "square.and.arrow.up")
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.large)
                 }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
                 .padding()
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") {
-                        dismiss()
-                    }
-                }
-            }
-        }
-    }
-    
-    private func printLabel() async {
-        guard let pdfData = await SmallMedicationLabelPDFGenerator.generatePDF(for: medication) else { return }
-        
-        let printController = UIPrintInteractionController.shared
-        let printInfo = UIPrintInfo.printInfo()
-        printInfo.outputType = .general
-        printInfo.jobName = "Medication Label - \(medication.displayName)"
-        
-        printController.printInfo = printInfo
-        printController.printingItem = pdfData
-        
-        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-           let window = windowScene.windows.first,
-           let rootViewController = window.rootViewController {
-            printController.present(animated: true) { (controller, completed, error) in
-                if completed {
-                    DispatchQueue.main.async {
                         dismiss()
                     }
                 }
