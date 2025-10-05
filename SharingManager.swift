@@ -8,29 +8,89 @@
 import Foundation
 import SwiftUI
 import CloudKit
+import Combine
 
-struct SharingManager {
+// MARK: - Error Wrapper for ObservableObject Conformance
+
+struct SharingErrorWrapper: Identifiable, Equatable {
+    let id = UUID()
+    let error: Error
+    let localizedDescription: String
+    
+    init(_ error: Error) {
+        self.error = error
+        self.localizedDescription = error.localizedDescription
+    }
+    
+    static func == (lhs: SharingErrorWrapper, rhs: SharingErrorWrapper) -> Bool {
+        lhs.id == rhs.id
+    }
+}
+
+@MainActor
+class SharingManager: ObservableObject {
     static let shared = SharingManager()
     private let cloudManager = CloudKitManager.shared
+    
+    @Published var isSharing = false
+    @Published var lastError: SharingErrorWrapper?
+    @Published var shareProgress: String = ""
     
     private init() {}
     
     // MARK: - Patient Sharing
     
-    func sharePatient(_ patient: Patient) async throws -> CKShare {
+    func sharePatient(_ patient: Patient, with emailAddresses: [String] = []) async throws -> CKShare {
         guard cloudManager.isSignedInToiCloud else {
             throw SharingError.notSignedInToiCloud
         }
         
-        // Create participants (in a real app, you'd have a way to select users)
-        let participants: [CKShare.Participant] = []
+        shareProgress = "Creating participants..."
+        let participants = try await createParticipants(from: emailAddresses)
         
+        shareProgress = "Creating share..."
         return try await cloudManager.sharePatient(patient, with: participants)
     }
     
-    func generatePatientShareLink(_ patient: Patient) async throws -> URL {
-        let share = try await sharePatient(patient)
-        return share.url ?? URL(string: "about:blank")!
+    func generatePatientShareLink(_ patient: Patient, with emailAddresses: [String] = []) async throws -> URL {
+        let share = try await sharePatient(patient, with: emailAddresses)
+        guard let url = share.url else {
+            throw SharingError.invalidShareURL
+        }
+        return url
+    }
+    
+    private func createParticipants(from emailAddresses: [String]) async throws -> [CKShare.Participant] {
+        let container = CKContainer(identifier: "iCloud.com.lazarmedical.LMGMedication")
+        var participants: [CKShare.Participant] = []
+        
+        func fetchParticipant(for email: String) async throws -> CKShare.Participant {
+            try await withCheckedThrowingContinuation { continuation in
+                container.fetchShareParticipant(withEmailAddress: email) { participant, error in
+                    if let participant = participant {
+                        continuation.resume(returning: participant)
+                    } else if let error = error {
+                        continuation.resume(throwing: error)
+                    } else {
+                        continuation.resume(throwing: SharingError.userNotFound(email: email))
+                    }
+                }
+            }
+        }
+        
+        for email in emailAddresses {
+            do {
+                let participant = try await fetchParticipant(for: email)
+                var mutableParticipant = participant
+                mutableParticipant.permission = CKShare.ParticipantPermission.readWrite
+                participants.append(mutableParticipant)
+            } catch {
+                print("Failed to create participant for \(email): \(error)")
+                // Continue with other participants
+            }
+        }
+        
+        return participants
     }
     
     // MARK: - Label PDF Sharing
@@ -40,19 +100,38 @@ struct SharingManager {
             throw SharingError.notSignedInToiCloud
         }
         
+        shareProgress = "Creating PDF share..."
         return try await cloudManager.shareLabelPDF(data: data, for: medication)
     }
     
     func generateLabelPDFShareLink(data: Data, for medication: DispencedMedication) async throws -> URL {
         let share = try await shareLabelPDF(data: data, for: medication)
-        return share.url ?? URL(string: "about:blank")!
+        guard let url = share.url else {
+            throw SharingError.invalidShareURL
+        }
+        return url
+    }
+    
+    func generateAndShareLabelPDF(for medication: DispencedMedication) async throws -> URL {
+        shareProgress = "Generating PDF..."
+        guard let pdfData = await MedicationLabelPDFGenerator.generatePDF(for: medication) else {
+            throw SharingError.pdfGenerationFailed
+        }
+        
+        shareProgress = "Creating share..."
+        return try await generateLabelPDFShareLink(data: pdfData, for: medication)
     }
 }
+
+// MARK: - Sharing Error
 
 enum SharingError: LocalizedError {
     case notSignedInToiCloud
     case sharingNotAvailable
     case invalidShareURL
+    case pdfGenerationFailed
+    case userNotFound(email: String)
+    case participantCreationFailed
     
     var errorDescription: String? {
         switch self {
@@ -62,6 +141,12 @@ enum SharingError: LocalizedError {
             return "Sharing is not available on this device"
         case .invalidShareURL:
             return "Failed to generate share URL"
+        case .pdfGenerationFailed:
+            return "Failed to generate PDF label"
+        case .userNotFound(let email):
+            return "User with email \(email) not found in iCloud"
+        case .participantCreationFailed:
+            return "Failed to create sharing participants"
         }
     }
 }
@@ -70,52 +155,73 @@ enum SharingError: LocalizedError {
 
 struct SharePatientButton: View {
     let patient: Patient
-    @State private var isSharing = false
+    @StateObject private var sharingManager = SharingManager.shared
+    @State private var showingParticipantSelection = false
     @State private var shareURL: URL?
-    @State private var errorMessage: String?
+    @State private var selectedEmails: [String] = []
     
     var body: some View {
         Button(action: {
-            Task {
-                await sharePatient()
-            }
+            showingParticipantSelection = true
         }) {
             HStack {
                 Image(systemName: "square.and.arrow.up")
                 Text("Share Patient")
+                if sharingManager.isSharing {
+                    ProgressView()
+                        .scaleEffect(0.8)
+                }
             }
         }
-        .disabled(isSharing)
+        .disabled(sharingManager.isSharing)
+        .opacity(sharingManager.isSharing ? 0.6 : 1.0)
+        .sheet(isPresented: $showingParticipantSelection) {
+            ParticipantSelectionView { emails in
+                selectedEmails = emails
+                Task {
+                    await sharePatient()
+                }
+            }
+        }
         .sheet(item: Binding<ShareURLItem?>(
-            get: { shareURL.map(ShareURLItem.init) },
+            get: { shareURL.map { ShareURLItem(url: $0) } },
             set: { _ in shareURL = nil }
         )) { item in
             ShareSheet(activityItems: [item.url])
         }
-        .alert("Sharing Error", isPresented: .constant(errorMessage != nil)) {
+        .alert("Sharing Error", isPresented: .constant(sharingManager.lastError != nil)) {
             Button("OK") {
-                errorMessage = nil
+                sharingManager.lastError = nil
             }
         } message: {
-            if let errorMessage = errorMessage {
-                Text(errorMessage)
+            if let errorWrapper = sharingManager.lastError {
+                Text(errorWrapper.localizedDescription)
+            }
+        }
+        .overlay(alignment: .bottom) {
+            if sharingManager.isSharing && !sharingManager.shareProgress.isEmpty {
+                Text(sharingManager.shareProgress)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color(.systemBackground))
+                    .cornerRadius(8)
+                    .shadow(radius: 2)
+                    .offset(y: 30)
             }
         }
     }
     
     private func sharePatient() async {
-        isSharing = true
-        
         do {
-            let url = try await SharingManager.shared.generatePatientShareLink(patient)
+            let url = try await sharingManager.generatePatientShareLink(patient, with: selectedEmails)
             await MainActor.run {
                 shareURL = url
-                isSharing = false
             }
         } catch {
             await MainActor.run {
-                errorMessage = error.localizedDescription
-                isSharing = false
+                sharingManager.lastError = SharingErrorWrapper(error)
             }
         }
     }
@@ -123,57 +229,116 @@ struct SharePatientButton: View {
 
 struct ShareLabelButton: View {
     let medication: DispencedMedication
-    @State private var isSharing = false
+    @StateObject private var sharingManager = SharingManager.shared
     @State private var shareURL: URL?
-    @State private var errorMessage: String?
+    @State private var showLocalShare = false
     
     var body: some View {
-        Button(action: {
-            Task {
-                await shareLabel()
+        Menu {
+            Button(action: {
+                Task {
+                    await shareToCloud()
+                }
+            }) {
+                HStack {
+                    Image(systemName: "icloud.and.arrow.up")
+                    Text("Share via iCloud")
+                }
             }
-        }) {
+            .disabled(sharingManager.isSharing)
+            
+            Button(action: {
+                Task {
+                    await shareLocally()
+                }
+            }) {
+                HStack {
+                    Image(systemName: "square.and.arrow.up.on.square")
+                    Text("Share PDF Locally")
+                }
+            }
+            .disabled(sharingManager.isSharing)
+            
+        } label: {
             HStack {
                 Image(systemName: "square.and.arrow.up.on.square")
                 Text("Share Label")
+                if sharingManager.isSharing {
+                    ProgressView()
+                        .scaleEffect(0.8)
+                }
             }
         }
-        .disabled(isSharing)
+        .disabled(sharingManager.isSharing)
+        .opacity(sharingManager.isSharing ? 0.6 : 1.0)
         .sheet(item: Binding<ShareURLItem?>(
-            get: { shareURL.map(ShareURLItem.init) },
+            get: { shareURL.map { ShareURLItem(url: $0) } },
             set: { _ in shareURL = nil }
         )) { item in
             ShareSheet(activityItems: [item.url])
         }
-        .alert("Sharing Error", isPresented: .constant(errorMessage != nil)) {
+        .sheet(isPresented: $showLocalShare) {
+            if let pdfData = shareURL?.data {
+                ShareSheet(activityItems: [pdfData])
+            }
+        }
+        .alert("Sharing Error", isPresented: .constant(sharingManager.lastError != nil)) {
             Button("OK") {
-                errorMessage = nil
+                sharingManager.lastError = nil
             }
         } message: {
-            if let errorMessage = errorMessage {
-                Text(errorMessage)
+            if let errorWrapper = sharingManager.lastError {
+                Text(errorWrapper.localizedDescription)
+            }
+        }
+        .overlay(alignment: .bottom) {
+            if sharingManager.isSharing && !sharingManager.shareProgress.isEmpty {
+                Text(sharingManager.shareProgress)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color(.systemBackground))
+                    .cornerRadius(8)
+                    .shadow(radius: 2)
+                    .offset(y: 30)
             }
         }
     }
     
-    private func shareLabel() async {
-        isSharing = true
-        
+    private func shareToCloud() async {
         do {
-            // Generate PDF data
-            guard let pdfData = await MedicationLabelPDFGenerator.generatePDF(for: medication) else {
-                throw SharingError.sharingNotAvailable
-            }
-            
-            let url = try await SharingManager.shared.generateLabelPDFShareLink(data: pdfData, for: medication)
+            let url = try await sharingManager.generateAndShareLabelPDF(for: medication)
             await MainActor.run {
                 shareURL = url
-                isSharing = false
             }
         } catch {
             await MainActor.run {
-                errorMessage = error.localizedDescription
-                isSharing = false
+                sharingManager.lastError = SharingErrorWrapper(error)
+            }
+        }
+    }
+    
+    private func shareLocally() async {
+        do {
+            guard let pdfData = await MedicationLabelPDFGenerator.generatePDF(for: medication) else {
+                throw SharingError.pdfGenerationFailed
+            }
+            
+            // Create a temporary URL for local sharing
+            let tempURL = FileManager.default.temporaryDirectory
+                .appendingPathComponent("medication_label_\(UUID().uuidString)")
+                .appendingPathExtension("pdf")
+            
+            try pdfData.write(to: tempURL)
+            
+            await MainActor.run {
+                shareURL = tempURL
+                showLocalShare = true
+            }
+        } catch {
+            await MainActor.run {
+                sharingManager.lastError = SharingErrorWrapper(error)
             }
         }
     }
@@ -201,3 +366,12 @@ struct ShareSheet: UIViewControllerRepresentable {
         // No updates needed
     }
 }
+
+// MARK: - URL Extension for PDF Data
+
+extension URL {
+    var data: Data? {
+        return try? Data(contentsOf: self)
+    }
+}
+

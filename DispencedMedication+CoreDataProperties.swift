@@ -35,8 +35,12 @@ extension DispencedMedication {
 
 extension DispencedMedication : Identifiable {
     var doseMedication2: String {
-        if let mecication2 = baseMedication?.ingredient2, let concentration2 = baseMedication?.concentration2 {
-            return "\(fillAmount * concentration2)  \(baseMedication?.ingredient2 ?? "")"
+        if let ingredient2 = baseMedication?.ingredient2, 
+           let concentration2 = baseMedication?.concentration2,
+           concentration2 > 0, 
+           !ingredient2.isEmpty {
+            let secondCompoundDose = fillAmount * concentration2
+            return "\(String(format: "%.1f", secondCompoundDose))mg \(ingredient2)"
         }
         return ""
     }

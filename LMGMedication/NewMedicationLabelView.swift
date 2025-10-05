@@ -70,7 +70,7 @@ struct MedicationLabelView: View {
     }
     
     private func generatePDFData() async -> Data? {
-        return await MedicationLabelPDFGenerator.generatePDF(for: medication)
+        return await SmallMedicationLabelPDFGenerator.generatePDF(for: medication)
     }
 }
 
@@ -156,6 +156,23 @@ struct MedicationLabelPreview: View {
                                 .font(.system(size: 7, weight: .semibold))
                                 .foregroundColor(.black)
                         }
+                        
+                        // IV-specific information at bottom of label
+                        if medication.baseMedication?.injectable == true {
+                            Spacer(minLength: 2)
+                            
+                            // Fill amount on syringe
+                            Text("Fill: \(String(format: "%.1f", medication.fillAmount))mL")
+                                .font(.system(size: 8, weight: .semibold))
+                                .foregroundColor(.black)
+                            
+                            // Second compound dose and name (if available)
+                            if !medication.doseMedication2.isEmpty {
+                                Text(medication.doseMedication2)
+                                    .font(.system(size: 8))
+                                    .foregroundColor(.black)
+                            }
+                        }
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -174,7 +191,7 @@ struct MedicationLabelPreview: View {
     }
 }
 
-class MedicationLabelPDFGenerator {
+class SmallMedicationLabelPDFGenerator {
     static func generatePDF(for medication: DispencedMedication) async -> Data? {
         return await withCheckedContinuation { continuation in
             // Create a PDF renderer with 1x2 inch size at 72 DPI (standard PDF resolution)
@@ -310,6 +327,24 @@ class MedicationLabelPDFGenerator {
                                at: CGPoint(x: rect.minX, y: currentY), 
                                font: UIFont.boldSystemFont(ofSize: 4), maxWidth: rect.width)
         }
+        
+        // IV-specific information at bottom of label
+        if medication.baseMedication?.injectable == true {
+            // Move to bottom area of label
+            let bottomY = rect.maxY - 20 // Reserve space at bottom
+            var ivY = bottomY
+            
+            // Fill amount on syringe
+            let fillAmountText = "Fill: \(String(format: "%.1f", medication.fillAmount))mL"
+            ivY += drawText(fillAmountText, at: CGPoint(x: rect.minX, y: ivY), 
+                           font: UIFont.boldSystemFont(ofSize: 5), maxWidth: rect.width)
+            
+            // Second compound dose and name (if available)
+            if !medication.doseMedication2.isEmpty {
+                ivY += drawText(medication.doseMedication2, at: CGPoint(x: rect.minX, y: ivY), 
+                               font: UIFont.systemFont(ofSize: 5), maxWidth: rect.width)
+            }
+        }
     }
     
     private static func drawText(_ text: String, at point: CGPoint, font: UIFont, maxWidth: CGFloat) -> CGFloat {
@@ -367,7 +402,7 @@ struct PrintPreviewView: View {
     }
     
     private func printLabel() async {
-        guard let pdfData = await MedicationLabelPDFGenerator.generatePDF(for: medication) else { return }
+        guard let pdfData = await SmallMedicationLabelPDFGenerator.generatePDF(for: medication) else { return }
         
         let printController = UIPrintInteractionController.shared
         let printInfo = UIPrintInfo.printInfo()
