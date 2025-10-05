@@ -43,8 +43,8 @@ class MedicationLabelPDFGenerator {
         context.setLineWidth(2) // Slightly thicker border for higher resolution
         context.stroke(rect.insetBy(dx: 1, dy: 1))
         
-        // QR code on the left - scaled for 200 DPI
-        let qrCodeSize: CGFloat = 166 // Scaled QR code size (60 * 200/72)
+        // QR code on the left - reduced size for 200 DPI
+        let qrCodeSize: CGFloat = 120 // Reduced from 166 to 120
         let qrCodeRect = CGRect(
             x: contentRect.minX + 6, 
             y: contentRect.minY + (contentRect.height - qrCodeSize) / 2, // Center vertically
@@ -56,15 +56,18 @@ class MedicationLabelPDFGenerator {
             context.draw(qrCodeImage, in: qrCodeRect)
         }
         
-        // Text area on the right - remaining space
+        // Text area on the right - more space due to smaller QR code
         let textRect = CGRect(
-            x: qrCodeRect.maxX + 11,
+            x: qrCodeRect.maxX + 8,
             y: contentRect.minY,
-            width: contentRect.width - qrCodeSize - 17,
+            width: contentRect.width - qrCodeSize - 14,
             height: contentRect.height
         )
         
         drawCompactMedicationInfo(in: textRect, for: medication, context: context)
+        
+        // Draw practice and pharmacy info across full width at bottom
+        drawFullWidthBottomInfo(in: contentRect, for: medication, context: context)
     }
     
     private static func drawCompactMedicationInfo(in rect: CGRect, for medication: DispencedMedication, context: CGContext) {
@@ -102,7 +105,11 @@ class MedicationLabelPDFGenerator {
         if let ingredient2 = medication.baseMedication?.ingredient2,
            let concentration2 = medication.baseMedication?.concentration2,
            !ingredient2.isEmpty, concentration2 > 0 {
-            let secondaryInfo = "\(ingredient2) \(String(format: "%.1f", concentration2))mg"
+            var amt2Text: String = ""
+            if medication.fillAmount > 0.0 {
+                amt2Text = " (\(String(format: "%.1f", medication.fillAmount*concentration2))mg)"
+            }
+            let secondaryInfo = "\(ingredient2) \(amt2Text)"
             currentY += drawText(
                 secondaryInfo,
                 font: UIFont.italicSystemFont(ofSize: 17), // 6 * 2.78 ≈ 17
@@ -149,18 +156,31 @@ class MedicationLabelPDFGenerator {
                 context: context
             )
         }
+    }
+    
+    private static func drawFullWidthBottomInfo(in rect: CGRect, for medication: DispencedMedication, context: CGContext) {
+        // Calculate bottom area for practice and pharmacy info
+        let bottomHeight: CGFloat = 34 // Space for two lines at bottom
+        let bottomRect = CGRect(
+            x: rect.minX,
+            y: rect.maxY - bottomHeight,
+            width: rect.width,
+            height: bottomHeight
+        )
         
-        // Practice and pharmacy information (very compact, at bottom) - scaled for 200 DPI
+        var currentY = bottomRect.minY
+        
+        // Practice information (full width) - scaled for 200 DPI
         let practiceInfo = "Lazar Medical Group, 400 Market St, Suite 5, Williamsport, PA"
         currentY += drawText(
             practiceInfo,
             font: UIFont.systemFont(ofSize: 11), // 4 * 2.78 ≈ 11
             color: UIColor.black,
-            rect: CGRect(x: rect.minX, y: currentY, width: rect.width, height: 17),
+            rect: CGRect(x: bottomRect.minX, y: currentY, width: bottomRect.width, height: 17),
             context: context
         )
         
-        // Pharmacy info with fill volume (compact) - scaled for 200 DPI
+        // Pharmacy info with fill volume (full width) - scaled for 200 DPI
         if let pharmacy = medication.baseMedication?.pharmacy {
             let fillAmount = medication.fillAmount
             let fillText = String(format: "%.2f", fillAmount)
@@ -171,7 +191,7 @@ class MedicationLabelPDFGenerator {
                 pharmacyText,
                 font: UIFont.boldSystemFont(ofSize: 11), // 4 * 2.78 ≈ 11
                 color: UIColor.black,
-                rect: CGRect(x: rect.minX, y: currentY, width: rect.width, height: 17),
+                rect: CGRect(x: bottomRect.minX, y: currentY, width: bottomRect.width, height: 17),
                 context: context
             )
         }

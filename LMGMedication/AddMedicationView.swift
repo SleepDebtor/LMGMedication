@@ -53,15 +53,19 @@ struct AddMedicationView: View {
     }
     
     private var canSave: Bool {
+        let validDose = dose.isEmpty || Double(dose) != nil
+        
         if useTemplate {
-            return hasValidTemplate
+            return hasValidTemplate && validDose
         } else {
-            return !medicationName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            return !medicationName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && validDose
         }
     }
     
     private var saveButtonStatusText: String {
-        if useTemplate && !hasValidTemplate {
+        if !dose.isEmpty && Double(dose) == nil {
+            return "Please enter a valid dose number"
+        } else if useTemplate && !hasValidTemplate {
             return templateSource == 0 ? "Please select a local template" : "Please select a public template"
         } else if !useTemplate && medicationName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             return "Please enter a medication name"
@@ -152,6 +156,13 @@ struct AddMedicationView: View {
                     HStack {
                         TextField("Dose", text: $dose)
                             .keyboardType(.decimalPad)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 6)
+                                    .stroke(
+                                        (!dose.isEmpty && Double(dose) == nil) ? Color.red : Color.clear,
+                                        lineWidth: 1
+                                    )
+                            )
                         Picker("Unit", selection: $doseUnit) {
                             Text("mg").tag("mg")
                             Text("mcg").tag("mcg")
@@ -159,6 +170,19 @@ struct AddMedicationView: View {
                             Text("units").tag("units")
                         }
                         .pickerStyle(.menu)
+                        
+                        // Show parsed dose value for validation
+                        if !dose.isEmpty {
+                            if let parsedDose = Double(dose) {
+                                Text("(\(String(format: "%.1f", parsedDose)))")
+                                    .font(.caption2)
+                                    .foregroundColor(.green)
+                            } else {
+                                Text("(Invalid)")
+                                    .font(.caption2)
+                                    .foregroundColor(.red)
+                            }
+                        }
                     }
                     
                     if !useTemplate || !hasValidTemplate {
@@ -394,6 +418,13 @@ struct AddMedicationView: View {
             dispensedMedication.expDate = expirationDate
             dispensedMedication.lotNum = lotNumber.isEmpty ? nil : lotNumber
             dispensedMedication.creationDate = Date()
+            
+            // Parse dose string to populate doseNum for fill amount calculations
+            if !dose.isEmpty, let doseValue = Double(dose) {
+                dispensedMedication.doseNum = doseValue
+            } else {
+                dispensedMedication.doseNum = 0.0
+            }
             
             // Link relationships
             dispensedMedication.baseMedication = medication

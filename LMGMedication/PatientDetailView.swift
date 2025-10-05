@@ -292,6 +292,7 @@ struct BulkPrintSelectionView: View {
     let dispensedMedication = DispencedMedication(context: context)
     dispensedMedication.dose = "10"
     dispensedMedication.doseUnit = "mg"
+    dispensedMedication.doseNum = 10.0 // Parse dose for fillAmount calculation
     dispensedMedication.dispenceAmt = 4
     dispensedMedication.dispenceUnit = "syringes"
     dispensedMedication.baseMedication = medication

@@ -319,13 +319,13 @@ struct MedicationLabelPreview: View {
                 .fill(Color.white)
             
             HStack(spacing: 0) {
-                // QR Code on left - matching PDF layout proportions
+                // QR Code on left - reduced size to match PDF layout
                 VStack {
                     if let qrData = medication.baseMedication?.qrImage, !qrData.isEmpty {
                         if let uiImage = UIImage(data: qrData) {
                             Image(uiImage: uiImage)
                                 .resizable()
-                                .frame(width: 120, height: 120) // Proportional to PDF (166/400 * 288 ≈ 120)
+                                .frame(width: 86, height: 86) // Reduced from 120 to 86 (120/400 * 288 ≈ 86)
                         } else {
                             qrCodePlaceholder
                         }
@@ -333,10 +333,10 @@ struct MedicationLabelPreview: View {
                         qrCodePlaceholder
                     }
                 }
-                .frame(width: 120, height: 120)
+                .frame(width: 86, height: 86)
                 .padding(.leading, 4)
                 
-                // Text area on right - matching PDF layout
+                // Text area on right - more space due to smaller QR code
                 VStack(alignment: .leading, spacing: 1) {
                     // Patient name (matching PDF font proportions)
                     if let patient = medication.patient {
@@ -405,34 +405,41 @@ struct MedicationLabelPreview: View {
                             .minimumScaleFactor(0.7)
                     }
                     
-                    // Practice information
-                    Text("Lazar Medical Group, 400 Market St, Suite 5, Williamsport, PA")
-                        .font(.system(size: 8, weight: .regular)) // 11/200*144 ≈ 8
-                        .foregroundColor(.black)
-                        .lineLimit(2)
-                        .minimumScaleFactor(0.7)
-                    
-                    // Pharmacy info with fill volume
-                    if let pharmacy = medication.baseMedication?.pharmacy {
-                        let fillAmount = medication.fillAmount
-                        let fillText = String(format: "%.2f", fillAmount)
-                        let fillTextUnits = String(format: "%.0f", fillAmount * 100)
-                        let pharmacyText = "\(pharmacy) \(fillText)mL (\(fillTextUnits)U)"
-                        
-                        Text(pharmacyText)
-                            .font(.system(size: 8, weight: .bold)) // 11/200*144 ≈ 8
-                            .foregroundColor(.black)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.7)
-                    }
-                    
                     Spacer(minLength: 0)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.leading, 8)
+                .padding(.leading, 6)
                 .padding(.trailing, 4)
                 .padding(.vertical, 2)
             }
+            
+            // Full-width bottom section for practice and pharmacy info
+            VStack(alignment: .leading, spacing: 1) {
+                // Practice information spanning full width
+                Text("Lazar Medical Group, 400 Market St, Suite 5, Williamsport, PA")
+                    .font(.system(size: 8, weight: .regular)) // 11/200*144 ≈ 8
+                    .foregroundColor(.black)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.7)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                
+                // Pharmacy info with fill volume spanning full width
+                if let pharmacy = medication.baseMedication?.pharmacy {
+                    let fillAmount = medication.fillAmount
+                    let fillText = String(format: "%.2f", fillAmount)
+                    let fillTextUnits = String(format: "%.0f", fillAmount * 100)
+                    let pharmacyText = "\(pharmacy) \(fillText)mL (\(fillTextUnits)U)"
+                    
+                    Text(pharmacyText)
+                        .font(.system(size: 8, weight: .bold)) // 11/200*144 ≈ 8
+                        .foregroundColor(.black)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
+            .padding(.horizontal, 4)
+            .padding(.bottom, 2)
         }
         .overlay(
             Rectangle()
@@ -443,7 +450,7 @@ struct MedicationLabelPreview: View {
     
     private var qrCodePlaceholder: some View {
         Image(systemName: "qrcode")
-            .font(.system(size: 80)) // Smaller to fit the compact layout
+            .font(.system(size: 60)) // Reduced size to match smaller QR code
             .foregroundColor(.black)
     }
 }
