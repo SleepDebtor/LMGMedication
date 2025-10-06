@@ -6,9 +6,29 @@
 //
 
 import Foundation
-import UIKit
 import PDFKit
 import CoreImage.CIFilterBuiltins
+
+#if os(iOS)
+import UIKit
+public typealias PlatformFont = UIFont
+public typealias PlatformColor = UIColor
+#elseif os(macOS)
+import AppKit
+public typealias PlatformFont = NSFont
+public typealias PlatformColor = NSColor
+#endif
+
+#if os(macOS)
+extension NSFont {
+    static func italicSystemFont(ofSize size: CGFloat) -> NSFont {
+        let base = NSFont.systemFont(ofSize: size)
+        // Attempt to convert to italic; if conversion fails, return the base font
+        let converted = NSFontManager.shared.convert(base, toHaveTrait: .italicFontMask)
+        return converted
+    }
+}
+#endif
 
 class MedicationLabelPDFGenerator {
     
@@ -23,16 +43,27 @@ class MedicationLabelPDFGenerator {
     }
     
     private static func createMedicationLabelPDF(for medication: DispencedMedication) -> Data? {
-        let pageRect = CGRect(x: 0, y: 0, width: 400, height: 200) // 2x1 inch label size at 200 DPI
+        let pageRect = CGRect(x: 0, y: 0, width: 400, height: 200)
+        #if os(iOS)
         let renderer = UIGraphicsPDFRenderer(bounds: pageRect)
-        
         let data = renderer.pdfData { context in
             context.beginPage()
-            
             drawMedicationLabel(in: pageRect, for: medication, context: context.cgContext)
         }
-        
         return data
+        #elseif os(macOS)
+        let data = NSMutableData()
+        var mediaBox = pageRect
+        guard let consumer = CGDataConsumer(data: data as CFMutableData),
+              let context = CGContext(consumer: consumer, mediaBox: &mediaBox, nil) else {
+            return nil
+        }
+        context.beginPDFPage(nil)
+        drawMedicationLabel(in: pageRect, for: medication, context: context)
+        context.endPDFPage()
+        context.closePDF()
+        return data as Data
+        #endif
     }
     
     static func drawMedicationLabel(in rect: CGRect, for medication: DispencedMedication, context: CGContext) {
@@ -40,14 +71,14 @@ class MedicationLabelPDFGenerator {
         let contentRect = rect.insetBy(dx: margin, dy: margin)
         
         // Draw border
-        context.setStrokeColor(UIColor.black.cgColor)
+        context.setStrokeColor(PlatformColor.black.cgColor)
         context.setLineWidth(2) // Slightly thicker border for higher resolution
         context.stroke(rect.insetBy(dx: 1, dy: 1))
         
         // QR code on the left - reduced size for 200 DPI
         let qrCodeSize: CGFloat = 125 // Reduced from 166 to 120
         let qrCodeRect = CGRect(
-            x: contentRect.minX + 6, 
+            x: contentRect.minX + 6,
             y: contentRect.minY + 6,// qrCodeSize)+10,
             width: qrCodeSize,
             height: qrCodeSize
@@ -81,8 +112,8 @@ class MedicationLabelPDFGenerator {
             let patientName = "\(lastName), \(firstName)"
             currentY += drawText(
                 patientName,
-                font: UIFont.boldSystemFont(ofSize: 19), // 8 * 2.78 ≈ 22
-                color: UIColor.black,
+                font: PlatformFont.boldSystemFont(ofSize: 19), // 8 * 2.78 ≈ 22
+                color: PlatformColor.black,
                 rect: CGRect(x: rect.minX, y: currentY, width: rect.width, height: 28),
                 context: context
             )
@@ -96,8 +127,8 @@ class MedicationLabelPDFGenerator {
         
         currentY += drawText(
             medicationTitle,
-            font: UIFont.boldSystemFont(ofSize: 22), // 7 * 2.78 ≈ 19
-            color: UIColor.black,
+            font: PlatformFont.boldSystemFont(ofSize: 22), // 7 * 2.78 ≈ 19
+            color: PlatformColor.black,
             rect: CGRect(x: rect.minX, y: currentY, width: rect.width, height: 25),
             context: context
         )
@@ -113,8 +144,8 @@ class MedicationLabelPDFGenerator {
             let secondaryInfo = "  \(ingredient2) \(amt2Text)"
             currentY += drawText(
                 secondaryInfo,
-                font: UIFont.italicSystemFont(ofSize: 15), // 6 * 2.78 ≈ 17
-                color: UIColor.darkGray,
+                font: PlatformFont.italicSystemFont(ofSize: 15), // 6 * 2.78 ≈ 17
+                color: PlatformColor.darkGray,
                 rect: CGRect(x: rect.minX, y: currentY, width: rect.width, height: 22),
                 context: context
             )
@@ -126,8 +157,8 @@ class MedicationLabelPDFGenerator {
         let dispenseInfo = "Disp: \(dispenseAmt) \(dispenseUnit)"
         currentY += drawText(
             dispenseInfo,
-            font: UIFont.boldSystemFont(ofSize: 17), // 6 * 2.78 ≈ 17
-            color: UIColor.black,
+            font: PlatformFont.boldSystemFont(ofSize: 17), // 6 * 2.78 ≈ 17
+            color: PlatformColor.black,
             rect: CGRect(x: rect.minX, y: currentY, width: rect.width, height: 22),
             context: context
         )
@@ -137,8 +168,8 @@ class MedicationLabelPDFGenerator {
         let dosingInstructions = "1 \(unitSingular) sq weekly"
         currentY += drawText(
             dosingInstructions,
-            font: UIFont.systemFont(ofSize: 14), // 5 * 2.78 ≈ 14
-            color: UIColor.black,
+            font: PlatformFont.systemFont(ofSize: 14), // 5 * 2.78 ≈ 14
+            color: PlatformColor.black,
             rect: CGRect(x: rect.minX, y: currentY, width: rect.width, height: 19),
             context: context
         )
@@ -165,8 +196,8 @@ class MedicationLabelPDFGenerator {
             
             currentY += drawText(
                 "Prescriber: \(prescriberName)",
-                font: UIFont.boldSystemFont(ofSize: 14), // 5 * 2.78 ≈ 14
-                color: UIColor.black,
+                font: PlatformFont.boldSystemFont(ofSize: 14), // 5 * 2.78 ≈ 14
+                color: PlatformColor.black,
                 rect: CGRect(x: bottomRect.minX, y: currentY, width: bottomRect.width, height: 17),
                 context: context
             )
@@ -176,8 +207,8 @@ class MedicationLabelPDFGenerator {
         let practiceInfo = "Lazar Medical Group, 400 Market St, Suite 5, Williamsport, PA"
         currentY += drawText(
             practiceInfo,
-            font: UIFont.systemFont(ofSize: 11), // 4 * 2.78 ≈ 11
-            color: UIColor.black,
+            font: PlatformFont.systemFont(ofSize: 11), // 4 * 2.78 ≈ 11
+            color: PlatformColor.black,
             rect: CGRect(x: bottomRect.minX, y: currentY, width: bottomRect.width, height: 17),
             context: context
         )
@@ -191,8 +222,8 @@ class MedicationLabelPDFGenerator {
             
             currentY += drawText(
                 pharmacyText,
-                font: UIFont.boldSystemFont(ofSize: 11), // 4 * 2.78 ≈ 11
-                color: UIColor.black,
+                font: PlatformFont.boldSystemFont(ofSize: 11), // 4 * 2.78 ≈ 11
+                color: PlatformColor.black,
                 rect: CGRect(x: bottomRect.minX, y: currentY, width: bottomRect.width, height: 17),
                 context: context
             )
@@ -202,8 +233,8 @@ class MedicationLabelPDFGenerator {
     @discardableResult
     private static func drawText(
         _ text: String,
-        font: UIFont,
-        color: UIColor,
+        font: PlatformFont,
+        color: PlatformColor,
         rect: CGRect,
         context: CGContext,
         alignment: NSTextAlignment = .left

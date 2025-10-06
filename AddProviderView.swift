@@ -20,19 +20,31 @@ struct AddProviderView: View {
             Form {
                 Section(header: Text("Name")) {
                     TextField("First Name", text: $firstName)
-                        .autocapitalization(.words)
+#if os(iOS)
+                        .textInputAutocapitalization(.words)
+#endif
                     TextField("Last Name", text: $lastName)
-                        .autocapitalization(.words)
+#if os(iOS)
+                        .textInputAutocapitalization(.words)
+#endif
                 }
                 Section(header: Text("Credentials")) {
                     TextField("Degree", text: $degree)
-                        .autocapitalization(.allCharacters)
+#if os(iOS)
+                        .textInputAutocapitalization(.characters)
+#endif
                     TextField("NPI", text: $npi)
+#if os(iOS)
                         .keyboardType(.numberPad)
+#endif
                     TextField("DEA", text: $dea)
-                        .autocapitalization(.allCharacters)
+#if os(iOS)
+                        .textInputAutocapitalization(.characters)
+#endif
                     TextField("License", text: $license)
-                        .autocapitalization(.allCharacters)
+#if os(iOS)
+                        .textInputAutocapitalization(.characters)
+#endif
                 }
             }
             .navigationTitle("Add Provider")

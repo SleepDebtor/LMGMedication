@@ -7,9 +7,37 @@
 
 import SwiftUI
 
+#if os(iOS)
+import UIKit
+#endif
+#if os(macOS)
+import AppKit
+#endif
+
 struct AuthenticationGateView<Content: View>: View {
     @StateObject private var auth = BiometricAuth()
     let content: () -> Content
+
+    // Platform-aware system colors
+    private var platformSystemBackground: Color {
+        #if os(iOS)
+        return Color(.systemBackground)
+        #elseif os(macOS)
+        return Color(NSColor.windowBackgroundColor)
+        #else
+        return Color.gray
+        #endif
+    }
+
+    private var platformSecondaryBackground: Color {
+        #if os(iOS)
+        return Color(.secondarySystemBackground)
+        #elseif os(macOS)
+        return Color(NSColor.underPageBackgroundColor)
+        #else
+        return Color.gray.opacity(0.8)
+        #endif
+    }
 
     var body: some View {
         Group {
@@ -78,7 +106,7 @@ struct AuthenticationGateView<Content: View>: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(
             LinearGradient(
-                colors: [Color(.systemBackground), Color(.secondarySystemBackground)],
+                colors: [platformSystemBackground, platformSecondaryBackground],
                 startPoint: .top,
                 endPoint: .bottom
             )
