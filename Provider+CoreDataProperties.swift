@@ -2,7 +2,7 @@
 //  Provider+CoreDataProperties.swift
 //  LMGMedication
 //
-//  Created by Michael Lazar on 9/29/25.
+//  Created by Michael Lazar on 10/5/25.
 //
 //
 
@@ -18,6 +18,10 @@ extension Provider {
         return NSFetchRequest<Provider>(entityName: "Provider")
     }
 
+    @NSManaged public var npi: String?
+    @NSManaged public var dea: String?
+    @NSManaged public var license: String?
+    @NSManaged public var degree: String?
     @NSManaged public var relationship: NSSet?
 
 }
