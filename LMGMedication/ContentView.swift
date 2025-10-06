@@ -32,6 +32,7 @@ struct MainDashboardView: View {
     @State private var showingAddPatient = false
     @State private var showingMedicationTemplates = false
     @State private var showingAddMedication = false
+    @State private var showingProviders = false
     
     var body: some View {
         NavigationView {
@@ -137,6 +138,24 @@ struct MainDashboardView: View {
                         }
                     }
                     
+                    // New Providers Button
+                    Button(action: {
+                        showingProviders = true
+                    }) {
+                        VStack(spacing: 8) {
+                            Image(systemName: "person.2.fill")
+                                .font(.title2)
+                            Text("Providers\nManage prescribers")
+                                .font(.caption)
+                                .multilineTextAlignment(.center)
+                        }
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 80)
+                        .background(Color.purple)
+                        .cornerRadius(12)
+                    }
+                    
                     // Recent Activity
                     if let patient = selectedPatient, !patient.dispensedMedicationsArray.isEmpty {
                         VStack(alignment: .leading, spacing: 8) {
@@ -226,6 +245,9 @@ struct MainDashboardView: View {
             if let patient = selectedPatient {
                 AddMedicationView(patient: patient)
             }
+        }
+        .sheet(isPresented: $showingProviders) {
+            ProvidersListView()
         }
         .onChange(of: showingAddPatient) { _, isShowing in
             if !isShowing {

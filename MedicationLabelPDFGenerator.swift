@@ -14,8 +14,9 @@ class MedicationLabelPDFGenerator {
     
     static func generatePDF(for medication: DispencedMedication) async -> Data? {
         return await withCheckedContinuation { continuation in
+            nonisolated(unsafe) let med = medication
             DispatchQueue.global(qos: .userInitiated).async {
-                let pdfData = createMedicationLabelPDF(for: medication)
+                let pdfData = createMedicationLabelPDF(for: med)
                 continuation.resume(returning: pdfData)
             }
         }
@@ -44,11 +45,11 @@ class MedicationLabelPDFGenerator {
         context.stroke(rect.insetBy(dx: 1, dy: 1))
         
         // QR code on the left - reduced size for 200 DPI
-        let qrCodeSize: CGFloat = 120 // Reduced from 166 to 120
+        let qrCodeSize: CGFloat = 125 // Reduced from 166 to 120
         let qrCodeRect = CGRect(
             x: contentRect.minX + 6, 
-            y: contentRect.minY + (contentRect.height - qrCodeSize) / 2, // Center vertically
-            width: qrCodeSize, 
+            y: contentRect.minY + 6,// qrCodeSize)+10,
+            width: qrCodeSize,
             height: qrCodeSize
         )
         
@@ -80,7 +81,7 @@ class MedicationLabelPDFGenerator {
             let patientName = "\(lastName), \(firstName)"
             currentY += drawText(
                 patientName,
-                font: UIFont.boldSystemFont(ofSize: 22), // 8 * 2.78 ≈ 22
+                font: UIFont.boldSystemFont(ofSize: 19), // 8 * 2.78 ≈ 22
                 color: UIColor.black,
                 rect: CGRect(x: rect.minX, y: currentY, width: rect.width, height: 28),
                 context: context
@@ -95,7 +96,7 @@ class MedicationLabelPDFGenerator {
         
         currentY += drawText(
             medicationTitle,
-            font: UIFont.boldSystemFont(ofSize: 19), // 7 * 2.78 ≈ 19
+            font: UIFont.boldSystemFont(ofSize: 22), // 7 * 2.78 ≈ 19
             color: UIColor.black,
             rect: CGRect(x: rect.minX, y: currentY, width: rect.width, height: 25),
             context: context
@@ -107,12 +108,12 @@ class MedicationLabelPDFGenerator {
            !ingredient2.isEmpty, concentration2 > 0 {
             var amt2Text: String = ""
             if medication.fillAmount > 0.0 {
-                amt2Text = " (\(String(format: "%.1f", medication.fillAmount*concentration2))mg)"
+                amt2Text = " \(String(format: "%.1f", medication.fillAmount*concentration2))mg"
             }
-            let secondaryInfo = "\(ingredient2) \(amt2Text)"
+            let secondaryInfo = "  \(ingredient2) \(amt2Text)"
             currentY += drawText(
                 secondaryInfo,
-                font: UIFont.italicSystemFont(ofSize: 17), // 6 * 2.78 ≈ 17
+                font: UIFont.italicSystemFont(ofSize: 15), // 6 * 2.78 ≈ 17
                 color: UIColor.darkGray,
                 rect: CGRect(x: rect.minX, y: currentY, width: rect.width, height: 22),
                 context: context
@@ -141,34 +142,35 @@ class MedicationLabelPDFGenerator {
             rect: CGRect(x: rect.minX, y: currentY, width: rect.width, height: 19),
             context: context
         )
-        
-        // Prescriber information (compact) - scaled for 200 DPI
-        if let prescriber = medication.prescriber {
-            let firstName = prescriber.firstName ?? ""
-            let lastName = prescriber.lastName ?? ""
-            let prescriberName = "\(firstName) \(lastName), MD".trimmingCharacters(in: .whitespacesAndNewlines)
-            
-            currentY += drawText(
-                "Prescriber: \(prescriberName)",
-                font: UIFont.boldSystemFont(ofSize: 14), // 5 * 2.78 ≈ 14
-                color: UIColor.black,
-                rect: CGRect(x: rect.minX, y: currentY, width: rect.width, height: 19),
-                context: context
-            )
-        }
     }
     
     private static func drawFullWidthBottomInfo(in rect: CGRect, for medication: DispencedMedication, context: CGContext) {
         // Calculate bottom area for practice and pharmacy info
-        let bottomHeight: CGFloat = 34 // Space for two lines at bottom
+        let bottomHeight: CGFloat = 54 // Space for three lines at bottom
         let bottomRect = CGRect(
-            x: rect.minX,
+            x: rect.minX + 6,
             y: rect.maxY - bottomHeight,
             width: rect.width,
             height: bottomHeight
         )
         
         var currentY = bottomRect.minY
+        
+        
+        // Prescriber information (compact) - scaled for 200 DPI
+        if let prescriber = medication.prescriber {
+            let firstName = prescriber.firstName ?? ""
+            let lastName = prescriber.lastName ?? ""
+            let prescriberName = "\(firstName) \(lastName), MD (570) 933-5507".trimmingCharacters(in: .whitespacesAndNewlines)
+            
+            currentY += drawText(
+                "Prescriber: \(prescriberName)",
+                font: UIFont.boldSystemFont(ofSize: 14), // 5 * 2.78 ≈ 14
+                color: UIColor.black,
+                rect: CGRect(x: bottomRect.minX, y: currentY, width: bottomRect.width, height: 17),
+                context: context
+            )
+        }
         
         // Practice information (full width) - scaled for 200 DPI
         let practiceInfo = "Lazar Medical Group, 400 Market St, Suite 5, Williamsport, PA"
@@ -286,3 +288,4 @@ class MedicationLabelPDFGenerator {
         return nil
     }
 }
+

@@ -81,7 +81,7 @@ class SharingManager: ObservableObject {
         for email in emailAddresses {
             do {
                 let participant = try await fetchParticipant(for: email)
-                var mutableParticipant = participant
+                let mutableParticipant = participant
                 mutableParticipant.permission = CKShare.ParticipantPermission.readWrite
                 participants.append(mutableParticipant)
             } catch {

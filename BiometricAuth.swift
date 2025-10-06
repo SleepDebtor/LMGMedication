@@ -8,6 +8,7 @@
 import Foundation
 import LocalAuthentication
 import SwiftUI
+import Combine
 
 @MainActor
 final class BiometricAuth: ObservableObject {
@@ -16,7 +17,7 @@ final class BiometricAuth: ObservableObject {
     @Published var biometryType: LABiometryType = .none
 
     /// If true, only biometrics are allowed. If false, falls back to device passcode when biometrics are unavailable.
-    var biometricsOnly: Bool = true
+    var biometricsOnly: Bool = false
 
     func authenticate(reason: String = "Unlock to access LMGMedication") {
         let context = LAContext()

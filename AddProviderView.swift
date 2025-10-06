@@ -55,7 +55,7 @@ struct AddProviderView: View {
     }
 
     private func saveProvider() {
-        // Validate required fields
+        // Validate required fields (keep only name and degree requirements)
         let trimmedFirstName = firstName.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedLastName = lastName.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedDegree = degree.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -78,36 +78,17 @@ struct AddProviderView: View {
             showingAlert = true
             return
         }
-        guard !trimmedNPI.isEmpty else {
-            alertMessage = "NPI is required."
-            showingAlert = true
-            return
-        }
-        guard !trimmedDEA.isEmpty else {
-            alertMessage = "DEA is required."
-            showingAlert = true
-            return
-        }
-        guard !trimmedLicense.isEmpty else {
-            alertMessage = "License is required."
-            showingAlert = true
-            return
-        }
 
-        // Optionally, validate NPI is numeric and of length 10
-        if trimmedNPI.count != 10 || !CharacterSet.decimalDigits.isSuperset(of: CharacterSet(charactersIn: trimmedNPI)) {
-            alertMessage = "NPI must be a 10-digit number."
-            showingAlert = true
-            return
-        }
+        // Removed validation for NPI, DEA, and License per request
 
         let newProvider = Provider(context: viewContext)
         newProvider.firstName = trimmedFirstName
         newProvider.lastName = trimmedLastName
         newProvider.degree = trimmedDegree
-        newProvider.npi = trimmedNPI
-        newProvider.dea = trimmedDEA
-        newProvider.license = trimmedLicense
+        // Store optional identifiers only if provided
+        newProvider.npi = trimmedNPI.isEmpty ? nil : trimmedNPI
+        newProvider.dea = trimmedDEA.isEmpty ? nil : trimmedDEA
+        newProvider.license = trimmedLicense.isEmpty ? nil : trimmedLicense
 
         do {
             try viewContext.save()

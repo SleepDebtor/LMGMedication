@@ -415,6 +415,20 @@ struct MedicationLabelPreview: View {
             
             // Full-width bottom section for practice and pharmacy info
             VStack(alignment: .leading, spacing: 1) {
+                
+                // Prescriber information
+                if let prescriber = medication.prescriber {
+                    let firstName = prescriber.firstName ?? ""
+                    let lastName = prescriber.lastName ?? ""
+                    let prescriberName = "\(firstName) \(lastName), MD".trimmingCharacters(in: .whitespacesAndNewlines)
+                    
+                    Text("Prescriber: \(prescriberName)")
+                        .font(.system(size: 10, weight: .bold)) // 14/200*144 ≈ 10
+                        .foregroundColor(.black)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                }
+                
                 // Practice information spanning full width
                 Text("Lazar Medical Group, 400 Market St, Suite 5, Williamsport, PA")
                     .font(.system(size: 8, weight: .regular)) // 11/200*144 ≈ 8

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="24299" systemVersion="25A354" minimumToolsVersion="Automatic" sourceLanguage="Swift" usedWithCloudKit="YES" userDefinedModelVersionIdentifier="">
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="24299" systemVersion="25A362" minimumToolsVersion="Automatic" sourceLanguage="Swift" usedWithCloudKit="YES" userDefinedModelVersionIdentifier="">
     <entity name="DispencedMedication" representedClassName="DispencedMedication" syncable="YES">
         <attribute name="creationDate" optional="YES" attributeType="Date" allowsCloudEncryption="YES" usesScalarValueType="NO"/>
         <attribute name="dispenceAmt" optional="YES" attributeType="Integer 16" defaultValueString="0" allowsCloudEncryption="YES" usesScalarValueType="YES"/>
@@ -39,6 +39,10 @@
         <attribute name="timeStamp" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
     </entity>
     <entity name="Provider" representedClassName="Provider" parentEntity="Person" syncable="YES">
+        <attribute name="dea" optional="YES" attributeType="String"/>
+        <attribute name="degree" optional="YES" attributeType="String"/>
+        <attribute name="license" optional="YES" attributeType="String"/>
+        <attribute name="npi" optional="YES" attributeType="String"/>
         <relationship name="relationship" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="DispencedMedication" inverseName="prescriber" inverseEntity="DispencedMedication"/>
     </entity>
 </model>

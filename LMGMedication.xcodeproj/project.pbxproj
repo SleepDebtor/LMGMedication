@@ -28,6 +28,10 @@
 		BD59A1B02E92FA4900C4516C /* QRCodeGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD59A1AF2E92FA4900C4516C /* QRCodeGenerator.swift */; };
 		BD59A1B22E92FAC200C4516C /* QRCodeTestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD59A1B12E92FAC200C4516C /* QRCodeTestView.swift */; };
 		BD59A1B42E92FB0100C4516C /* QR_Code_Implementation_README.md in Resources */ = {isa = PBXBuildFile; fileRef = BD59A1B32E92FB0100C4516C /* QR_Code_Implementation_README.md */; };
+		BD59A1D42E93232E00C4516C /* AddProviderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD59A1D32E93232E00C4516C /* AddProviderView.swift */; };
+		BD59A1D62E93238300C4516C /* ProvidersListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD59A1D52E93238300C4516C /* ProvidersListView.swift */; };
+		BD59A1D82E936BFA00C4516C /* BiometricAuth.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD59A1D72E936BFA00C4516C /* BiometricAuth.swift */; };
+		BD59A1DA2E936BFC00C4516C /* AuthenticationGateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD59A1D92E936BFC00C4516C /* AuthenticationGateView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -69,6 +73,10 @@
 		BD59A1AF2E92FA4900C4516C /* QRCodeGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRCodeGenerator.swift; sourceTree = "<group>"; };
 		BD59A1B12E92FAC200C4516C /* QRCodeTestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRCodeTestView.swift; sourceTree = "<group>"; };
 		BD59A1B32E92FB0100C4516C /* QR_Code_Implementation_README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = QR_Code_Implementation_README.md; sourceTree = "<group>"; };
+		BD59A1D32E93232E00C4516C /* AddProviderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddProviderView.swift; sourceTree = "<group>"; };
+		BD59A1D52E93238300C4516C /* ProvidersListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProvidersListView.swift; sourceTree = "<group>"; };
+		BD59A1D72E936BFA00C4516C /* BiometricAuth.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BiometricAuth.swift; sourceTree = "<group>"; };
+		BD59A1D92E936BFC00C4516C /* AuthenticationGateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthenticationGateView.swift; sourceTree = "<group>"; };
 		BD5B529F2E89564F00DD14F1 /* LMGMedication.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LMGMedication.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		BD5B52B32E89565000DD14F1 /* LMGMedicationTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LMGMedicationTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		BD5B52BD2E89565000DD14F1 /* LMGMedicationUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LMGMedicationUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -158,6 +166,10 @@
 				BD59A1AF2E92FA4900C4516C /* QRCodeGenerator.swift */,
 				BD59A1B12E92FAC200C4516C /* QRCodeTestView.swift */,
 				BD59A1B32E92FB0100C4516C /* QR_Code_Implementation_README.md */,
+				BD59A1D32E93232E00C4516C /* AddProviderView.swift */,
+				BD59A1D52E93238300C4516C /* ProvidersListView.swift */,
+				BD59A1D72E936BFA00C4516C /* BiometricAuth.swift */,
+				BD59A1D92E936BFC00C4516C /* AuthenticationGateView.swift */,
 			);
 			sourceTree = "<group>";
 		};
@@ -319,6 +331,7 @@
 				275592A22E8B5FCE00A524A7 /* Provider+CoreDataClass.swift in Sources */,
 				275592A32E8B5FCE00A524A7 /* Person+CoreDataProperties.swift in Sources */,
 				BD59A1A82E92BAEB00C4516C /* MedicationLabelPreviewView.swift in Sources */,
+				BD59A1D42E93232E00C4516C /* AddProviderView.swift in Sources */,
 				BD59A1A42E92BA8600C4516C /* MedicationLabelPDFGenerator.swift in Sources */,
 				275592BF2E8B702800A524A7 /* SharingManager.swift in Sources */,
 				BD59A1AA2E92BAF600C4516C /* SharingTests.swift in Sources */,
@@ -336,6 +349,9 @@
 				275592BD2E8B6F9C00A524A7 /* CloudKitManager.swift in Sources */,
 				275592AC2E8B60C700A524A7 /* Patient+CoreDataProperties.swift in Sources */,
 				275592AD2E8B60C700A524A7 /* Patient+CoreDataClass.swift in Sources */,
+				BD59A1DA2E936BFC00C4516C /* AuthenticationGateView.swift in Sources */,
+				BD59A1D82E936BFA00C4516C /* BiometricAuth.swift in Sources */,
+				BD59A1D62E93238300C4516C /* ProvidersListView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

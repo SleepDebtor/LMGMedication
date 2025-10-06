@@ -19,6 +19,14 @@ struct AddMedicationView: View {
         animation: .default)
     private var localMedicationTemplates: FetchedResults<Medication>
     
+    @FetchRequest(
+        sortDescriptors: [
+            NSSortDescriptor(keyPath: \Provider.lastName, ascending: true),
+            NSSortDescriptor(keyPath: \Provider.firstName, ascending: true)
+        ],
+        animation: .default)
+    private var providers: FetchedResults<Provider>
+    
     @StateObject private var cloudManager = CloudKitManager.shared
     
     @State private var selectedLocalTemplate: Medication?
@@ -43,6 +51,8 @@ struct AddMedicationView: View {
     @State private var useTemplate = true
     @State private var showingError = false
     @State private var errorMessage = ""
+    
+    @State private var selectedProvider: Provider?
     
     private var hasValidTemplate: Bool {
         if templateSource == 0 {
@@ -295,8 +305,24 @@ struct AddMedicationView: View {
                 }
                 
                 Section(header: Text("Prescriber")) {
-                    TextField("First Name", text: $prescriberFirstName)
-                    TextField("Last Name", text: $prescriberLastName)
+                    if providers.isEmpty {
+                        HStack {
+                            Text("No providers found. A default provider will be created.")
+                                .foregroundColor(.secondary)
+                            Spacer()
+                        }
+                    } else {
+                        Picker("Provider", selection: $selectedProvider) {
+                            ForEach(providers) { provider in
+                                let first = provider.firstName ?? ""
+                                let last = provider.lastName ?? ""
+                                let degree = provider.degree?.isEmpty == false ? ", \(provider.degree!)" : ""
+                                Text("\(first) \(last)\(degree)")
+                                    .tag(provider as Provider?)
+                            }
+                        }
+                        .pickerStyle(.menu)
+                    }
                 }
                 
                 // Debug/Status section
@@ -361,6 +387,13 @@ struct AddMedicationView: View {
                     useTemplate = false
                 } else if useTemplate && templateSource == 0 {
                     selectedLocalTemplate = localMedicationTemplates.first
+                }
+                
+                // Ensure a provider exists and default-select the first one
+                if providers.isEmpty {
+                    createDefaultProvider()
+                } else if selectedProvider == nil {
+                    selectedProvider = providers.first
                 }
             }
             .alert("Error Saving Medication", isPresented: $showingError) {
@@ -433,7 +466,7 @@ struct AddMedicationView: View {
             
             do {
                 try viewContext.save()
-                print("✅ Successfully saved dispensed medication for \(patient.displayName ?? "Unknown Patient")")
+                print("✅ Successfully saved dispensed medication for \(patient.displayName)")
                 dismiss()
             } catch {
                 let nsError = error as NSError
@@ -474,20 +507,30 @@ struct AddMedicationView: View {
     }
     
     private func findOrCreateProvider() -> Provider {
-        // Try to find existing provider
-        let request: NSFetchRequest<Provider> = Provider.fetchRequest()
-        request.predicate = NSPredicate(format: "firstName == %@ AND lastName == %@", 
-                                       prescriberFirstName, prescriberLastName)
-        
-        if let existingProvider = try? viewContext.fetch(request).first {
-            return existingProvider
-        } else {
-            // Create new provider
-            let newProvider = Provider(context: viewContext)
-            newProvider.firstName = prescriberFirstName.isEmpty ? nil : prescriberFirstName
-            newProvider.lastName = prescriberLastName.isEmpty ? nil : prescriberLastName
-            newProvider.timeStamp = Date()
-            return newProvider
+        if let selected = selectedProvider {
+            return selected
+        }
+        if let first = providers.first {
+            return first
+        }
+        // If no providers exist, create a default one
+        let provider = Provider(context: viewContext)
+        provider.firstName = "Default"
+        provider.lastName = "Provider"
+        provider.timeStamp = Date()
+        return provider
+    }
+    
+    private func createDefaultProvider() {
+        let defaultProvider = Provider(context: viewContext)
+        defaultProvider.firstName = "Default"
+        defaultProvider.lastName = "Provider"
+        defaultProvider.timeStamp = Date()
+        do {
+            try viewContext.save()
+            selectedProvider = defaultProvider
+        } catch {
+            print("Failed to create default provider: \(error)")
         }
     }
 }
