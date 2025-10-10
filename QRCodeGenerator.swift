@@ -7,14 +7,8 @@
 
 import Foundation
 import CoreImage.CIFilterBuiltins
-
-#if os(iOS)
 import UIKit
 public typealias PlatformImage = UIImage
-#elseif os(macOS)
-import AppKit
-public typealias PlatformImage = NSImage
-#endif
 
 /// Utility class for generating QR codes from URLs or text strings
 class QRCodeGenerator {
@@ -43,11 +37,7 @@ class QRCodeGenerator {
         
         guard let cgImage = context.createCGImage(scaledImage, from: scaledImage.extent) else { return nil }
         
-        #if os(iOS)
         return UIImage(cgImage: cgImage)
-        #else
-        return NSImage(cgImage: cgImage, size: size)
-        #endif
     }
     
     /// Generates QR code image data (PNG) from a given string
@@ -56,16 +46,8 @@ class QRCodeGenerator {
     ///   - size: The desired size of the QR code image
     /// - Returns: Data containing the PNG image, or nil if generation fails
     static func generateQRCodeData(from string: String, size: CGSize = CGSize(width: 200, height: 200)) -> Data? {
-        #if os(iOS)
         guard let image = generateQRCode(from: string, size: size) else { return nil }
         return image.pngData()
-        #else
-        guard let image = generateQRCode(from: string, size: size),
-              let tiff = image.tiffRepresentation,
-              let rep = NSBitmapImageRep(data: tiff),
-              let png = rep.representation(using: .png, properties: [:]) else { return nil }
-        return png
-        #endif
     }
     
     /// Updates a medication's QR code image based on its urlForQR property

@@ -8,27 +8,9 @@
 import Foundation
 import PDFKit
 import CoreImage.CIFilterBuiltins
-
-#if os(iOS)
 import UIKit
 public typealias PlatformFont = UIFont
 public typealias PlatformColor = UIColor
-#elseif os(macOS)
-import AppKit
-public typealias PlatformFont = NSFont
-public typealias PlatformColor = NSColor
-#endif
-
-#if os(macOS)
-extension NSFont {
-    static func italicSystemFont(ofSize size: CGFloat) -> NSFont {
-        let base = NSFont.systemFont(ofSize: size)
-        // Attempt to convert to italic; if conversion fails, return the base font
-        let converted = NSFontManager.shared.convert(base, toHaveTrait: .italicFontMask)
-        return converted
-    }
-}
-#endif
 
 class MedicationLabelPDFGenerator {
     
@@ -44,26 +26,12 @@ class MedicationLabelPDFGenerator {
     
     private static func createMedicationLabelPDF(for medication: DispencedMedication) -> Data? {
         let pageRect = CGRect(x: 0, y: 0, width: 400, height: 200)
-        #if os(iOS)
         let renderer = UIGraphicsPDFRenderer(bounds: pageRect)
         let data = renderer.pdfData { context in
             context.beginPage()
             drawMedicationLabel(in: pageRect, for: medication, context: context.cgContext)
         }
         return data
-        #elseif os(macOS)
-        let data = NSMutableData()
-        var mediaBox = pageRect
-        guard let consumer = CGDataConsumer(data: data as CFMutableData),
-              let context = CGContext(consumer: consumer, mediaBox: &mediaBox, nil) else {
-            return nil
-        }
-        context.beginPDFPage(nil)
-        drawMedicationLabel(in: pageRect, for: medication, context: context)
-        context.endPDFPage()
-        context.closePDF()
-        return data as Data
-        #endif
     }
     
     static func drawMedicationLabel(in rect: CGRect, for medication: DispencedMedication, context: CGContext) {

@@ -7,12 +7,7 @@
 
 import SwiftUI
 import CoreData
-#if os(iOS)
 import UIKit
-#endif
-#if os(macOS)
-import AppKit
-#endif
 
 struct MedicationTemplatesView: View {
     @Environment(\.managedObjectContext) private var viewContext
@@ -28,15 +23,9 @@ struct MedicationTemplatesView: View {
     @State private var searchText = ""
     @State private var selectedSegment = 0 // 0 = Public, 1 = Local
     
-    // Platform-aware colors
+    // iOS color
     private var platformSystemGray6: Color {
-        #if os(iOS)
-        return Color(.systemGray6)
-        #elseif os(macOS)
-        return Color(NSColor.underPageBackgroundColor)
-        #else
-        return Color.gray.opacity(0.15)
-        #endif
+        Color(.systemGray6)
     }
     
     var filteredPublicTemplates: [CloudMedicationTemplate] {
@@ -85,7 +74,6 @@ struct MedicationTemplatesView: View {
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
                         
-                        #if os(iOS)
                         Button("Open Settings") {
                             if let settingsUrl = URL(string: UIApplication.openSettingsURLString) {
                                 UIApplication.shared.open(settingsUrl)
@@ -93,7 +81,6 @@ struct MedicationTemplatesView: View {
                         }
                         .font(.caption)
                         .buttonStyle(.bordered)
-                        #endif
                     }
                     .padding()
                     .background(platformSystemGray6)
@@ -150,11 +137,8 @@ struct MedicationTemplatesView: View {
                 }
             }
             .navigationTitle("Medication Templates")
-            #if os(iOS)
             .navigationBarTitleDisplayMode(.large)
-            #endif
             .toolbar {
-                #if os(iOS)
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Done") { dismiss() }
                 }
@@ -167,20 +151,6 @@ struct MedicationTemplatesView: View {
                         }
                     } label: { Image(systemName: "plus") }
                 }
-                #elseif os(macOS)
-                ToolbarItem {
-                    Button("Done") { dismiss() }
-                }
-                ToolbarItem {
-                    Menu {
-                        if selectedSegment == 0 && cloudManager.isSignedInToiCloud {
-                            Button("Add Public Template") { showingAddMedication = true }
-                        } else {
-                            Button("Add Local Template") { showingAddMedication = true }
-                        }
-                    } label: { Image(systemName: "plus") }
-                }
-                #endif
             }
             .sheet(isPresented: $showingAddMedication) {
                 if selectedSegment == 0 {
@@ -385,9 +355,7 @@ struct EditMedicationTemplateView: View {
     @State private var injectable = false
     @State private var pharmacyURL = ""
     @State private var urlForQR = ""
-    #if os(iOS)
     @State private var qrCodeImage: UIImage?
-    #endif
     
     var body: some View {
         NavigationView {
@@ -408,9 +376,7 @@ struct EditMedicationTemplateView: View {
                         HStack {
                             Text("Concentration:")
                             TextField("0.0", value: $concentration1, format: .number)
-                                #if os(iOS)
                                 .keyboardType(.decimalPad)
-                                #endif
                                 .textFieldStyle(RoundedBorderTextFieldStyle())
                         }
                     }
@@ -423,9 +389,7 @@ struct EditMedicationTemplateView: View {
                         HStack {
                             Text("Concentration:")
                             TextField("0.0", value: $concentration2, format: .number)
-                                #if os(iOS)
                                 .keyboardType(.decimalPad)
-                                #endif
                                 .textFieldStyle(RoundedBorderTextFieldStyle())
                         }
                     }
@@ -435,13 +399,10 @@ struct EditMedicationTemplateView: View {
                     TextField("Pharmacy URL", text: $pharmacyURL)
                     TextField("QR Code URL", text: $urlForQR)
                         .onChange(of: urlForQR) { _, newValue in
-                            #if os(iOS)
                             updateQRCodePreview()
-                            #endif
                         }
                 }
                 
-                #if os(iOS)
                 Section(header: Text("QR Code Preview")) {
                     VStack(spacing: 12) {
                         if let qrImage = qrCodeImage {
@@ -477,31 +438,20 @@ struct EditMedicationTemplateView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 8)
                 }
-                #endif
             }
             .navigationTitle("Edit Template")
-            #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
-            #endif
             .toolbar {
-                #if os(iOS)
                 ToolbarItem(placement: .navigationBarLeading) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .navigationBarTrailing) { Button("Save") { saveMedication() }.disabled(medicationName.isEmpty) }
-                #elseif os(macOS)
-                ToolbarItem { Button("Cancel") { dismiss() } }
-                ToolbarItem { Button("Save") { saveMedication() }.disabled(medicationName.isEmpty) }
-                #endif
             }
             .onAppear {
                 loadFromMedication()
-                #if os(iOS)
                 loadExistingQRCode()
-                #endif
             }
         }
     }
     
-    #if os(iOS)
     private func updateQRCodePreview() {
         let urlToUse = urlForQR.isEmpty ? "https://hushmedicalspa.com/medications" : QRCodeGenerator.formatURL(urlForQR)
         qrCodeImage = QRCodeGenerator.generateQRCode(from: urlToUse, size: CGSize(width: 150, height: 150))
@@ -520,7 +470,6 @@ struct EditMedicationTemplateView: View {
             updateQRCodePreview()
         }
     }
-    #endif
     
     private func loadFromMedication() {
         medicationName = medication.name ?? ""
@@ -546,11 +495,9 @@ struct EditMedicationTemplateView: View {
         medication.urlForQR = urlForQR.isEmpty ? nil : urlForQR
         medication.timestamp = Date() // Update the timestamp to reflect the edit
         
-        #if os(iOS)
         // Generate and save QR code if we have one or generate a new one
         if qrCodeImage == nil { generateQRCode() }
         if let qrImage = qrCodeImage, let qrData = qrImage.pngData() { medication.qrImage = qrData }
-        #endif
         
         do {
             try viewContext.save()
@@ -575,9 +522,7 @@ struct AddMedicationTemplateView: View {
     @State private var injectable = false
     @State private var pharmacyURL = ""
     @State private var urlForQR = "https://hushmedicalspa.com/medications"
-    #if os(iOS)
     @State private var qrCodeImage: UIImage?
-    #endif
     
     var body: some View {
         NavigationView {
@@ -598,9 +543,7 @@ struct AddMedicationTemplateView: View {
                         HStack {
                             Text("Concentration:")
                             TextField("0.0", value: $concentration1, format: .number)
-                                #if os(iOS)
                                 .keyboardType(.decimalPad)
-                                #endif
                                 .textFieldStyle(RoundedBorderTextFieldStyle())
                         }
                     }
@@ -613,9 +556,7 @@ struct AddMedicationTemplateView: View {
                         HStack {
                             Text("Concentration:")
                             TextField("0.0", value: $concentration2, format: .number)
-                                #if os(iOS)
                                 .keyboardType(.decimalPad)
-                                #endif
                                 .textFieldStyle(RoundedBorderTextFieldStyle())
                         }
                     }
@@ -625,13 +566,10 @@ struct AddMedicationTemplateView: View {
                     TextField("Pharmacy URL", text: $pharmacyURL)
                     TextField("QR Code URL", text: $urlForQR)
                         .onChange(of: urlForQR) { _, newValue in
-                            #if os(iOS)
                             updateQRCodePreview()
-                            #endif
                         }
                 }
                 
-                #if os(iOS)
                 Section(header: Text("QR Code Preview")) {
                     VStack(spacing: 12) {
                         if let qrImage = qrCodeImage {
@@ -669,31 +607,20 @@ struct AddMedicationTemplateView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 8)
                 }
-                #endif
             }
             .navigationTitle("New Local Template")
-            #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
-            #endif
             .toolbar {
-                #if os(iOS)
                 ToolbarItem(placement: .navigationBarLeading) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .navigationBarTrailing) { Button("Save") { saveMedication() }.disabled(medicationName.isEmpty) }
-                #elseif os(macOS)
-                ToolbarItem { Button("Cancel") { dismiss() } }
-                ToolbarItem { Button("Save") { saveMedication() }.disabled(medicationName.isEmpty) }
-                #endif
             }
             .onAppear {
-                #if os(iOS)
                 // Generate initial QR code with default URL
                 updateQRCodePreview()
-                #endif
             }
         }
     }
     
-    #if os(iOS)
     private func updateQRCodePreview() {
         let urlToUse = urlForQR.isEmpty ? "https://hushmedicalspa.com/medications" : QRCodeGenerator.formatURL(urlForQR)
         qrCodeImage = QRCodeGenerator.generateQRCode(from: urlToUse, size: CGSize(width: 150, height: 150))
@@ -703,7 +630,6 @@ struct AddMedicationTemplateView: View {
         let urlToUse = urlForQR.isEmpty ? "https://hushmedicalspa.com/medications" : QRCodeGenerator.formatURL(urlForQR)
         qrCodeImage = QRCodeGenerator.generateQRCode(from: urlToUse, size: CGSize(width: 200, height: 200))
     }
-    #endif
     
     private func saveMedication() {
         let newMedication = Medication(context: viewContext)
@@ -718,11 +644,9 @@ struct AddMedicationTemplateView: View {
         newMedication.urlForQR = urlForQR.isEmpty ? nil : urlForQR
         newMedication.timestamp = Date()
         
-        #if os(iOS)
         // Generate and save QR code if we have one or generate a new one
         if qrCodeImage == nil { generateQRCode() }
         if let qrImage = qrCodeImage, let qrData = qrImage.pngData() { newMedication.qrImage = qrData }
-        #endif
         
         do {
             try viewContext.save()
@@ -747,9 +671,7 @@ struct AddCloudMedicationTemplateView: View {
     @State private var injectable = false
     @State private var pharmacyURL = ""
     @State private var urlForQR = "https://hushmedicalspa.com/medications"
-    #if os(iOS)
     @State private var qrCodeImage: UIImage?
-    #endif
     @State private var isSubmitting = false
     @State private var errorMessage: String?
     
@@ -789,9 +711,7 @@ struct AddCloudMedicationTemplateView: View {
                             HStack {
                                 Text("Concentration:")
                                 TextField("0.0", value: $concentration1, format: .number)
-                                    #if os(iOS)
                                     .keyboardType(.decimalPad)
-                                    #endif
                                     .textFieldStyle(RoundedBorderTextFieldStyle())
                             }
                         }
@@ -804,9 +724,7 @@ struct AddCloudMedicationTemplateView: View {
                             HStack {
                                 Text("Concentration:")
                                 TextField("0.0", value: $concentration2, format: .number)
-                                    #if os(iOS)
                                     .keyboardType(.decimalPad)
-                                    #endif
                                     .textFieldStyle(RoundedBorderTextFieldStyle())
                             }
                         }
@@ -816,13 +734,10 @@ struct AddCloudMedicationTemplateView: View {
                         TextField("Pharmacy URL", text: $pharmacyURL)
                         TextField("QR Code URL", text: $urlForQR)
                             .onChange(of: urlForQR) { _, newValue in
-                                #if os(iOS)
                                 updateQRCodePreview()
-                                #endif
                             }
                     }
                     
-                    #if os(iOS)
                     Section(header: Text("QR Code Preview")) {
                         VStack(spacing: 12) {
                             if let qrImage = qrCodeImage {
@@ -860,7 +775,6 @@ struct AddCloudMedicationTemplateView: View {
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 8)
                     }
-                    #endif
                     
                     Section {
                         VStack(alignment: .leading, spacing: 4) {
@@ -883,11 +797,8 @@ struct AddCloudMedicationTemplateView: View {
                 }
             }
             .navigationTitle("New Public Template")
-            #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
-            #endif
             .toolbar {
-                #if os(iOS)
                 ToolbarItem(placement: .navigationBarLeading) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Save") {
@@ -895,26 +806,14 @@ struct AddCloudMedicationTemplateView: View {
                     }
                     .disabled(medicationName.isEmpty || !cloudManager.isSignedInToiCloud || isSubmitting)
                 }
-                #elseif os(macOS)
-                ToolbarItem { Button("Cancel") { dismiss() } }
-                ToolbarItem {
-                    Button("Save") {
-                        Task { await saveTemplate() }
-                    }
-                    .disabled(medicationName.isEmpty || !cloudManager.isSignedInToiCloud || isSubmitting)
-                }
-                #endif
             }
             .onAppear {
-                #if os(iOS)
                 // Generate initial QR code with default URL
                 updateQRCodePreview()
-                #endif
             }
         }
     }
     
-    #if os(iOS)
     private func updateQRCodePreview() {
         let urlToUse = urlForQR.isEmpty ? "https://hushmedicalspa.com/medications" : QRCodeGenerator.formatURL(urlForQR)
         qrCodeImage = QRCodeGenerator.generateQRCode(from: urlToUse, size: CGSize(width: 150, height: 150))
@@ -924,7 +823,6 @@ struct AddCloudMedicationTemplateView: View {
         let urlToUse = urlForQR.isEmpty ? "https://hushmedicalspa.com/medications" : QRCodeGenerator.formatURL(urlForQR)
         qrCodeImage = QRCodeGenerator.generateQRCode(from: urlToUse, size: CGSize(width: 200, height: 200))
     }
-    #endif
     
     private func saveTemplate() async {
         isSubmitting = true
@@ -1038,19 +936,11 @@ struct CloudMedicationTemplateDetailView: View {
                 }
             }
             .navigationTitle("Template Details")
-            #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
-            #endif
             .toolbar {
-                #if os(iOS)
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Done") { dismiss() }
                 }
-                #elseif os(macOS)
-                ToolbarItem {
-                    Button("Done") { dismiss() }
-                }
-                #endif
             }
         }
     }

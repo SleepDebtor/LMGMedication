@@ -7,6 +7,7 @@
 
 import Foundation
 import CloudKit
+import SwiftUI
 import Combine
 
 @MainActor
@@ -22,10 +23,8 @@ class CloudKitManager: ObservableObject {
     @Published var isSignedInToiCloud = false
     @Published var publicMedicationTemplates: [CloudMedicationTemplate] = []
     
-    private var cancellables = Set<AnyCancellable>()
-    
     private init() {
-        container = CKContainer(identifier: "iCloud.com.lazarmedical.LMGMedication")
+        container = CKContainer(identifier: "iCloud.com.LMGMedications")
         publicDatabase = container.publicCloudDatabase
         privateDatabase = container.privateCloudDatabase
         sharedDatabase = container.sharedCloudDatabase
@@ -133,16 +132,26 @@ class CloudKitManager: ObservableObject {
         operation.savePolicy = .changedKeys
         
         return try await withCheckedThrowingContinuation { continuation in
-            operation.modifyRecordsCompletionBlock = { savedRecords, _, error in
+            var savedRecords: [CKRecord] = []
+
+            operation.perRecordSaveBlock = { recordID, result in
+                if case .success(let record) = result {
+                    savedRecords.append(record)
+                }
+            }
+
+            operation.modifyRecordsCompletionBlock = { _, _, error in
                 if let error = error {
                     continuation.resume(throwing: error)
-                } else if let savedRecords = savedRecords,
-                          let savedShare = savedRecords.first(where: { $0 is CKShare }) as? CKShare {
-                    continuation.resume(returning: savedShare)
+                    return
+                }
+                if let share = savedRecords.compactMap({ $0 as? CKShare }).first {
+                    continuation.resume(returning: share)
                 } else {
                     continuation.resume(throwing: CKError(.internalError))
                 }
             }
+
             privateDatabase.add(operation)
         }
     }
@@ -182,16 +191,26 @@ class CloudKitManager: ObservableObject {
         operation.savePolicy = .changedKeys
         
         return try await withCheckedThrowingContinuation { continuation in
-            operation.modifyRecordsCompletionBlock = { savedRecords, _, error in
+            var savedRecords: [CKRecord] = []
+
+            operation.perRecordSaveBlock = { recordID, result in
+                if case .success(let record) = result {
+                    savedRecords.append(record)
+                }
+            }
+
+            operation.modifyRecordsCompletionBlock = { _, _, error in
                 if let error = error {
                     continuation.resume(throwing: error)
-                } else if let savedRecords = savedRecords,
-                          let savedShare = savedRecords.first(where: { $0 is CKShare }) as? CKShare {
-                    continuation.resume(returning: savedShare)
+                    return
+                }
+                if let share = savedRecords.compactMap({ $0 as? CKShare }).first {
+                    continuation.resume(returning: share)
                 } else {
                     continuation.resume(throwing: CKError(.internalError))
                 }
             }
+
             privateDatabase.add(operation)
         }
     }
@@ -463,3 +482,4 @@ extension CloudMedicationTemplate {
         return parts.joined(separator: ", ")
     }
 }
+

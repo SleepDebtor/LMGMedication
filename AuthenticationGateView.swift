@@ -6,13 +6,7 @@
 //
 
 import SwiftUI
-
-#if os(iOS)
 import UIKit
-#endif
-#if os(macOS)
-import AppKit
-#endif
 
 struct AuthenticationGateView<Content: View>: View {
     @StateObject private var auth = BiometricAuth()
@@ -20,23 +14,11 @@ struct AuthenticationGateView<Content: View>: View {
 
     // Platform-aware system colors
     private var platformSystemBackground: Color {
-        #if os(iOS)
-        return Color(.systemBackground)
-        #elseif os(macOS)
-        return Color(NSColor.windowBackgroundColor)
-        #else
-        return Color.gray
-        #endif
+        Color(.systemBackground)
     }
 
     private var platformSecondaryBackground: Color {
-        #if os(iOS)
-        return Color(.secondarySystemBackground)
-        #elseif os(macOS)
-        return Color(NSColor.underPageBackgroundColor)
-        #else
-        return Color.gray.opacity(0.8)
-        #endif
+        Color(.secondarySystemBackground)
     }
 
     var body: some View {

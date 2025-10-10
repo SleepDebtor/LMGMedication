@@ -7,6 +7,10 @@
 
 import SwiftUI
 import CoreData
+import CloudKit
+#if os(iOS)
+import UIKit
+#endif
 
 struct PatientDetailView: View {
     @Environment(\.managedObjectContext) private var viewContext
@@ -17,6 +21,10 @@ struct PatientDetailView: View {
     @State private var selectedMedication: DispencedMedication?
     @State private var showingBulkPrint = false
     @State private var selectedMedicationsForPrint: Set<DispencedMedication> = []
+    
+    @State private var isSharing = false
+    @State private var shareErrorMessage: String?
+    @State private var showingErrorAlert = false
     
     var sortedMedications: [DispencedMedication] {
         patient.dispensedMedicationsArray.sorted { med1, med2 in
@@ -49,7 +57,7 @@ struct PatientDetailView: View {
                 .padding(.vertical, 4)
             }
             
-            Section(header: 
+            Section(header:
                 HStack {
                     Text("Dispensed Medications")
                     Spacer()
@@ -100,6 +108,10 @@ struct PatientDetailView: View {
                     }
                     
                     SharePatientButton(patient: patient)
+                    
+                    Button(action: { Task { await sharePatient() } }) {
+                        Label("Share Patient", systemImage: "square.and.arrow.up")
+                    }
                 } label: {
                     Image(systemName: "ellipsis.circle")
                 }
@@ -113,6 +125,11 @@ struct PatientDetailView: View {
                 medications: sortedMedications,
                 selectedMedications: $selectedMedicationsForPrint
             )
+        }
+        .alert("Error", isPresented: $showingErrorAlert) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(shareErrorMessage ?? "Unknown error")
         }
     }
     
@@ -139,6 +156,34 @@ struct PatientDetailView: View {
     private func printAllLabels() {
         Task {
             await MedicationPrintManager.shared.printLabels(for: sortedMedications)
+        }
+    }
+    
+    private func sharePatient() async {
+        isSharing = true
+        defer { isSharing = false }
+        
+        do {
+            // Resolve participants: for now, create an empty share with no participants.
+            // In a real flow, you'd present UI to pick participants. We'll create the share root and present the CKShare via UIActivityViewController on iOS, or simply complete silently.
+            let share = try await CloudKitManager.shared.sharePatient(patient, with: [])
+            #if os(iOS)
+            // Present the share URL via standard share sheet if available
+            if let url = share.url {
+                await MainActor.run {
+                    if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                       let rootVC = windowScene.windows.first?.rootViewController {
+                        let av = UIActivityViewController(activityItems: [url], applicationActivities: nil)
+                        rootVC.present(av, animated: true)
+                    }
+                }
+            }
+            #endif
+        } catch {
+            await MainActor.run {
+                shareErrorMessage = error.localizedDescription
+                showingErrorAlert = true
+            }
         }
     }
 }
@@ -180,10 +225,11 @@ struct PatientMedicationRow: View {
                         }
                     }
                     
-                    if let expDate = medication.expDate {
-                        Text("Expires: \(expDate, style: .date)")
+                    let fillAmount = medication.fillAmount
+                    if fillAmount > 0 {
+                        Text("Fill: \(String(format: "%.2f", fillAmount)) mL (\(String(format: "%.0f", fillAmount * 100))U)")
                             .font(.caption2)
-                            .foregroundColor(expDate < Date() ? .red : .secondary)
+                            .foregroundColor(.secondary)
                     }
                 }
                 .padding(.vertical, 2)

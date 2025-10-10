@@ -7,8 +7,9 @@
 
 import Foundation
 import SwiftUI
-import CloudKit
 import Combine
+import CloudKit
+import UIKit
 
 // MARK: - Error Wrapper for ObservableObject Conformance
 
@@ -61,7 +62,7 @@ class SharingManager: ObservableObject {
     }
     
     private func createParticipants(from emailAddresses: [String]) async throws -> [CKShare.Participant] {
-        let container = CKContainer(identifier: "iCloud.com.lazarmedical.LMGMedication")
+        let container = CKContainer(identifier: "iCloud.com.LMGMedications")
         var participants: [CKShare.Participant] = []
         
         func fetchParticipant(for email: String) async throws -> CKShare.Participant {

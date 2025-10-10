@@ -17,6 +17,9 @@ struct AddPatientView: View {
     @State private var middleName = ""
     @State private var birthdate = Date()
     
+    @State private var showingErrorAlert = false
+    @State private var errorMessage: String = ""
+    
     var body: some View {
         NavigationView {
             Form {
@@ -42,6 +45,11 @@ struct AddPatientView: View {
                     .disabled(firstName.isEmpty || lastName.isEmpty)
                 }
             }
+            .alert("Error", isPresented: $showingErrorAlert) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text(errorMessage)
+            }
         }
     }
     
@@ -59,7 +67,8 @@ struct AddPatientView: View {
                 dismiss()
             } catch {
                 let nsError = error as NSError
-                fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
+                errorMessage = "Failed to save patient: \(nsError.localizedDescription)"
+                showingErrorAlert = true
             }
         }
     }
