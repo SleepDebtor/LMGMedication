@@ -24,7 +24,7 @@ class CloudKitManager: ObservableObject {
     @Published var publicMedicationTemplates: [CloudMedicationTemplate] = []
     
     private init() {
-        container = CKContainer(identifier: "iCloud.com.LMGMedications")
+        container = CKContainer(identifier: "iCloud.LMGMedications")
         publicDatabase = container.publicCloudDatabase
         privateDatabase = container.privateCloudDatabase
         sharedDatabase = container.sharedCloudDatabase

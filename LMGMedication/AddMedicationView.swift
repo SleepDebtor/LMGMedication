@@ -463,10 +463,12 @@ struct AddMedicationView: View {
             dispensedMedication.baseMedication = medication
             dispensedMedication.patient = patient
             dispensedMedication.prescriber = provider
+            patient.addToMedicationsPrescribed(dispensedMedication)
             
             do {
                 try viewContext.save()
-                print("✅ Successfully saved dispensed medication for \(patient.displayName)")
+                let count = patient.dispensedMedicationsArray.count
+                print("✅ Successfully saved dispensed medication for \(patient.displayName). Now patient has \(count) dispensed medication(s).")
                 dismiss()
             } catch {
                 let nsError = error as NSError

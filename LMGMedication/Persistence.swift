@@ -62,6 +62,7 @@ struct PersistenceController {
         // Create sample dispensed medications
         let dispensed1 = DispencedMedication(context: viewContext)
         dispensed1.dose = "10"
+        dispensed1.doseNum = 10.0
         dispensed1.doseUnit = "mg"
         dispensed1.dispenceAmt = 4
         dispensed1.dispenceUnit = "syringes"
@@ -75,6 +76,7 @@ struct PersistenceController {
         
         let dispensed2 = DispencedMedication(context: viewContext)
         dispensed2.dose = "1"
+        dispensed2.doseNum = 1.0
         dispensed2.doseUnit = "mg"
         dispensed2.dispenceAmt = 1
         dispensed2.dispenceUnit = "pen"
@@ -87,6 +89,7 @@ struct PersistenceController {
         
         let dispensed3 = DispencedMedication(context: viewContext)
         dispensed3.dose = "500"
+        dispensed3.doseNum = 500.0
         dispensed3.doseUnit = "mg"
         dispensed3.dispenceAmt = 60
         dispensed3.dispenceUnit = "tablets"

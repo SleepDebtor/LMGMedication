@@ -10,6 +10,7 @@
         <attribute name="doseUnit" optional="YES" attributeType="String" allowsCloudEncryption="YES"/>
         <attribute name="expDate" optional="YES" attributeType="Date" allowsCloudEncryption="YES" usesScalarValueType="NO"/>
         <attribute name="lotNum" optional="YES" attributeType="String" allowsCloudEncryption="YES"/>
+        <attribute name="nextDoseDue" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <relationship name="baseMedication" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Medication" inverseName="dispenced" inverseEntity="Medication"/>
         <relationship name="patient" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Patient" inverseName="medicationsPrescribed" inverseEntity="Patient"/>
         <relationship name="prescriber" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Provider" inverseName="relationship" inverseEntity="Provider"/>

@@ -842,6 +842,7 @@ struct AddCloudMedicationTemplateView: View {
         
         do {
             let _ = try await cloudManager.createPublicMedicationTemplate(template)
+            await cloudManager.loadPublicMedicationTemplates()
             await MainActor.run {
                 dismiss()
             }
@@ -967,3 +968,4 @@ struct CloudMedicationTemplateDetailView: View {
     return MedicationTemplatesView()
         .environment(\.managedObjectContext, context)
 }
+

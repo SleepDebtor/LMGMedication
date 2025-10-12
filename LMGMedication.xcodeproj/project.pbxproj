@@ -19,6 +19,7 @@
 		275592AD2E8B60C700A524A7 /* Patient+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 275592AA2E8B60C700A524A7 /* Patient+CoreDataClass.swift */; };
 		275592BD2E8B6F9C00A524A7 /* CloudKitManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 275592BC2E8B6F9C00A524A7 /* CloudKitManager.swift */; };
 		275592BF2E8B702800A524A7 /* SharingManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 275592BE2E8B702800A524A7 /* SharingManager.swift */; };
+		BD482A262E9B4DA800A52070 /* DispencedMedication+BusinessLogic.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD482A252E9B4DA800A52070 /* DispencedMedication+BusinessLogic.swift */; };
 		BD59A1A42E92BA8600C4516C /* MedicationLabelPDFGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD59A1A32E92BA8600C4516C /* MedicationLabelPDFGenerator.swift */; };
 		BD59A1A62E92BA9900C4516C /* ParticipantSelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD59A1A52E92BA9900C4516C /* ParticipantSelectionView.swift */; };
 		BD59A1A82E92BAEB00C4516C /* MedicationLabelPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD59A1A72E92BAEB00C4516C /* MedicationLabelPreviewView.swift */; };
@@ -64,6 +65,7 @@
 		275592AB2E8B60C700A524A7 /* Patient+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Patient+CoreDataProperties.swift"; sourceTree = "<group>"; };
 		275592BC2E8B6F9C00A524A7 /* CloudKitManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitManager.swift; sourceTree = "<group>"; };
 		275592BE2E8B702800A524A7 /* SharingManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharingManager.swift; sourceTree = "<group>"; };
+		BD482A252E9B4DA800A52070 /* DispencedMedication+BusinessLogic.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DispencedMedication+BusinessLogic.swift"; sourceTree = "<group>"; };
 		BD59A1A32E92BA8600C4516C /* MedicationLabelPDFGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicationLabelPDFGenerator.swift; sourceTree = "<group>"; };
 		BD59A1A52E92BA9900C4516C /* ParticipantSelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParticipantSelectionView.swift; sourceTree = "<group>"; };
 		BD59A1A72E92BAEB00C4516C /* MedicationLabelPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicationLabelPreviewView.swift; sourceTree = "<group>"; };
@@ -170,6 +172,7 @@
 				BD59A1D52E93238300C4516C /* ProvidersListView.swift */,
 				BD59A1D72E936BFA00C4516C /* BiometricAuth.swift */,
 				BD59A1D92E936BFC00C4516C /* AuthenticationGateView.swift */,
+				BD482A252E9B4DA800A52070 /* DispencedMedication+BusinessLogic.swift */,
 			);
 			sourceTree = "<group>";
 		};
@@ -329,6 +332,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				275592A22E8B5FCE00A524A7 /* Provider+CoreDataClass.swift in Sources */,
+				BD482A262E9B4DA800A52070 /* DispencedMedication+BusinessLogic.swift in Sources */,
 				275592A32E8B5FCE00A524A7 /* Person+CoreDataProperties.swift in Sources */,
 				BD59A1A82E92BAEB00C4516C /* MedicationLabelPreviewView.swift in Sources */,
 				BD59A1D42E93232E00C4516C /* AddProviderView.swift in Sources */,

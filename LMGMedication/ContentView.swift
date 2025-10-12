@@ -25,65 +25,107 @@ struct PatientsListRootView: View {
     @State private var showingAddPatient = false
     @State private var showingMedicationTemplates = false
     @State private var showingProviders = false
-    @State private var sortSelection: Int = 0 // 0 = Name, 1 = Most Recent
     @State private var showingErrorAlert = false
     @State private var errorMessage: String = ""
 
-    private var patientsForDisplay: [Patient] {
-        let list = Array(patients)
-        if sortSelection == 1 {
-            // Sort by most recent dispensed medication date (descending)
-            return list.sorted { p1, p2 in
-                let d1 = p1.dispensedMedicationsArray.compactMap { $0.dispenceDate }.max() ?? Date.distantPast
-                let d2 = p2.dispensedMedicationsArray.compactMap { $0.dispenceDate }.max() ?? Date.distantPast
-                return d1 > d2
-            }
-        } else {
-            // Default by last name, then first name
-            return list.sorted { lhs, rhs in
-                let lLast = lhs.lastName ?? ""
-                let rLast = rhs.lastName ?? ""
-                if lLast == rLast {
-                    return (lhs.firstName ?? "") < (rhs.firstName ?? "")
-                }
-                return lLast < rLast
+    private func nextDoseDueDate(for patient: Patient) -> Date? {
+        // Use the earliest upcoming nextDoseDue across all dispensed medications
+        let dates = patient.dispensedMedicationsArray.compactMap { $0.nextDoseDue }
+        return dates.min()
+    }
+
+    private var groupedByWeek: [(weekStart: Date, patients: [Patient])] {
+        let calendar = Calendar.current
+        let pairs: [(Date, Patient)] = patients.compactMap { patient in
+            guard let date = nextDoseDueDate(for: patient) else { return nil }
+            if let weekStart = calendar.dateInterval(of: .weekOfYear, for: date)?.start {
+                return (weekStart, patient)
+            } else {
+                return nil
             }
         }
+        // Group by week start
+        let grouped = Dictionary(grouping: pairs, by: { $0.0 })
+            .map { (weekStart, entries) -> (Date, [Patient]) in
+                let uniquePatients = Array(Set(entries.map { $0.1 }))
+                // Sort patients in each section by their nextDoseDue date then name
+                let sorted = uniquePatients.sorted { lhs, rhs in
+                    let lDate = nextDoseDueDate(for: lhs) ?? .distantFuture
+                    let rDate = nextDoseDueDate(for: rhs) ?? .distantFuture
+                    if lDate == rDate {
+                        let lLast = lhs.lastName ?? ""
+                        let rLast = rhs.lastName ?? ""
+                        if lLast == rLast { return (lhs.firstName ?? "") < (rhs.firstName ?? "") }
+                        return lLast < rLast
+                    }
+                    return lDate < rDate
+                }
+                return (weekStart, sorted)
+            }
+            .sorted { $0.0 < $1.0 }
+        return grouped
+    }
+
+    private var noNextDosePatients: [Patient] {
+        Array(patients).filter { nextDoseDueDate(for: $0) == nil }
+            .sorted { lhs, rhs in
+                let lLast = lhs.lastName ?? ""
+                let rLast = rhs.lastName ?? ""
+                if lLast == rLast { return (lhs.firstName ?? "") < (rhs.firstName ?? "") }
+                return lLast < rLast
+            }
     }
 
     var body: some View {
         NavigationStack {
-            Picker("Sort", selection: $sortSelection) {
-                Text("Name").tag(0)
-                Text("Most Recent").tag(1)
-            }
-            .pickerStyle(.segmented)
-            .padding(.horizontal)
-
             List {
-                ForEach(patientsForDisplay) { patient in
-                    NavigationLink(destination: PatientDetailView(patient: patient)) {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(patient.displayName)
-                                .font(.headline)
-                            if let birthdate = patient.birthdate {
-                                Text("DOB: \(birthdate, style: .date)")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-                            let medicationCount = patient.dispensedMedicationsArray.count
-                            if medicationCount > 0 {
-                                Text("\(medicationCount) medication\(medicationCount == 1 ? "" : "s")")
-                                    .font(.caption2)
-                                    .foregroundColor(.blue)
+                // Sections for each week
+                ForEach(groupedByWeek, id: \.weekStart) { section in
+                    Section(header: Text("Week of \(section.weekStart, style: .date)")) {
+                        ForEach(section.patients) { patient in
+                            NavigationLink(destination: PatientDetailView(patient: patient)) {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(patient.displayName)
+                                        .font(.headline)
+                                    if let due = nextDoseDueDate(for: patient) {
+                                        Text("Next dose due: \(due, style: .date)")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                    }
+                                }
+                                .padding(.vertical, 2)
                             }
                         }
-                        .padding(.vertical, 2)
+                        .onDelete { offsets in
+                            deletePatientsFromSection(section.patients, offsets: offsets)
+                        }
                     }
                 }
-                .onDelete(perform: deletePatients)
+
+                // Section for patients without a scheduled next dose
+                if !noNextDosePatients.isEmpty {
+                    Section(header: Text("No Next Dose Scheduled")) {
+                        ForEach(noNextDosePatients) { patient in
+                            NavigationLink(destination: PatientDetailView(patient: patient)) {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(patient.displayName)
+                                        .font(.headline)
+                                    if let birthdate = patient.birthdate {
+                                        Text("DOB: \(birthdate, style: .date)")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                    }
+                                }
+                                .padding(.vertical, 2)
+                            }
+                        }
+                        .onDelete { offsets in
+                            deletePatientsFromSection(noNextDosePatients, offsets: offsets)
+                        }
+                    }
+                }
             }
-            .navigationTitle("Patients")
+            .navigationTitle("Patients by Week")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(action: { showingProviders = true }) {
@@ -120,6 +162,20 @@ struct PatientsListRootView: View {
                 Button("OK", role: .cancel) { }
             } message: {
                 Text(errorMessage)
+            }
+        }
+    }
+
+    private func deletePatientsFromSection(_ sectionPatients: [Patient], offsets: IndexSet) {
+        withAnimation {
+            let toDelete = offsets.map { sectionPatients[$0] }
+            toDelete.forEach(viewContext.delete)
+            do {
+                try viewContext.save()
+            } catch {
+                let nsError = error as NSError
+                errorMessage = "Failed to delete patient(s): \(nsError.localizedDescription)"
+                showingErrorAlert = true
             }
         }
     }

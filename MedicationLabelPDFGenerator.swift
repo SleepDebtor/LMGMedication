@@ -39,9 +39,9 @@ class MedicationLabelPDFGenerator {
         let contentRect = rect.insetBy(dx: margin, dy: margin)
         
         // Draw border
-        context.setStrokeColor(PlatformColor.black.cgColor)
-        context.setLineWidth(2) // Slightly thicker border for higher resolution
-        context.stroke(rect.insetBy(dx: 1, dy: 1))
+        // context.setStrokeColor(PlatformColor.black.cgColor)
+        // context.setLineWidth(2) // Slightly thicker border for higher resolution
+        // context.stroke(rect.insetBy(dx: 1, dy: 1))
         
         // QR code on the left - reduced size for 200 DPI
         let qrCodeSize: CGFloat = 125 // Reduced from 166 to 120

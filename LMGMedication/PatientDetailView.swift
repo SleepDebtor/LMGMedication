@@ -96,6 +96,11 @@ struct PatientDetailView: View {
         .navigationBarTitleDisplayMode(.large)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
+                Button(action: { showingAddMedication = true }) {
+                    Label("Dispense", systemImage: "pills.fill")
+                }
+            }
+            ToolbarItem(placement: .navigationBarTrailing) {
                 Menu {
                     Button(action: { showingAddMedication = true }) {
                         Label("Dispense Medication", systemImage: "plus")

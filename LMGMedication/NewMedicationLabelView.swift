@@ -292,6 +292,14 @@ struct MedicationLabelView: View {
         
         // Update the medication properties
         medication.dose = editDose.isEmpty ? nil : editDose
+        
+        // Keep numeric dose in sync with string dose for fill amount calculations
+        if let text = medication.dose, let numeric = Double(text) {
+            medication.doseNum = numeric
+        } else {
+            medication.doseNum = 0.0
+        }
+        
         medication.doseUnit = editDoseUnit
         medication.dispenceAmt = Int16(editDispenceAmount)
         medication.dispenceUnit = editDispenceUnit

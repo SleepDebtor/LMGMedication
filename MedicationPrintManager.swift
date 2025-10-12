@@ -18,6 +18,9 @@ class MedicationPrintManager {
     
     /// Print a single medication label
     func printLabel(for medication: DispencedMedication) async {
+        // Update nextDoseDue based on medication type and dispensed amount when printing
+        medication.updateNextDoseDueOnPrint()
+        
         guard let pdfData = await MedicationLabelPDFGenerator.generatePDF(for: medication) else {
             print("Failed to generate PDF for medication: \(medication.displayName)")
             return
@@ -56,6 +59,11 @@ class MedicationPrintManager {
     
     /// Generate a PDF containing multiple medication labels
     private func generateCombinedPDF(for medications: [DispencedMedication]) async -> Data? {
+        // Update nextDoseDue for all medications before generating combined PDF
+        for med in medications {
+            med.updateNextDoseDueOnPrint()
+        }
+
         return await withCheckedContinuation { continuation in
             Task {
                 let pageRect = CGRect(x: 0, y: 0, width: 400, height: 200)
