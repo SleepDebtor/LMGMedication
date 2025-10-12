@@ -204,8 +204,9 @@ struct PatientMedicationRow: View {
                     Text(medication.displayName)
                         .font(.headline)
                     
-                    if !medication.concentrationInfo.isEmpty {
-                        Text(medication.concentrationInfo)
+                    let fillAmount = medication.fillAmount
+                    if fillAmount > 0 {
+                        Text("Fill: \(String(format: "%.2f", fillAmount)) mL (\(String(format: "%.0f", fillAmount * 100))U)")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                     }
@@ -228,13 +229,6 @@ struct PatientMedicationRow: View {
                                 .font(.caption2)
                                 .foregroundColor(.secondary)
                         }
-                    }
-                    
-                    let fillAmount = medication.fillAmount
-                    if fillAmount > 0 {
-                        Text("Fill: \(String(format: "%.2f", fillAmount)) mL (\(String(format: "%.0f", fillAmount * 100))U)")
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
                     }
                 }
                 .padding(.vertical, 2)
@@ -356,3 +350,4 @@ struct BulkPrintSelectionView: View {
     }
     .environment(\.managedObjectContext, context)
 }
+
