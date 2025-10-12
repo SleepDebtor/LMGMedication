@@ -21,10 +21,16 @@ struct PatientDetailView: View {
     @State private var selectedMedication: DispencedMedication?
     @State private var showingBulkPrint = false
     @State private var selectedMedicationsForPrint: Set<DispencedMedication> = []
+    @State private var showingEditPatient = false
     
     @State private var isSharing = false
     @State private var shareErrorMessage: String?
     @State private var showingErrorAlert = false
+    
+    // Custom colors - matching ContentView
+    private let goldColor = Color(red: 1.0, green: 0.843, blue: 0.0) // Pure gold
+    private let darkGoldColor = Color(red: 0.8, green: 0.6, blue: 0.0) // Darker gold
+    private let charcoalColor = Color(red: 0.1, green: 0.1, blue: 0.1) // Near black
     
     var sortedMedications: [DispencedMedication] {
         patient.dispensedMedicationsArray.sorted { med1, med2 in
@@ -36,95 +42,170 @@ struct PatientDetailView: View {
     }
     
     var body: some View {
-        List {
-            Section(header: Text("Patient Information")) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(patient.displayName)
-                        .font(.title2)
-                        .fontWeight(.semibold)
-                    
-                    if let birthdate = patient.birthdate {
-                        Text("DOB: \(birthdate, style: .date)")
-                            .foregroundColor(.secondary)
-                    }
-                    
-                    if let timestamp = patient.timeStamp {
-                        Text("Added: \(timestamp, style: .date)")
-                            .foregroundColor(.secondary)
-                            .font(.caption)
-                    }
-                }
-                .padding(.vertical, 4)
-            }
+        ZStack {
+            // Background gradient
+            LinearGradient(
+                colors: [charcoalColor, Color.black],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
             
-            Section(header:
-                HStack {
-                    Text("Dispensed Medications")
-                    Spacer()
-                    if !sortedMedications.isEmpty {
-                        Menu {
-                            Button(action: { showingBulkPrint = true }) {
-                                Label("Print and Update Next Dose (Selected)", systemImage: "printer")
+            ScrollView {
+                LazyVStack(spacing: 20) {
+                    // Patient Header Card
+                    PatientHeaderCard(
+                        patient: patient,
+                        goldColor: goldColor,
+                        darkGoldColor: darkGoldColor,
+                        onEditTapped: { showingEditPatient = true }
+                    )
+                    .padding(.horizontal, 20)
+                    .padding(.top, 10)
+                    
+                    // Action Buttons Section
+                    HStack(spacing: 12) {
+                        // Dispense Medication button
+                        Button(action: { showingAddMedication = true }) {
+                            HStack {
+                                Image(systemName: "pills.fill")
+                                    .font(.title3)
+                                Text("Dispense")
+                                    .font(.subheadline)
+                                    .fontWeight(.semibold)
                             }
-                            
+                            .foregroundColor(.black)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(
+                                LinearGradient(
+                                    colors: [goldColor, darkGoldColor],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .cornerRadius(12)
+                            .shadow(color: goldColor.opacity(0.3), radius: 6, x: 0, y: 3)
+                        }
+                        
+                        // Print All button (if medications exist)
+                        if !sortedMedications.isEmpty {
                             Button(action: { printAllLabels() }) {
-                                Label("Print and Update Next Dose (All)", systemImage: "printer.fill")
+                                HStack {
+                                    Image(systemName: "printer.fill")
+                                        .font(.title3)
+                                    Text("Print All")
+                                        .font(.subheadline)
+                                        .fontWeight(.semibold)
+                                }
+                                .foregroundColor(goldColor)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(goldColor, lineWidth: 1.5)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 12)
+                                                .fill(Color.white.opacity(0.05))
+                                        )
+                                )
                             }
-                        } label: {
-                            Image(systemName: "printer")
-                                .font(.caption)
+                        }
+                        
+                        // Share button
+                        Button(action: { Task { await sharePatient() } }) {
+                            HStack {
+                                Image(systemName: "square.and.arrow.up")
+                                    .font(.title3)
+                                Text("Share")
+                                    .font(.subheadline)
+                                    .fontWeight(.semibold)
+                            }
+                            .foregroundColor(goldColor)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(goldColor, lineWidth: 1.5)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .fill(Color.white.opacity(0.05))
+                                    )
+                            )
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                    
+                    // Medications Section
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Text("Dispensed Medications")
+                                .font(.title2)
+                                .fontWeight(.bold)
+                                .foregroundColor(goldColor)
+                            Spacer()
+                            if !sortedMedications.isEmpty {
+                                Button(action: { showingBulkPrint = true }) {
+                                    Text("Select & Print")
+                                        .font(.caption)
+                                        .foregroundColor(goldColor.opacity(0.8))
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 4)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 6)
+                                                .fill(goldColor.opacity(0.1))
+                                        )
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 20)
+                        
+                        if sortedMedications.isEmpty {
+                            VStack(spacing: 16) {
+                                Image(systemName: "pills")
+                                    .font(.system(size: 50))
+                                    .foregroundColor(goldColor.opacity(0.6))
+                                
+                                Text("No Medications Yet")
+                                    .font(.title3)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(goldColor)
+                                
+                                Text("Tap 'Dispense' above to add medication")
+                                    .font(.body)
+                                    .foregroundColor(.gray)
+                                    .multilineTextAlignment(.center)
+                                    .padding(.horizontal, 40)
+                            }
+                            .padding(.top, 40)
+                            .padding(.bottom, 20)
+                        } else {
+                            ForEach(sortedMedications, id: \.objectID) { medication in
+                                NavigationLink(destination: MedicationLabelView(medication: medication)) {
+                                    MedicationCardView(
+                                        medication: medication,
+                                        goldColor: goldColor,
+                                        darkGoldColor: darkGoldColor,
+                                        onPrintTapped: { printSingleLabel(medication) }
+                                    )
+                                }
+                                .buttonStyle(PlainButtonStyle())
+                            }
                         }
                     }
                 }
-            ) {
-                if sortedMedications.isEmpty {
-                    Text("No medications dispensed")
-                        .foregroundColor(.secondary)
-                        .italic()
-                } else {
-                    ForEach(sortedMedications, id: \.objectID) { medication in
-                        PatientMedicationRow(
-                            medication: medication,
-                            onPrintTapped: { printSingleLabel(medication) }
-                        )
-                    }
-                    .onDelete(perform: deleteMedications)
-                }
+                .padding(.bottom, 20)
             }
         }
-        .animation(.easeInOut, value: sortedMedications.count)
         .navigationTitle(patient.displayName)
         .navigationBarTitleDisplayMode(.large)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button(action: { showingAddMedication = true }) {
-                    Label("Dispense", systemImage: "pills.fill")
-                }
-            }
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Menu {
-                    Button(action: { showingAddMedication = true }) {
-                        Label("Dispense Medication", systemImage: "plus")
-                    }
-                    
-                    if !sortedMedications.isEmpty {
-                        Button(action: { printAllLabels() }) {
-                            Label("Print and Update Next Dose (All)", systemImage: "printer.fill")
-                        }
-                    }
-                    
-                    SharePatientButton(patient: patient)
-                    
-                    Button(action: { Task { await sharePatient() } }) {
-                        Label("Share Patient", systemImage: "square.and.arrow.up")
-                    }
-                } label: {
-                    Image(systemName: "ellipsis.circle")
-                }
-            }
-        }
+        .toolbarBackground(charcoalColor, for: .navigationBar)
+        .toolbarColorScheme(.dark, for: .navigationBar)
         .sheet(isPresented: $showingAddMedication) {
             AddMedicationView(patient: patient)
+        }
+        .sheet(isPresented: $showingEditPatient) {
+            EditPatientView(patient: patient)
         }
         .sheet(isPresented: $showingBulkPrint) {
             BulkPrintSelectionView(
@@ -148,7 +229,8 @@ struct PatientDetailView: View {
                 try viewContext.save()
             } catch {
                 let nsError = error as NSError
-                fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
+                shareErrorMessage = "Failed to delete medication(s): \(nsError.localizedDescription)"
+                showingErrorAlert = true
             }
         }
     }
@@ -191,6 +273,214 @@ struct PatientDetailView: View {
                 showingErrorAlert = true
             }
         }
+    }
+}
+
+struct PatientHeaderCard: View {
+    let patient: Patient
+    let goldColor: Color
+    let darkGoldColor: Color
+    let onEditTapped: () -> Void
+    
+    var body: some View {
+        HStack {
+            // Patient icon
+            ZStack {
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: [goldColor.opacity(0.3), darkGoldColor.opacity(0.4)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 70, height: 70)
+                
+                Image(systemName: "person.fill")
+                    .font(.largeTitle)
+                    .foregroundColor(goldColor)
+            }
+            
+            // Patient info
+            VStack(alignment: .leading, spacing: 6) {
+                Text(patient.displayName)
+                    .font(.title)
+                    .fontWeight(.bold)
+                    .foregroundColor(.white)
+                
+                if let birthdate = patient.birthdate {
+                    Text("DOB: \(birthdate, style: .date)")
+                        .font(.subheadline)
+                        .foregroundColor(goldColor.opacity(0.8))
+                }
+                
+                if let timestamp = patient.timeStamp {
+                    Text("Added: \(timestamp, style: .date)")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                }
+            }
+            
+            Spacer()
+            
+            // Edit button
+            Button(action: onEditTapped) {
+                Image(systemName: "pencil")
+                    .font(.title2)
+                    .foregroundColor(goldColor)
+                    .padding(12)
+                    .background(
+                        Circle()
+                            .fill(Color.white.opacity(0.1))
+                            .overlay(
+                                Circle()
+                                    .stroke(goldColor.opacity(0.3), lineWidth: 1)
+                            )
+                    )
+            }
+        }
+        .padding(20)
+        .background(
+            RoundedRectangle(cornerRadius: 20)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color.white.opacity(0.08),
+                            Color.white.opacity(0.03)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 20)
+                        .stroke(
+                            LinearGradient(
+                                colors: [goldColor.opacity(0.4), goldColor.opacity(0.2)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 1.5
+                        )
+                )
+        )
+        .shadow(color: goldColor.opacity(0.2), radius: 8, x: 0, y: 4)
+    }
+}
+
+struct MedicationCardView: View {
+    let medication: DispencedMedication
+    let goldColor: Color
+    let darkGoldColor: Color
+    let onPrintTapped: () -> Void
+    
+    var body: some View {
+        HStack {
+            // Medication icon
+            ZStack {
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(
+                        LinearGradient(
+                            colors: [goldColor.opacity(0.2), darkGoldColor.opacity(0.3)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 50, height: 50)
+                
+                Image(systemName: "pills.fill")
+                    .font(.title2)
+                    .foregroundColor(goldColor)
+            }
+            
+            // Medication info
+            VStack(alignment: .leading, spacing: 4) {
+                Text(medication.displayName)
+                    .font(.headline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.white)
+                    .lineLimit(1)
+                
+                let fillAmount = medication.fillAmount
+                if fillAmount > 0 {
+                    Text("Fill: \(String(format: "%.2f", fillAmount)) mL (\(String(format: "%.0f", fillAmount * 100))U)")
+                        .font(.subheadline)
+                        .foregroundColor(goldColor.opacity(0.8))
+                        .lineLimit(1)
+                }
+                
+                HStack {
+                    if !medication.dispensedQuantityText.isEmpty {
+                        Text("Disp: \(medication.dispensedQuantityText)")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                    }
+                    
+                    if let date = medication.dispenceDate {
+                        Text("• \(date, style: .date)")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                    }
+                }
+                
+                if let lotNum = medication.lotNum, !lotNum.isEmpty {
+                    Text("Lot: \(lotNum)")
+                        .font(.caption2)
+                        .foregroundColor(.gray)
+                }
+            }
+            
+            Spacer()
+            
+            // Print button
+            Button(action: onPrintTapped) {
+                Image(systemName: "printer")
+                    .font(.title3)
+                    .foregroundColor(goldColor)
+                    .padding(8)
+                    .background(
+                        Circle()
+                            .fill(goldColor.opacity(0.1))
+                            .overlay(
+                                Circle()
+                                    .stroke(goldColor.opacity(0.3), lineWidth: 1)
+                            )
+                    )
+            }
+            .buttonStyle(PlainButtonStyle())
+            
+            // Chevron
+            Image(systemName: "chevron.right")
+                .font(.body)
+                .foregroundColor(goldColor.opacity(0.6))
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color.white.opacity(0.05),
+                            Color.white.opacity(0.02)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(
+                            LinearGradient(
+                                colors: [goldColor.opacity(0.3), goldColor.opacity(0.1)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 1
+                        )
+                )
+        )
+        .padding(.horizontal, 20)
+        .shadow(color: goldColor.opacity(0.1), radius: 4, x: 0, y: 2)
     }
 }
 
@@ -252,69 +542,118 @@ struct BulkPrintSelectionView: View {
     @Binding var selectedMedications: Set<DispencedMedication>
     @Environment(\.dismiss) private var dismiss
     
+    // Custom colors - matching the app
+    private let goldColor = Color(red: 1.0, green: 0.843, blue: 0.0)
+    private let darkGoldColor = Color(red: 0.8, green: 0.6, blue: 0.0)
+    private let charcoalColor = Color(red: 0.1, green: 0.1, blue: 0.1)
+    
     var body: some View {
         NavigationView {
-            List {
-                ForEach(medications, id: \.objectID) { medication in
-                    HStack {
-                        Button(action: {
-                            if selectedMedications.contains(medication) {
-                                selectedMedications.remove(medication)
-                            } else {
-                                selectedMedications.insert(medication)
-                            }
-                        }) {
-                            HStack {
-                                Image(systemName: selectedMedications.contains(medication) ? "checkmark.circle.fill" : "circle")
-                                    .foregroundColor(selectedMedications.contains(medication) ? .blue : .gray)
-                                
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(medication.displayName)
-                                        .font(.headline)
-                                        .foregroundColor(.primary)
-                                    
-                                    if !medication.concentrationInfo.isEmpty {
-                                        Text(medication.concentrationInfo)
-                                            .font(.subheadline)
-                                            .foregroundColor(.secondary)
-                                    }
-                                    
-                                    if let date = medication.dispenceDate {
-                                        Text("Dispensed: \(date, style: .date)")
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
-                                    }
+            ZStack {
+                // Background gradient
+                LinearGradient(
+                    colors: [charcoalColor, Color.black],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .ignoresSafeArea()
+                
+                ScrollView {
+                    LazyVStack(spacing: 12) {
+                        ForEach(medications, id: \.objectID) { medication in
+                            Button(action: {
+                                if selectedMedications.contains(medication) {
+                                    selectedMedications.remove(medication)
+                                } else {
+                                    selectedMedications.insert(medication)
                                 }
-                                
-                                Spacer()
+                            }) {
+                                HStack {
+                                    Image(systemName: selectedMedications.contains(medication) ? "checkmark.circle.fill" : "circle")
+                                        .font(.title2)
+                                        .foregroundColor(selectedMedications.contains(medication) ? goldColor : goldColor.opacity(0.5))
+                                    
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(medication.displayName)
+                                            .font(.headline)
+                                            .fontWeight(.semibold)
+                                            .foregroundColor(.white)
+                                        
+                                        if !medication.concentrationInfo.isEmpty {
+                                            Text(medication.concentrationInfo)
+                                                .font(.subheadline)
+                                                .foregroundColor(goldColor.opacity(0.8))
+                                        }
+                                        
+                                        if let date = medication.dispenceDate {
+                                            Text("Dispensed: \(date, style: .date)")
+                                                .font(.caption)
+                                                .foregroundColor(.gray)
+                                        }
+                                    }
+                                    
+                                    Spacer()
+                                }
+                                .padding(16)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(
+                                            selectedMedications.contains(medication) ?
+                                            LinearGradient(
+                                                colors: [goldColor.opacity(0.1), goldColor.opacity(0.05)],
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            ) :
+                                            LinearGradient(
+                                                colors: [Color.white.opacity(0.05), Color.white.opacity(0.02)],
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            )
+                                        )
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 12)
+                                                .stroke(
+                                                    selectedMedications.contains(medication) ?
+                                                    goldColor.opacity(0.5) : goldColor.opacity(0.2),
+                                                    lineWidth: 1
+                                                )
+                                        )
+                                )
+                                .padding(.horizontal, 20)
                             }
+                            .buttonStyle(PlainButtonStyle())
                         }
-                        .buttonStyle(.plain)
                     }
+                    .padding(.vertical, 20)
                 }
             }
             .navigationTitle("Select Labels to Print")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(charcoalColor, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") {
                         dismiss()
                     }
+                    .foregroundColor(goldColor)
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Print and Update Next Dose (Selected)") {
+                    Button("Print Selected") {
                         Task {
                             await MedicationPrintManager.shared.printLabels(for: Array(selectedMedications))
                             dismiss()
                         }
                     }
+                    .foregroundColor(selectedMedications.isEmpty ? .gray : goldColor)
                     .disabled(selectedMedications.isEmpty)
                 }
             }
         }
     }
 }
+
 
 #Preview {
     let context = PersistenceController.preview.container.viewContext
@@ -350,4 +689,5 @@ struct BulkPrintSelectionView: View {
         PatientDetailView(patient: patient)
     }
     .environment(\.managedObjectContext, context)
+    .preferredColorScheme(.dark)
 }

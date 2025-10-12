@@ -25,11 +25,32 @@ class MedicationLabelPDFGenerator {
     }
     
     private static func createMedicationLabelPDF(for medication: DispencedMedication) -> Data? {
+        // Use 72 DPI as standard (1 point = 1/72 inch)
+        // For a 2"x1" label at 72 DPI: 144x72 points
+        // For better quality, we'll use 400x200 points (roughly 5.5"x2.8" at 72 DPI)
         let pageRect = CGRect(x: 0, y: 0, width: 400, height: 200)
-        let renderer = UIGraphicsPDFRenderer(bounds: pageRect)
+        
+        let renderer = UIGraphicsPDFRenderer(bounds: pageRect, format: {
+            let format = UIGraphicsPDFRendererFormat()
+            format.documentInfo = [
+                kCGPDFContextTitle as String: "Medication Label",
+                kCGPDFContextAuthor as String: "Lazar Medical Group",
+                kCGPDFContextSubject as String: "Prescription Label"
+            ]
+            return format
+        }())
+        
         let data = renderer.pdfData { context in
             context.beginPage()
-            drawMedicationLabel(in: pageRect, for: medication, context: context.cgContext)
+            
+            // Set high quality rendering
+            let cgContext = context.cgContext
+            cgContext.setAllowsAntialiasing(true)
+            cgContext.setAllowsFontSmoothing(true)
+            cgContext.setAllowsFontSubpixelPositioning(true)
+            cgContext.setAllowsFontSubpixelQuantization(true)
+            
+            drawMedicationLabel(in: pageRect, for: medication, context: cgContext)
         }
         return data
     }
@@ -275,13 +296,17 @@ class MedicationLabelPDFGenerator {
         
         let filter = CIFilter.qrCodeGenerator()
         filter.setValue(data, forKey: "inputMessage")
-        filter.setValue("H", forKey: "inputCorrectionLevel")
+        filter.setValue("H", forKey: "inputCorrectionLevel") // High error correction
         
-        let transform = CGAffineTransform(scaleX: 3, y: 3)
+        // Create high-resolution QR code by scaling up significantly
+        let transform = CGAffineTransform(scaleX: 8, y: 8) // Higher scale for better quality
         
         if let output = filter.outputImage?.transformed(by: transform) {
             let context = CIContext()
-            return context.createCGImage(output, from: output.extent)
+            // Render with better quality settings
+            if let cgImage = context.createCGImage(output, from: output.extent) {
+                return cgImage
+            }
         }
         
         return nil

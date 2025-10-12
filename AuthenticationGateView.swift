@@ -10,6 +10,7 @@ import UIKit
 
 struct AuthenticationGateView<Content: View>: View {
     @StateObject private var auth = BiometricAuth()
+    @Environment(\.scenePhase) private var scenePhase
     let content: () -> Content
 
     // Platform-aware system colors
@@ -32,6 +33,20 @@ struct AuthenticationGateView<Content: View>: View {
         .onAppear {
             // Trigger authentication on appear
             auth.authenticate()
+        }
+        .onChange(of: scenePhase) { oldPhase, newPhase in
+            switch newPhase {
+            case .active:
+                // Re-authenticate when app becomes active if not unlocked
+                if !auth.isUnlocked {
+                    auth.authenticate()
+                }
+            case .inactive, .background:
+                // Lock immediately when leaving foreground
+                auth.isUnlocked = false
+            @unknown default:
+                break
+            }
         }
     }
 

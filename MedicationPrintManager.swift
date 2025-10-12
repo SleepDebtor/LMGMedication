@@ -21,13 +21,22 @@ class MedicationPrintManager {
         // Update nextDoseDue based on medication type and dispensed amount when printing
         medication.updateNextDoseDueOnPrint()
         
-        guard let pdfData = await MedicationLabelPDFGenerator.generatePDF(for: medication) else {
+        let pdfData: Data?
+        
+        // Use different PDF generators based on whether medication is injectable
+        if medication.baseMedication?.injectable == true {
+            pdfData = await MedicationLabelPDFGenerator.generatePDF(for: medication)
+        } else {
+            pdfData = await NonInjectableLabelPDFGenerator.generatePDF(for: medication)
+        }
+        
+        guard let finalPdfData = pdfData else {
             print("Failed to generate PDF for medication: \(medication.displayName)")
             return
         }
         
         await presentPrintInterface(
-            with: pdfData,
+            with: finalPdfData,
             jobName: "Medication Label - \(medication.displayName)"
         )
     }
@@ -66,12 +75,40 @@ class MedicationPrintManager {
 
         return await withCheckedContinuation { continuation in
             Task {
-                let pageRect = CGRect(x: 0, y: 0, width: 400, height: 200)
-                let renderer = UIGraphicsPDFRenderer(bounds: pageRect)
+                // Check if we have mixed types of medications (injectable and non-injectable)
+                let injectableMeds = medications.filter { $0.baseMedication?.injectable == true }
+                let nonInjectableMeds = medications.filter { $0.baseMedication?.injectable != true }
+                
+                // For now, if we have mixed types, we'll create separate pages for each type
+                // You could modify this to handle them differently if needed
+                
+                let renderer = UIGraphicsPDFRenderer(bounds: CGRect.zero, format: {
+                    let format = UIGraphicsPDFRendererFormat()
+                    format.documentInfo = [
+                        kCGPDFContextTitle as String: "Medication Labels",
+                        kCGPDFContextAuthor as String: "Lazar Medical Group",
+                        kCGPDFContextSubject as String: "Prescription Labels"
+                    ]
+                    return format
+                }())
+                
                 let data = renderer.pdfData { context in
-                    for medication in medications {
-                        context.beginPage()
+                    // Draw injectable medication labels first
+                    for medication in injectableMeds {
+                        let pageRect = CGRect(x: 0, y: 0, width: 400, height: 200)
+                        context.beginPage(withBounds: pageRect, pageInfo: [:])
                         MedicationLabelPDFGenerator.drawMedicationLabel(
+                            in: pageRect,
+                            for: medication,
+                            context: context.cgContext
+                        )
+                    }
+                    
+                    // Draw non-injectable medication labels
+                    for medication in nonInjectableMeds {
+                        let pageRect = CGRect(x: 0, y: 0, width: 216, height: 144)
+                        context.beginPage(withBounds: pageRect, pageInfo: [:])
+                        NonInjectableLabelPDFGenerator.drawNonInjectableLabel(
                             in: pageRect,
                             for: medication,
                             context: context.cgContext
@@ -115,7 +152,16 @@ class MedicationPrintManager {
     
     /// Share medication label as PDF
     func sharePDF(for medication: DispencedMedication) async {
-        guard let pdfData = await MedicationLabelPDFGenerator.generatePDF(for: medication) else {
+        let pdfData: Data?
+        
+        // Use different PDF generators based on whether medication is injectable
+        if medication.baseMedication?.injectable == true {
+            pdfData = await MedicationLabelPDFGenerator.generatePDF(for: medication)
+        } else {
+            pdfData = await NonInjectableLabelPDFGenerator.generatePDF(for: medication)
+        }
+        
+        guard let finalPdfData = pdfData else {
             print("Failed to generate PDF for sharing")
             return
         }
@@ -124,7 +170,7 @@ class MedicationPrintManager {
         let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(fileName)
 
         do {
-            try pdfData.write(to: tempURL)
+            try finalPdfData.write(to: tempURL)
             let activityController = UIActivityViewController(activityItems: [tempURL], applicationActivities: nil)
             guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
                   let window = windowScene.windows.first,

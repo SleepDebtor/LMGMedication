@@ -14,6 +14,7 @@ struct MedicationLabelPreviewView: View {
     @State private var pdfDocument: PDFDocument?
     @State private var isGenerating = false
     @State private var generationError: String?
+    @State private var showActualSize = false
     
     var body: some View {
         NavigationView {
@@ -27,8 +28,37 @@ struct MedicationLabelPreviewView: View {
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else if let pdfDocument = pdfDocument {
-                    PDFKitView(document: pdfDocument)
+                    VStack(spacing: 0) {
+                        // Size information
+                        HStack {
+                            Text("Label Size: 400×200 points")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            
+                            Spacer()
+                            
+                            Button(showActualSize ? "Fit to Screen" : "Actual Size") {
+                                showActualSize.toggle()
+                            }
+                            .font(.caption)
+                        }
+                        .padding(.horizontal)
+                        .padding(.vertical, 8)
+                        .background(Color(.systemGroupedBackground))
+                        
+                        // PDF Preview
+                        ScrollView([.horizontal, .vertical]) {
+                            PDFKitView(document: pdfDocument, showActualSize: showActualSize)
+                                .frame(
+                                    width: showActualSize ? 400 : nil,
+                                    height: showActualSize ? 200 : nil
+                                )
+                                .aspectRatio(2.0, contentMode: showActualSize ? .fill : .fit)
+                                .padding()
+                        }
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .background(Color(.systemGroupedBackground))
+                    }
                 } else if let error = generationError {
                     VStack(spacing: 16) {
                         Image(systemName: "exclamationmark.triangle")
@@ -56,6 +86,13 @@ struct MedicationLabelPreviewView: View {
             .navigationTitle("Label Preview")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Regenerate") {
+                        generatePDF()
+                    }
+                    .disabled(isGenerating)
+                }
+                
                 ToolbarItem(placement: .navigationBarTrailing) {
                     ShareLabelButton(medication: medication)
                 }
@@ -89,18 +126,48 @@ struct MedicationLabelPreviewView: View {
 
 struct PDFKitView: UIViewRepresentable {
     let document: PDFDocument
+    let showActualSize: Bool
+    
+    init(document: PDFDocument, showActualSize: Bool = false) {
+        self.document = document
+        self.showActualSize = showActualSize
+    }
     
     func makeUIView(context: Context) -> PDFView {
         let pdfView = PDFView()
         pdfView.document = document
-        pdfView.autoScales = true
+        
+        // Configure for better label preview
         pdfView.displayMode = .singlePage
         pdfView.displayDirection = .horizontal
+        pdfView.backgroundColor = UIColor.systemGroupedBackground
+        
+        if showActualSize {
+            // Show at actual size (72 DPI = 1 point per pixel)
+            pdfView.autoScales = false
+            pdfView.scaleFactor = 1.0
+        } else {
+            // Fit to view
+            pdfView.autoScales = true
+            pdfView.scaleFactor = pdfView.scaleFactorForSizeToFit
+        }
+        
+        pdfView.minScaleFactor = 0.1
+        pdfView.maxScaleFactor = 5.0
+        
         return pdfView
     }
     
     func updateUIView(_ uiView: PDFView, context: Context) {
         uiView.document = document
+        
+        if showActualSize {
+            uiView.autoScales = false
+            uiView.scaleFactor = 1.0
+        } else {
+            uiView.autoScales = true
+            uiView.scaleFactor = uiView.scaleFactorForSizeToFit
+        }
     }
 }
 

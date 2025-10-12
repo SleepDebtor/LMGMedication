@@ -19,6 +19,7 @@
 		275592AD2E8B60C700A524A7 /* Patient+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 275592AA2E8B60C700A524A7 /* Patient+CoreDataClass.swift */; };
 		275592BD2E8B6F9C00A524A7 /* CloudKitManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 275592BC2E8B6F9C00A524A7 /* CloudKitManager.swift */; };
 		275592BF2E8B702800A524A7 /* SharingManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 275592BE2E8B702800A524A7 /* SharingManager.swift */; };
+		27BFA0F12E9C335C003B4292 /* EditProviderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27BFA0F02E9C335C003B4292 /* EditProviderView.swift */; };
 		BD482A262E9B4DA800A52070 /* DispencedMedication+BusinessLogic.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD482A252E9B4DA800A52070 /* DispencedMedication+BusinessLogic.swift */; };
 		BD59A1A42E92BA8600C4516C /* MedicationLabelPDFGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD59A1A32E92BA8600C4516C /* MedicationLabelPDFGenerator.swift */; };
 		BD59A1A62E92BA9900C4516C /* ParticipantSelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD59A1A52E92BA9900C4516C /* ParticipantSelectionView.swift */; };
@@ -65,6 +66,7 @@
 		275592AB2E8B60C700A524A7 /* Patient+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Patient+CoreDataProperties.swift"; sourceTree = "<group>"; };
 		275592BC2E8B6F9C00A524A7 /* CloudKitManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitManager.swift; sourceTree = "<group>"; };
 		275592BE2E8B702800A524A7 /* SharingManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharingManager.swift; sourceTree = "<group>"; };
+		27BFA0F02E9C335C003B4292 /* EditProviderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditProviderView.swift; sourceTree = "<group>"; };
 		BD482A252E9B4DA800A52070 /* DispencedMedication+BusinessLogic.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DispencedMedication+BusinessLogic.swift"; sourceTree = "<group>"; };
 		BD59A1A32E92BA8600C4516C /* MedicationLabelPDFGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicationLabelPDFGenerator.swift; sourceTree = "<group>"; };
 		BD59A1A52E92BA9900C4516C /* ParticipantSelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParticipantSelectionView.swift; sourceTree = "<group>"; };
@@ -173,6 +175,7 @@
 				BD59A1D72E936BFA00C4516C /* BiometricAuth.swift */,
 				BD59A1D92E936BFC00C4516C /* AuthenticationGateView.swift */,
 				BD482A252E9B4DA800A52070 /* DispencedMedication+BusinessLogic.swift */,
+				27BFA0F02E9C335C003B4292 /* EditProviderView.swift */,
 			);
 			sourceTree = "<group>";
 		};
@@ -345,6 +348,7 @@
 				BD59A1B02E92FA4900C4516C /* QRCodeGenerator.swift in Sources */,
 				BD59A1A62E92BA9900C4516C /* ParticipantSelectionView.swift in Sources */,
 				BD59A1AE2E92EE7600C4516C /* MedicationPrintManager.swift in Sources */,
+				27BFA0F12E9C335C003B4292 /* EditProviderView.swift in Sources */,
 				275592A62E8B5FCE00A524A7 /* Medication+CoreDataClass.swift in Sources */,
 				275592A72E8B5FCE00A524A7 /* Provider+CoreDataProperties.swift in Sources */,
 				BD59A1B22E92FAC200C4516C /* QRCodeTestView.swift in Sources */,
@@ -415,6 +419,8 @@
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = LMGMedication/Info.plist;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "\"Face ID used to protect patient information\"";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -473,6 +479,8 @@
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = LMGMedication/Info.plist;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "\"Face ID used to protect patient information\"";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;

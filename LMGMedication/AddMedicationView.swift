@@ -31,6 +31,7 @@ struct AddMedicationView: View {
     
     @State private var selectedLocalTemplate: Medication?
     @State private var selectedCloudTemplate: CloudMedicationTemplate?
+    @State private var showingEditTemplate = false
     @State private var templateSource = 0 // 0 = Local, 1 = Public
     @State private var medicationName = ""
     @State private var dose = ""
@@ -114,6 +115,13 @@ struct AddMedicationView: View {
                                     }
                                 }
                                 .pickerStyle(.menu)
+                                
+                                // Edit selected local template
+                                if selectedLocalTemplate != nil {
+                                    Button(action: { showingEditTemplate = true }) {
+                                        Label("Edit Selected Template", systemImage: "pencil")
+                                    }
+                                }
                             }
                         } else {
                             // Public templates
@@ -394,6 +402,12 @@ struct AddMedicationView: View {
                     createDefaultProvider()
                 } else if selectedProvider == nil {
                     selectedProvider = providers.first
+                }
+            }
+            .sheet(isPresented: $showingEditTemplate) {
+                if let template = selectedLocalTemplate {
+                    EditMedicationTemplateView(medication: template)
+                        .environment(\.managedObjectContext, viewContext)
                 }
             }
             .alert("Error Saving Medication", isPresented: $showingError) {

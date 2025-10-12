@@ -34,6 +34,11 @@ struct PatientsListRootView: View {
     @State private var showingProviders = false
     @State private var showingErrorAlert = false
     @State private var errorMessage: String = ""
+    
+    // Custom colors - matching ProvidersListView
+    private let goldColor = Color(red: 1.0, green: 0.843, blue: 0.0) // Pure gold
+    private let darkGoldColor = Color(red: 0.8, green: 0.6, blue: 0.0) // Darker gold
+    private let charcoalColor = Color(red: 0.1, green: 0.1, blue: 0.1) // Near black
 
     private func nextDoseDueDate(for patient: Patient) -> Date? {
         // Use the earliest upcoming nextDoseDue across all dispensed medications
@@ -85,79 +90,158 @@ struct PatientsListRootView: View {
 
     var body: some View {
         NavigationStack {
-            List {
-                // Sections for each week
-                ForEach(groupedByWeek, id: \.weekStart) { section in
-                    Section(header: Text("Week of \(section.weekStart, style: .date)")) {
-                        ForEach(section.patients) { patient in
-                            NavigationLink(destination: PatientDetailView(patient: patient)) {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(patient.displayName)
-                                        .font(.headline)
-                                    if let due = nextDoseDueDate(for: patient) {
-                                        Text("Next dose due: \(due, style: .date)")
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
-                                    }
-                                }
-                                .padding(.vertical, 2)
+            ZStack {
+                // Background gradient
+                LinearGradient(
+                    colors: [charcoalColor, Color.black],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .ignoresSafeArea()
+                
+                ScrollView {
+                    LazyVStack(spacing: 16) {
+                        // Header section
+                        VStack(spacing: 20) {
+                            HStack {
+                                Text("Patients by Week")
+                                    .font(.largeTitle)
+                                    .fontWeight(.bold)
+                                    .foregroundStyle(
+                                        LinearGradient(
+                                            colors: [goldColor, darkGoldColor],
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        )
+                                    )
+                                Spacer()
                             }
+                            .padding(.horizontal, 20)
+                            .padding(.top, 10)
+                            
+                            // Action buttons
+                            HStack(spacing: 12) {
+                                // Add Patient button
+                                Button(action: { showingAddPatient = true }) {
+                                    HStack {
+                                        Image(systemName: "person.badge.plus")
+                                            .font(.title3)
+                                        Text("Add Patient")
+                                            .font(.subheadline)
+                                            .fontWeight(.semibold)
+                                    }
+                                    .foregroundColor(.black)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 12)
+                                    .background(
+                                        LinearGradient(
+                                            colors: [goldColor, darkGoldColor],
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        )
+                                    )
+                                    .cornerRadius(12)
+                                    .shadow(color: goldColor.opacity(0.3), radius: 6, x: 0, y: 3)
+                                }
+                                
+                                // Medication Templates button
+                                Button(action: { showingMedicationTemplates = true }) {
+                                    HStack {
+                                        Image(systemName: "pills")
+                                            .font(.title3)
+                                        Text("Templates")
+                                            .font(.subheadline)
+                                            .fontWeight(.semibold)
+                                    }
+                                    .foregroundColor(goldColor)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 12)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .stroke(goldColor, lineWidth: 1.5)
+                                            .background(
+                                                RoundedRectangle(cornerRadius: 12)
+                                                    .fill(Color.white.opacity(0.05))
+                                            )
+                                    )
+                                }
+                                
+                                // Providers button
+                                Button(action: { showingProviders = true }) {
+                                    HStack {
+                                        Image(systemName: "person.crop.circle.badge.plus")
+                                            .font(.title3)
+                                        Text("Providers")
+                                            .font(.subheadline)
+                                            .fontWeight(.semibold)
+                                    }
+                                    .foregroundColor(goldColor)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 12)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .stroke(goldColor, lineWidth: 1.5)
+                                            .background(
+                                                RoundedRectangle(cornerRadius: 12)
+                                                    .fill(Color.white.opacity(0.05))
+                                            )
+                                    )
+                                }
+                            }
+                            .padding(.horizontal, 20)
                         }
-                        .onDelete { offsets in
-                            deletePatientsFromSection(section.patients, offsets: offsets)
+                        
+                        // Sections for each week
+                        ForEach(groupedByWeek, id: \.weekStart) { section in
+                            WeekSectionView(
+                                weekStart: section.weekStart,
+                                patients: section.patients,
+                                goldColor: goldColor,
+                                darkGoldColor: darkGoldColor,
+                                nextDoseDueDate: nextDoseDueDate,
+                                onDelete: { offsets in
+                                    deletePatientsFromSection(section.patients, offsets: offsets)
+                                }
+                            )
+                        }
+                        
+                        // Section for patients without a scheduled next dose
+                        if !noNextDosePatients.isEmpty {
+                            NoNextDoseSectionView(
+                                patients: noNextDosePatients,
+                                goldColor: goldColor,
+                                darkGoldColor: darkGoldColor,
+                                onDelete: { offsets in
+                                    deletePatientsFromSection(noNextDosePatients, offsets: offsets)
+                                }
+                            )
+                        }
+                        
+                        if groupedByWeek.isEmpty && noNextDosePatients.isEmpty {
+                            VStack(spacing: 16) {
+                                Image(systemName: "person.3.fill")
+                                    .font(.system(size: 60))
+                                    .foregroundColor(goldColor.opacity(0.6))
+                                
+                                Text("No Patients Yet")
+                                    .font(.title2)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(goldColor)
+                                
+                                Text("Tap 'Add Patient' above to get started")
+                                    .font(.body)
+                                    .foregroundColor(.gray)
+                                    .multilineTextAlignment(.center)
+                                    .padding(.horizontal, 40)
+                            }
+                            .padding(.top, 60)
                         }
                     }
-                }
-
-                // Section for patients without a scheduled next dose
-                if !noNextDosePatients.isEmpty {
-                    Section(header: Text("No Next Dose Scheduled")) {
-                        ForEach(noNextDosePatients) { patient in
-                            NavigationLink(destination: PatientDetailView(patient: patient)) {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(patient.displayName)
-                                        .font(.headline)
-                                    if let birthdate = patient.birthdate {
-                                        Text("DOB: \(birthdate, style: .date)")
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
-                                    }
-                                }
-                                .padding(.vertical, 2)
-                            }
-                        }
-                        .onDelete { offsets in
-                            deletePatientsFromSection(noNextDosePatients, offsets: offsets)
-                        }
-                    }
+                    .padding(.bottom, 20)
                 }
             }
             .id(dataVersion)
             .animation(.easeInOut, value: dataVersion)
-            .navigationTitle("Patients by Week")
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: { showingProviders = true }) {
-                        Image(systemName: "person.crop.circle.badge.plus")
-                    }
-                    .accessibilityLabel("Manage Providers")
-                }
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: { showingMedicationTemplates = true }) {
-                        Image(systemName: "pills")
-                    }
-                }
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: { showingAddPatient = true }) {
-                        Image(systemName: "plus")
-                    }
-                }
-#if os(iOS)
-                ToolbarItem(placement: .navigationBarLeading) {
-                    EditButton()
-                }
-#endif
-            }
             .sheet(isPresented: $showingAddPatient) {
                 AddPatientView()
             }
@@ -194,7 +278,7 @@ struct PatientsListRootView: View {
     }
 
     private func deletePatientsFromSection(_ sectionPatients: [Patient], offsets: IndexSet) {
-        withAnimation {
+        withAnimation(.easeInOut(duration: 0.3)) {
             let toDelete = offsets.map { sectionPatients[$0] }
             toDelete.forEach(viewContext.delete)
             do {
@@ -208,7 +292,7 @@ struct PatientsListRootView: View {
     }
 
     private func deletePatients(offsets: IndexSet) {
-        withAnimation {
+        withAnimation(.easeInOut(duration: 0.3)) {
             offsets.map { patients[$0] }.forEach(viewContext.delete)
             do {
                 try viewContext.save()
@@ -221,6 +305,192 @@ struct PatientsListRootView: View {
     }
 }
 
+struct WeekSectionView: View {
+    let weekStart: Date
+    let patients: [Patient]
+    let goldColor: Color
+    let darkGoldColor: Color
+    let nextDoseDueDate: (Patient) -> Date?
+    let onDelete: (IndexSet) -> Void
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            // Section header
+            HStack {
+                Text("Week of \(weekStart, style: .date)")
+                    .font(.title3)
+                    .fontWeight(.bold)
+                    .foregroundColor(goldColor)
+                Spacer()
+                Text("\(patients.count) patient\(patients.count == 1 ? "" : "s")")
+                    .font(.caption)
+                    .foregroundColor(goldColor.opacity(0.7))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(goldColor.opacity(0.1))
+                    )
+            }
+            .padding(.horizontal, 20)
+            
+            // Patient cards
+            ForEach(patients) { patient in
+                NavigationLink(destination: PatientDetailView(patient: patient)) {
+                    PatientCardView(
+                        patient: patient,
+                        goldColor: goldColor,
+                        darkGoldColor: darkGoldColor,
+                        nextDoseDate: nextDoseDueDate(patient)
+                    )
+                }
+                .buttonStyle(PlainButtonStyle())
+            }
+        }
+    }
+}
+
+struct NoNextDoseSectionView: View {
+    let patients: [Patient]
+    let goldColor: Color
+    let darkGoldColor: Color
+    let onDelete: (IndexSet) -> Void
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            // Section header
+            HStack {
+                Text("No Next Dose Scheduled")
+                    .font(.title3)
+                    .fontWeight(.bold)
+                    .foregroundColor(goldColor.opacity(0.8))
+                Spacer()
+                Text("\(patients.count) patient\(patients.count == 1 ? "" : "s")")
+                    .font(.caption)
+                    .foregroundColor(goldColor.opacity(0.6))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(goldColor.opacity(0.1))
+                    )
+            }
+            .padding(.horizontal, 20)
+            
+            // Patient cards
+            ForEach(patients) { patient in
+                NavigationLink(destination: PatientDetailView(patient: patient)) {
+                    PatientCardView(
+                        patient: patient,
+                        goldColor: goldColor,
+                        darkGoldColor: darkGoldColor,
+                        nextDoseDate: nil,
+                        showBirthdate: true
+                    )
+                }
+                .buttonStyle(PlainButtonStyle())
+            }
+        }
+    }
+}
+
+struct PatientCardView: View {
+    let patient: Patient
+    let goldColor: Color
+    let darkGoldColor: Color
+    let nextDoseDate: Date?
+    let showBirthdate: Bool
+    
+    init(patient: Patient, goldColor: Color, darkGoldColor: Color, nextDoseDate: Date?, showBirthdate: Bool = false) {
+        self.patient = patient
+        self.goldColor = goldColor
+        self.darkGoldColor = darkGoldColor
+        self.nextDoseDate = nextDoseDate
+        self.showBirthdate = showBirthdate
+    }
+    
+    var body: some View {
+        HStack {
+            // Patient icon
+            ZStack {
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: [goldColor.opacity(0.2), darkGoldColor.opacity(0.3)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 50, height: 50)
+                
+                Image(systemName: "person.fill")
+                    .font(.title2)
+                    .foregroundColor(goldColor)
+            }
+            
+            // Patient info
+            VStack(alignment: .leading, spacing: 4) {
+                Text(patient.displayName)
+                    .font(.headline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.white)
+                
+                if let nextDose = nextDoseDate {
+                    Text("Next dose due: \(nextDose, style: .date)")
+                        .font(.subheadline)
+                        .foregroundColor(goldColor.opacity(0.8))
+                } else if showBirthdate, let birthdate = patient.birthdate {
+                    Text("DOB: \(birthdate, style: .date)")
+                        .font(.subheadline)
+                        .foregroundColor(goldColor.opacity(0.8))
+                } else {
+                    Text("No scheduled doses")
+                        .font(.subheadline)
+                        .foregroundColor(.gray)
+                }
+            }
+            
+            Spacer()
+            
+            // Chevron
+            Image(systemName: "chevron.right")
+                .font(.body)
+                .foregroundColor(goldColor.opacity(0.6))
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color.white.opacity(0.05),
+                            Color.white.opacity(0.02)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(
+                            LinearGradient(
+                                colors: [goldColor.opacity(0.3), goldColor.opacity(0.1)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 1
+                        )
+                )
+        )
+        .padding(.horizontal, 20)
+        .shadow(color: goldColor.opacity(0.1), radius: 4, x: 0, y: 2)
+    }
+}
+
+
+
 #Preview {
-    ContentView().environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
+    ContentView()
+        .environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
+        .preferredColorScheme(.dark)
 }
