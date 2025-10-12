@@ -163,7 +163,7 @@ class CloudKitManager: ObservableObject {
     
     // MARK: - PDF Sharing
     
-    func shareLabelPDF(data: Data, for medication: DispencedMedication) async throws -> CKShare {
+    func shareLabelPDF(data: Data, for medication: DispencedMedication, participants: [CKShare.Participant] = []) async throws -> CKShare {
         // Create a temporary file for the PDF data
         let tempDirectory = FileManager.default.temporaryDirectory
         let tempFileURL = tempDirectory.appendingPathComponent(UUID().uuidString).appendingPathExtension("pdf")
@@ -184,7 +184,15 @@ class CloudKitManager: ObservableObject {
         
         // Create a share for the PDF
         let share = CKShare(rootRecord: savedPDFRecord)
-        share.publicPermission = .readOnly
+        // Configure sharing: if participants are provided, restrict to selected users; otherwise allow read-only public access for backward compatibility
+        if participants.isEmpty {
+            share.publicPermission = .readOnly
+        } else {
+            share.publicPermission = .none
+            for participant in participants {
+                share.addParticipant(participant)
+            }
+        }
         
         // Save the share and PDF record together
         let operation = CKModifyRecordsOperation(recordsToSave: [savedPDFRecord, share], recordIDsToDelete: nil)

@@ -15,6 +15,7 @@ struct MedicationLabelView: View {
     
     @State private var showingPrintPreview = false
     @State private var isProcessing = false
+    @State private var isUpdatingNextDose = false
     @State private var isEditing = false
     @State private var hasChanges = false
     
@@ -161,26 +162,79 @@ struct MedicationLabelView: View {
                         .buttonStyle(.bordered)
                         .controlSize(.large)
                         
-                        Button(action: { 
-                            Task { 
-                                isProcessing = true
-                                await MedicationPrintManager.shared.printLabel(for: medication)
-                                isProcessing = false
-                            }
-                        }) {
-                            HStack {
-                                if isProcessing {
-                                    ProgressView()
-                                        .controlSize(.small)
-                                } else {
-                                    Image(systemName: "printer.fill")
+                        GeometryReader { geo in
+                            let spacing: CGFloat = 12
+                            let totalWidth = max(0, geo.size.width - spacing)
+                            let leftWidth = totalWidth * 0.75
+                            let rightWidth = totalWidth * 0.25
+
+                            HStack(spacing: spacing) {
+                                // Print and update button (75% width, green)
+                                Button(action: {
+                                    Task {
+                                        isProcessing = true
+                                        await MedicationPrintManager.shared.printLabel(for: medication)
+                                        isProcessing = false
+                                    }
+                                }) {
+                                    HStack(spacing: 8) {
+                                        if isProcessing {
+                                            ProgressView()
+                                                .controlSize(.small)
+                                        } else {
+                                            Image(systemName: "printer.fill")
+                                        }
+                                        Text("Print and Update Next Dose")
+                                            .font(.system(size: 16, weight: .semibold))
+                                            .multilineTextAlignment(.center)
+                                            .lineLimit(2)
+                                            .minimumScaleFactor(0.75)
+                                            .fixedSize(horizontal: false, vertical: true)
+                                    }
+                                    .frame(width: leftWidth, alignment: .center)
                                 }
-                                Text("Print Label")
+                                .buttonStyle(.borderedProminent)
+                                .controlSize(.large)
+                                .tint(.green)
+                                .disabled(isProcessing || isUpdatingNextDose)
+
+                                // Update-only button (25% width, tan)
+                                Button(action: {
+                                    Task {
+                                        isUpdatingNextDose = true
+                                        // Update next dose without printing
+                                        medication.updateNextDoseDueOnPrint()
+                                        do {
+                                            try viewContext.save()
+                                        } catch {
+                                            print("Failed to save next dose update: \(error)")
+                                        }
+                                        isUpdatingNextDose = false
+                                    }
+                                }) {
+                                    HStack(spacing: 8) {
+                                        if isUpdatingNextDose {
+                                            ProgressView()
+                                                .controlSize(.small)
+                                        } else {
+                                            Image(systemName: "calendar.badge.plus")
+                                        }
+                                        Text("Update Next Dose")
+                                            .font(.system(size: 15, weight: .semibold))
+                                            .multilineTextAlignment(.center)
+                                            .lineLimit(2)
+                                            .minimumScaleFactor(0.8)
+                                            .fixedSize(horizontal: false, vertical: true)
+                                    }
+                                    .frame(width: rightWidth, alignment: .center)
+                                }
+                                .buttonStyle(.borderedProminent)
+                                .controlSize(.large)
+                                .tint(Color(red: 210/255, green: 180/255, blue: 140/255)) // tan
+                                .disabled(isProcessing || isUpdatingNextDose)
                             }
                         }
-                        .buttonStyle(.borderedProminent)
-                        .controlSize(.large)
-                        .disabled(isProcessing)
+                        .frame(height: 60)
                         
                         HStack(spacing: 16) {
                             Button(action: {
@@ -237,7 +291,7 @@ struct MedicationLabelView: View {
                                 await MedicationPrintManager.shared.printLabel(for: medication)
                             }
                         }) {
-                            Label("Print Label", systemImage: "printer")
+                            Label("Print and Update Next Dose", systemImage: "printer")
                         }
                         
                         Button(action: {
@@ -482,7 +536,9 @@ struct MedicationLabelPreview: View {
 struct PrintPreviewView: View {
     let medication: DispencedMedication
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.managedObjectContext) private var viewContext
     @State private var isPrinting = false
+    @State private var isUpdatingNextDose = false
     
     var body: some View {
         NavigationView {
@@ -515,28 +571,80 @@ struct PrintPreviewView: View {
                 
                 // Print actions
                 VStack(spacing: 12) {
-                    Button(action: {
-                        Task {
-                            isPrinting = true
-                            await MedicationPrintManager.shared.printLabel(for: medication)
-                            isPrinting = false
-                            dismiss()
-                        }
-                    }) {
-                        HStack {
-                            if isPrinting {
-                                ProgressView()
-                                    .controlSize(.small)
-                            } else {
-                                Image(systemName: "printer.fill")
+                    GeometryReader { geo in
+                        let spacing: CGFloat = 12
+                        let totalWidth = max(0, geo.size.width - spacing)
+                        let leftWidth = totalWidth * 0.75
+                        let rightWidth = totalWidth * 0.25
+
+                        HStack(spacing: spacing) {
+                            // Print and update button (75% width, green)
+                            Button(action: {
+                                Task {
+                                    isPrinting = true
+                                    await MedicationPrintManager.shared.printLabel(for: medication)
+                                    isPrinting = false
+                                    dismiss()
+                                }
+                            }) {
+                                HStack(spacing: 8) {
+                                    if isPrinting {
+                                        ProgressView()
+                                            .controlSize(.small)
+                                    } else {
+                                        Image(systemName: "printer.fill")
+                                    }
+                                    Text("Print and Update Next Dose")
+                                        .font(.system(size: 16, weight: .semibold))
+                                        .multilineTextAlignment(.center)
+                                        .lineLimit(2)
+                                        .minimumScaleFactor(0.75)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
+                                .frame(width: leftWidth, alignment: .center)
                             }
-                            Text("Print Label")
+                            .buttonStyle(.borderedProminent)
+                            .controlSize(.large)
+                            .tint(.green)
+                            .disabled(isPrinting || isUpdatingNextDose)
+
+                            // Update-only button (25% width, tan)
+                            Button(action: {
+                                Task {
+                                    isUpdatingNextDose = true
+                                    medication.updateNextDoseDueOnPrint()
+                                    do {
+                                        try viewContext.save()
+                                    } catch {
+                                        print("Failed to save next dose update: \(error)")
+                                    }
+                                    isUpdatingNextDose = false
+                                }
+                            }) {
+                                HStack(spacing: 8) {
+                                    if isUpdatingNextDose {
+                                        ProgressView()
+                                            .controlSize(.small)
+                                    } else {
+                                        Image(systemName: "calendar.badge.plus")
+                                    }
+                                    Text("Update Next Dose")
+                                        .font(.system(size: 15, weight: .semibold))
+                                        .multilineTextAlignment(.center)
+                                        .lineLimit(2)
+                                        .minimumScaleFactor(0.8)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
+                                .frame(width: rightWidth, alignment: .center)
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .controlSize(.large)
+                            .tint(Color(red: 210/255, green: 180/255, blue: 140/255))
+                            .disabled(isPrinting || isUpdatingNextDose)
                         }
                     }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.large)
-                    .disabled(isPrinting)
-                    
+                    .frame(height: 60)
+
                     Button(action: {
                         Task {
                             await MedicationPrintManager.shared.sharePDF(for: medication)
@@ -557,6 +665,17 @@ struct PrintPreviewView: View {
                     }
                 }
             }
+        }
+    }
+    
+    private func viewContextSaveIfAvailable() throws {
+        // Attempt to save via environment context if available
+        if let context = try? _viewContext.wrappedValue { // fallback not typically needed
+            if context.hasChanges {
+                try context.save()
+            }
+        } else {
+            // If no environment context, do nothing
         }
     }
 }
@@ -593,3 +712,4 @@ struct PrintPreviewView: View {
     }
     .environment(\.managedObjectContext, context)
 }
+

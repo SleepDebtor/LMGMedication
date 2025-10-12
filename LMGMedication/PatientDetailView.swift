@@ -15,7 +15,7 @@ import UIKit
 struct PatientDetailView: View {
     @Environment(\.managedObjectContext) private var viewContext
     
-    let patient: Patient
+    @ObservedObject var patient: Patient
     
     @State private var showingAddMedication = false
     @State private var selectedMedication: DispencedMedication?
@@ -64,11 +64,11 @@ struct PatientDetailView: View {
                     if !sortedMedications.isEmpty {
                         Menu {
                             Button(action: { showingBulkPrint = true }) {
-                                Label("Print Selected", systemImage: "printer")
+                                Label("Print and Update Next Dose (Selected)", systemImage: "printer")
                             }
                             
                             Button(action: { printAllLabels() }) {
-                                Label("Print All Labels", systemImage: "printer.fill")
+                                Label("Print and Update Next Dose (All)", systemImage: "printer.fill")
                             }
                         } label: {
                             Image(systemName: "printer")
@@ -92,6 +92,7 @@ struct PatientDetailView: View {
                 }
             }
         }
+        .animation(.easeInOut, value: sortedMedications.count)
         .navigationTitle(patient.displayName)
         .navigationBarTitleDisplayMode(.large)
         .toolbar {
@@ -108,7 +109,7 @@ struct PatientDetailView: View {
                     
                     if !sortedMedications.isEmpty {
                         Button(action: { printAllLabels() }) {
-                            Label("Print All Labels", systemImage: "printer.fill")
+                            Label("Print and Update Next Dose (All)", systemImage: "printer.fill")
                         }
                     }
                     
@@ -302,7 +303,7 @@ struct BulkPrintSelectionView: View {
                 }
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Print Selected") {
+                    Button("Print and Update Next Dose (Selected)") {
                         Task {
                             await MedicationPrintManager.shared.printLabels(for: Array(selectedMedications))
                             dismiss()
@@ -350,4 +351,3 @@ struct BulkPrintSelectionView: View {
     }
     .environment(\.managedObjectContext, context)
 }
-

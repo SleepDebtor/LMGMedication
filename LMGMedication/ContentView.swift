@@ -22,6 +22,13 @@ struct PatientsListRootView: View {
         animation: .default)
     private var patients: FetchedResults<Patient>
 
+    @FetchRequest(
+        sortDescriptors: [],
+        animation: .default)
+    private var dispensedMeds: FetchedResults<DispencedMedication>
+
+    @State private var dataVersion: Int = 0
+
     @State private var showingAddPatient = false
     @State private var showingMedicationTemplates = false
     @State private var showingProviders = false
@@ -125,6 +132,8 @@ struct PatientsListRootView: View {
                     }
                 }
             }
+            .id(dataVersion)
+            .animation(.easeInOut, value: dataVersion)
             .navigationTitle("Patients by Week")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -162,6 +171,24 @@ struct PatientsListRootView: View {
                 Button("OK", role: .cancel) { }
             } message: {
                 Text(errorMessage)
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextObjectsDidChange, object: viewContext)) { notification in
+                var shouldRefresh = false
+                if let inserted = notification.userInfo?[NSInsertedObjectsKey] as? Set<NSManagedObject>,
+                   inserted.contains(where: { $0 is DispencedMedication }) {
+                    shouldRefresh = true
+                }
+                if let updated = notification.userInfo?[NSUpdatedObjectsKey] as? Set<NSManagedObject>,
+                   updated.contains(where: { $0 is DispencedMedication }) {
+                    shouldRefresh = true
+                }
+                if let deleted = notification.userInfo?[NSDeletedObjectsKey] as? Set<NSManagedObject>,
+                   deleted.contains(where: { $0 is DispencedMedication }) {
+                    shouldRefresh = true
+                }
+                if shouldRefresh {
+                    dataVersion += 1
+                }
             }
         }
     }
