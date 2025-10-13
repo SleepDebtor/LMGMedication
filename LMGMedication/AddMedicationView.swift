@@ -457,6 +457,7 @@ struct AddMedicationView: View {
             
             // Create dispensed medication record
             let dispensedMedication = DispencedMedication(context: viewContext)
+            dispensedMedication.isActive = true
             dispensedMedication.dose = dose.isEmpty ? nil : dose
             dispensedMedication.doseUnit = doseUnit
             dispensedMedication.dispenceAmt = Int16(dispenceAmount)
@@ -560,3 +561,4 @@ struct AddMedicationView: View {
     return AddMedicationView(patient: patient)
         .environment(\.managedObjectContext, context)
 }
+

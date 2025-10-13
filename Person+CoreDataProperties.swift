@@ -23,6 +23,7 @@ extension Person {
     @NSManaged public var lastName: String?
     @NSManaged public var middleName: String?
     @NSManaged public var timeStamp: Date?
+    @NSManaged public var isActive: Bool
 
 }
 

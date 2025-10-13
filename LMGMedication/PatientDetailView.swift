@@ -51,8 +51,9 @@ struct PatientDetailView: View {
             )
             .ignoresSafeArea()
             
-            ScrollView {
-                LazyVStack(spacing: 20) {
+            VStack(spacing: 0) {
+                // Header and actions
+                VStack(spacing: 20) {
                     // Patient Header Card
                     PatientHeaderCard(
                         patient: patient,
@@ -62,7 +63,7 @@ struct PatientDetailView: View {
                     )
                     .padding(.horizontal, 20)
                     .padding(.top, 10)
-                    
+
                     // Action Buttons Section
                     HStack(spacing: 12) {
                         // Dispense Medication button
@@ -87,7 +88,7 @@ struct PatientDetailView: View {
                             .cornerRadius(12)
                             .shadow(color: goldColor.opacity(0.3), radius: 6, x: 0, y: 3)
                         }
-                        
+
                         // Print All button (if medications exist)
                         if !sortedMedications.isEmpty {
                             Button(action: { printAllLabels() }) {
@@ -111,7 +112,7 @@ struct PatientDetailView: View {
                                 )
                             }
                         }
-                        
+
                         // Share button
                         Button(action: { Task { await sharePatient() } }) {
                             HStack {
@@ -135,69 +136,103 @@ struct PatientDetailView: View {
                         }
                     }
                     .padding(.horizontal, 20)
-                    
-                    // Medications Section
-                    VStack(alignment: .leading, spacing: 12) {
-                        HStack {
-                            Text("Dispensed Medications")
-                                .font(.title2)
-                                .fontWeight(.bold)
-                                .foregroundColor(goldColor)
-                            Spacer()
-                            if !sortedMedications.isEmpty {
-                                Button(action: { showingBulkPrint = true }) {
-                                    Text("Select & Print")
-                                        .font(.caption)
-                                        .foregroundColor(goldColor.opacity(0.8))
-                                        .padding(.horizontal, 8)
-                                        .padding(.vertical, 4)
-                                        .background(
-                                            RoundedRectangle(cornerRadius: 6)
-                                                .fill(goldColor.opacity(0.1))
-                                        )
-                                }
-                            }
-                        }
-                        .padding(.horizontal, 20)
-                        
-                        if sortedMedications.isEmpty {
-                            VStack(spacing: 16) {
-                                Image(systemName: "pills")
-                                    .font(.system(size: 50))
-                                    .foregroundColor(goldColor.opacity(0.6))
-                                
-                                Text("No Medications Yet")
-                                    .font(.title3)
-                                    .fontWeight(.semibold)
-                                    .foregroundColor(goldColor)
-                                
-                                Text("Tap 'Dispense' above to add medication")
-                                    .font(.body)
-                                    .foregroundColor(.gray)
-                                    .multilineTextAlignment(.center)
-                                    .padding(.horizontal, 40)
-                            }
-                            .padding(.top, 40)
-                            .padding(.bottom, 20)
-                        } else {
-                            ForEach(sortedMedications, id: \.objectID) { medication in
-                                NavigationLink(destination: MedicationLabelView(medication: medication)) {
-                                    MedicationCardView(
-                                        medication: medication,
-                                        goldColor: goldColor,
-                                        darkGoldColor: darkGoldColor,
-                                        onPrintTapped: { printSingleLabel(medication) }
+
+                    // Section header
+                    HStack {
+                        Text("Dispensed Medications")
+                            .font(.title2)
+                            .fontWeight(.bold)
+                            .foregroundColor(goldColor)
+                        Spacer()
+                        if !sortedMedications.isEmpty {
+                            Button(action: { showingBulkPrint = true }) {
+                                Text("Select & Print")
+                                    .font(.caption)
+                                    .foregroundColor(goldColor.opacity(0.8))
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 4)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 6)
+                                            .fill(goldColor.opacity(0.1))
                                     )
-                                }
-                                .buttonStyle(PlainButtonStyle())
                             }
                         }
                     }
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 8)
                 }
-                .padding(.bottom, 20)
+
+                // Medications list with swipe actions
+                List {
+                    if sortedMedications.isEmpty {
+                        VStack(spacing: 16) {
+                            Image(systemName: "pills")
+                                .font(.system(size: 50))
+                                .foregroundColor(goldColor.opacity(0.6))
+
+                            Text("No Medications Yet")
+                                .font(.title3)
+                                .fontWeight(.semibold)
+                                .foregroundColor(goldColor)
+
+                            Text("Tap 'Dispense' above to add medication")
+                                .font(.body)
+                                .foregroundColor(.gray)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 40)
+                        }
+                        .listRowBackground(Color.clear)
+                    } else {
+                        ForEach(sortedMedications, id: \.objectID) { medication in
+                            NavigationLink(destination: MedicationLabelView(medication: medication)) {
+                                MedicationCardView(
+                                    medication: medication,
+                                    goldColor: goldColor,
+                                    darkGoldColor: darkGoldColor,
+                                    onPrintTapped: { printSingleLabel(medication) },
+                                    onDeactivate: { toggleMedicationActive(medication, active: false) },
+                                    onActivate: { toggleMedicationActive(medication, active: true) }
+                                )
+                            }
+                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                if medication.isActive {
+                                    Button(role: .destructive) {
+                                        toggleMedicationActive(medication, active: false)
+                                    } label: {
+                                        Label("Deactivate", systemImage: "xmark.circle")
+                                    }
+                                } else {
+                                    Button {
+                                        toggleMedicationActive(medication, active: true)
+                                    } label: {
+                                        Label("Activate", systemImage: "checkmark.circle")
+                                    }
+                                    .tint(.green)
+                                }
+
+                                Button {
+                                    printSingleLabel(medication)
+                                } label: {
+                                    Label("Print", systemImage: "printer")
+                                }
+                                .tint(.blue)
+                                
+                                Button(role: .destructive) {
+                                    deleteMedication(medication)
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                            }
+                            .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
+                            .listRowBackground(Color.clear)
+                        }
+                    }
+                }
+                .listStyle(.plain)
+                .scrollContentBackground(.hidden)
             }
         }
-        .navigationTitle(patient.displayName)
+        .navigationTitle("")
         .navigationBarTitleDisplayMode(.large)
         .toolbarBackground(charcoalColor, for: .navigationBar)
         .toolbarColorScheme(.dark, for: .navigationBar)
@@ -230,6 +265,19 @@ struct PatientDetailView: View {
             } catch {
                 let nsError = error as NSError
                 shareErrorMessage = "Failed to delete medication(s): \(nsError.localizedDescription)"
+                showingErrorAlert = true
+            }
+        }
+    }
+    
+    private func deleteMedication(_ medication: DispencedMedication) {
+        withAnimation {
+            viewContext.delete(medication)
+            do {
+                try viewContext.save()
+            } catch {
+                let nsError = error as NSError
+                shareErrorMessage = "Failed to delete medication: \(nsError.localizedDescription)"
                 showingErrorAlert = true
             }
         }
@@ -272,6 +320,13 @@ struct PatientDetailView: View {
                 shareErrorMessage = error.localizedDescription
                 showingErrorAlert = true
             }
+        }
+    }
+    
+    private func toggleMedicationActive(_ medication: DispencedMedication, active: Bool) {
+        withAnimation {
+            medication.isActive = active
+            do { try viewContext.save() } catch { print("Failed to update isActive: \(error)") }
         }
     }
 }
@@ -373,6 +428,8 @@ struct MedicationCardView: View {
     let goldColor: Color
     let darkGoldColor: Color
     let onPrintTapped: () -> Void
+    let onDeactivate: () -> Void
+    let onActivate: () -> Void
     
     var body: some View {
         HStack {
@@ -398,14 +455,14 @@ struct MedicationCardView: View {
                 Text(medication.displayName)
                     .font(.headline)
                     .fontWeight(.semibold)
-                    .foregroundColor(.white)
+                    .foregroundColor(medication.isActive ? .white : .gray)
                     .lineLimit(1)
                 
                 let fillAmount = medication.fillAmount
-                if fillAmount > 0 {
+                if (medication.baseMedication?.injectable == true) && fillAmount > 0 {
                     Text("Fill: \(String(format: "%.2f", fillAmount)) mL (\(String(format: "%.0f", fillAmount * 100))U)")
                         .font(.subheadline)
-                        .foregroundColor(goldColor.opacity(0.8))
+                        .foregroundColor(medication.isActive ? goldColor.opacity(0.8) : .gray)
                         .lineLimit(1)
                 }
                 
@@ -413,20 +470,20 @@ struct MedicationCardView: View {
                     if !medication.dispensedQuantityText.isEmpty {
                         Text("Disp: \(medication.dispensedQuantityText)")
                             .font(.caption)
-                            .foregroundColor(.gray)
+                            .foregroundColor(medication.isActive ? .gray : .gray.opacity(0.6))
                     }
                     
                     if let date = medication.dispenceDate {
                         Text("• \(date, style: .date)")
                             .font(.caption)
-                            .foregroundColor(.gray)
+                            .foregroundColor(medication.isActive ? .gray : .gray.opacity(0.6))
                     }
                 }
                 
                 if let lotNum = medication.lotNum, !lotNum.isEmpty {
                     Text("Lot: \(lotNum)")
                         .font(.caption2)
-                        .foregroundColor(.gray)
+                        .foregroundColor(medication.isActive ? .gray : .gray.opacity(0.6))
                 }
             }
             
@@ -448,6 +505,17 @@ struct MedicationCardView: View {
                     )
             }
             .buttonStyle(PlainButtonStyle())
+            .contextMenu {
+                if medication.isActive {
+                    Button(role: .destructive) { onDeactivate() } label: {
+                        Label("Deactivate", systemImage: "xmark.circle")
+                    }
+                } else {
+                    Button { onActivate() } label: {
+                        Label("Activate", systemImage: "checkmark.circle")
+                    }
+                }
+            }
             
             // Chevron
             Image(systemName: "chevron.right")
@@ -494,31 +562,32 @@ struct PatientMedicationRow: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(medication.displayName)
                         .font(.headline)
+                        .foregroundColor(medication.isActive ? .primary : .gray)
                     
                     let fillAmount = medication.fillAmount
-                    if fillAmount > 0 {
+                    if (medication.baseMedication?.injectable == true) && fillAmount > 0 {
                         Text("Fill: \(String(format: "%.2f", fillAmount)) mL (\(String(format: "%.0f", fillAmount * 100))U)")
                             .font(.subheadline)
-                            .foregroundColor(.secondary)
+                            .foregroundColor(medication.isActive ? .secondary : .gray)
                     }
                     
                     HStack {
                         if !medication.dispensedQuantityText.isEmpty {
                             Text("Disp: \(medication.dispensedQuantityText)")
                                 .font(.caption)
-                                .foregroundColor(.secondary)
+                                .foregroundColor(medication.isActive ? .secondary : .gray)
                         }
                         
                         if let date = medication.dispenceDate {
                             Text("• \(date, style: .date)")
                                 .font(.caption)
-                                .foregroundColor(.secondary)
+                                .foregroundColor(medication.isActive ? .secondary : .gray)
                         }
                         
                         if let lotNum = medication.lotNum, !lotNum.isEmpty {
                             Text("• Lot: \(lotNum)")
                                 .font(.caption2)
-                                .foregroundColor(.secondary)
+                                .foregroundColor(medication.isActive ? .secondary : .gray)
                         }
                     }
                 }
@@ -691,3 +760,4 @@ struct BulkPrintSelectionView: View {
     .environment(\.managedObjectContext, context)
     .preferredColorScheme(.dark)
 }
+

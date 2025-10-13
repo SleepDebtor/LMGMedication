@@ -162,79 +162,71 @@ struct MedicationLabelView: View {
                         .buttonStyle(.bordered)
                         .controlSize(.large)
                         
-                        GeometryReader { geo in
-                            let spacing: CGFloat = 12
-                            let totalWidth = max(0, geo.size.width - spacing)
-                            let leftWidth = totalWidth * 0.75
-                            let rightWidth = totalWidth * 0.25
-
-                            HStack(spacing: spacing) {
-                                // Print and update button (75% width, green)
-                                Button(action: {
-                                    Task {
-                                        isProcessing = true
-                                        await MedicationPrintManager.shared.printLabel(for: medication)
-                                        isProcessing = false
-                                    }
-                                }) {
-                                    HStack(spacing: 8) {
-                                        if isProcessing {
-                                            ProgressView()
-                                                .controlSize(.small)
-                                        } else {
-                                            Image(systemName: "printer.fill")
-                                        }
-                                        Text("Print and Update Next Dose")
-                                            .font(.system(size: 16, weight: .semibold))
-                                            .multilineTextAlignment(.center)
-                                            .lineLimit(2)
-                                            .minimumScaleFactor(0.75)
-                                            .fixedSize(horizontal: false, vertical: true)
-                                    }
-                                    .frame(width: leftWidth, alignment: .center)
+                        VStack(spacing: 12) {
+                            // Print and update button (full width, green)
+                            Button(action: {
+                                Task {
+                                    isProcessing = true
+                                    await MedicationPrintManager.shared.printLabel(for: medication)
+                                    isProcessing = false
                                 }
-                                .buttonStyle(.borderedProminent)
-                                .controlSize(.large)
-                                .tint(.green)
-                                .disabled(isProcessing || isUpdatingNextDose)
-
-                                // Update-only button (25% width, tan)
-                                Button(action: {
-                                    Task {
-                                        isUpdatingNextDose = true
-                                        // Update next dose without printing
-                                        medication.updateNextDoseDueOnPrint()
-                                        do {
-                                            try viewContext.save()
-                                        } catch {
-                                            print("Failed to save next dose update: \(error)")
-                                        }
-                                        isUpdatingNextDose = false
+                            }) {
+                                HStack(spacing: 8) {
+                                    if isProcessing {
+                                        ProgressView()
+                                            .controlSize(.small)
+                                    } else {
+                                        Image(systemName: "printer.fill")
                                     }
-                                }) {
-                                    HStack(spacing: 8) {
-                                        if isUpdatingNextDose {
-                                            ProgressView()
-                                                .controlSize(.small)
-                                        } else {
-                                            Image(systemName: "calendar.badge.plus")
-                                        }
-                                        Text("Update Next Dose")
-                                            .font(.system(size: 15, weight: .semibold))
-                                            .multilineTextAlignment(.center)
-                                            .lineLimit(2)
-                                            .minimumScaleFactor(0.8)
-                                            .fixedSize(horizontal: false, vertical: true)
-                                    }
-                                    .frame(width: rightWidth, alignment: .center)
+                                    Text("Print and Update Next Dose")
+                                        .font(.system(size: 16, weight: .semibold))
+                                        .multilineTextAlignment(.center)
+                                        .lineLimit(2)
+                                        .minimumScaleFactor(0.85)
+                                        .fixedSize(horizontal: false, vertical: true)
                                 }
-                                .buttonStyle(.borderedProminent)
-                                .controlSize(.large)
-                                .tint(Color(red: 210/255, green: 180/255, blue: 140/255)) // tan
-                                .disabled(isProcessing || isUpdatingNextDose)
+                                .frame(maxWidth: .infinity)
                             }
+                            .buttonStyle(.borderedProminent)
+                            .controlSize(.large)
+                            .tint(.green)
+                            .disabled(isProcessing || isUpdatingNextDose)
+
+                            // Update-only button (full width, tan)
+                            Button(action: {
+                                Task {
+                                    isUpdatingNextDose = true
+                                    // Update next dose without printing
+                                    medication.updateNextDoseDueOnPrint()
+                                    do {
+                                        try viewContext.save()
+                                    } catch {
+                                        print("Failed to save next dose update: \(error)")
+                                    }
+                                    isUpdatingNextDose = false
+                                }
+                            }) {
+                                HStack(spacing: 8) {
+                                    if isUpdatingNextDose {
+                                        ProgressView()
+                                            .controlSize(.small)
+                                    } else {
+                                        Image(systemName: "calendar.badge.plus")
+                                    }
+                                    Text("Update Next Dose")
+                                        .font(.system(size: 16, weight: .semibold))
+                                        .multilineTextAlignment(.center)
+                                        .lineLimit(2)
+                                        .minimumScaleFactor(0.85)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
+                                .frame(maxWidth: .infinity)
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .controlSize(.large)
+                            .tint(Color(red: 210/255, green: 180/255, blue: 140/255))
+                            .disabled(isProcessing || isUpdatingNextDose)
                         }
-                        .frame(height: 60)
                         
                         HStack(spacing: 16) {
                             Button(action: {
@@ -243,12 +235,6 @@ struct MedicationLabelView: View {
                                 }
                             }) {
                                 Label("Share PDF", systemImage: "square.and.arrow.up")
-                            }
-                            .buttonStyle(.bordered)
-                            .controlSize(.large)
-                            
-                            Button("Preview") {
-                                showingPrintPreview = true
                             }
                             .buttonStyle(.bordered)
                             .controlSize(.large)

@@ -41,14 +41,17 @@ struct PatientsListRootView: View {
     private let charcoalColor = Color(red: 0.1, green: 0.1, blue: 0.1) // Near black
 
     private func nextDoseDueDate(for patient: Patient) -> Date? {
-        // Use the earliest upcoming nextDoseDue across all dispensed medications
-        let dates = patient.dispensedMedicationsArray.compactMap { $0.nextDoseDue }
+        // Use the earliest upcoming nextDoseDue across all active dispensed medications
+        let dates = patient.dispensedMedicationsArray
+            .filter { $0.isActive }
+            .compactMap { $0.nextDoseDue }
         return dates.min()
     }
 
     private var groupedByWeek: [(weekStart: Date, patients: [Patient])] {
         let calendar = Calendar.current
         let pairs: [(Date, Patient)] = patients.compactMap { patient in
+            guard patient.isActive else { return nil }
             guard let date = nextDoseDueDate(for: patient) else { return nil }
             if let weekStart = calendar.dateInterval(of: .weekOfYear, for: date)?.start {
                 return (weekStart, patient)
@@ -79,13 +82,27 @@ struct PatientsListRootView: View {
     }
 
     private var noNextDosePatients: [Patient] {
-        Array(patients).filter { nextDoseDueDate(for: $0) == nil }
+        Array(patients).filter { $0.isActive && nextDoseDueDate(for: $0) == nil }
             .sorted { lhs, rhs in
                 let lLast = lhs.lastName ?? ""
                 let rLast = rhs.lastName ?? ""
                 if lLast == rLast { return (lhs.firstName ?? "") < (rhs.firstName ?? "") }
                 return lLast < rLast
             }
+    }
+
+    private func togglePatientActive(_ patient: Patient, active: Bool) {
+        withAnimation(.easeInOut(duration: 0.2)) {
+            patient.isActive = active
+            do {
+                try viewContext.save()
+                dataVersion += 1
+            } catch {
+                let nsError = error as NSError
+                errorMessage = "Failed to update patient: \(nsError.localizedDescription)"
+                showingErrorAlert = true
+            }
+        }
     }
 
     var body: some View {
@@ -201,6 +218,9 @@ struct PatientsListRootView: View {
                                 nextDoseDueDate: nextDoseDueDate,
                                 onDelete: { offsets in
                                     deletePatientsFromSection(section.patients, offsets: offsets)
+                                },
+                                onToggleActive: { patient, active in
+                                    togglePatientActive(patient, active: active)
                                 }
                             )
                         }
@@ -213,6 +233,9 @@ struct PatientsListRootView: View {
                                 darkGoldColor: darkGoldColor,
                                 onDelete: { offsets in
                                     deletePatientsFromSection(noNextDosePatients, offsets: offsets)
+                                },
+                                onToggleActive: { patient, active in
+                                    togglePatientActive(patient, active: active)
                                 }
                             )
                         }
@@ -312,6 +335,7 @@ struct WeekSectionView: View {
     let darkGoldColor: Color
     let nextDoseDueDate: (Patient) -> Date?
     let onDelete: (IndexSet) -> Void
+    let onToggleActive: (Patient, Bool) -> Void
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -345,6 +369,22 @@ struct WeekSectionView: View {
                     )
                 }
                 .buttonStyle(PlainButtonStyle())
+                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                    if patient.isActive {
+                        Button(role: .destructive) {
+                            onToggleActive(patient, false)
+                        } label: {
+                            Label("Deactivate", systemImage: "xmark.circle")
+                        }
+                    } else {
+                        Button {
+                            onToggleActive(patient, true)
+                        } label: {
+                            Label("Activate", systemImage: "checkmark.circle")
+                        }
+                        .tint(.green)
+                    }
+                }
             }
         }
     }
@@ -355,6 +395,7 @@ struct NoNextDoseSectionView: View {
     let goldColor: Color
     let darkGoldColor: Color
     let onDelete: (IndexSet) -> Void
+    let onToggleActive: (Patient, Bool) -> Void
     
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -389,6 +430,22 @@ struct NoNextDoseSectionView: View {
                     )
                 }
                 .buttonStyle(PlainButtonStyle())
+                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                    if patient.isActive {
+                        Button(role: .destructive) {
+                            onToggleActive(patient, false)
+                        } label: {
+                            Label("Deactivate", systemImage: "xmark.circle")
+                        }
+                    } else {
+                        Button {
+                            onToggleActive(patient, true)
+                        } label: {
+                            Label("Activate", systemImage: "checkmark.circle")
+                        }
+                        .tint(.green)
+                    }
+                }
             }
         }
     }
@@ -494,3 +551,4 @@ struct PatientCardView: View {
         .environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
         .preferredColorScheme(.dark)
 }
+
