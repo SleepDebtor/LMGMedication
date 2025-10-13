@@ -2,7 +2,7 @@
 //  Person+CoreDataProperties.swift
 //  LMGMedication
 //
-//  Created by Michael Lazar on 9/29/25.
+//  Created by Michael Lazar on 10/13/25.
 //
 //
 
@@ -20,10 +20,10 @@ extension Person {
 
     @NSManaged public var birthdate: Date?
     @NSManaged public var firstName: String?
+    @NSManaged public var isActive: Bool
     @NSManaged public var lastName: String?
     @NSManaged public var middleName: String?
     @NSManaged public var timeStamp: Date?
-    @NSManaged public var isActive: Bool
 
 }
 

@@ -36,7 +36,7 @@
     <entity name="Person" representedClassName="Person" syncable="YES">
         <attribute name="birthdate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="firstName" optional="YES" attributeType="String" allowsCloudEncryption="YES"/>
-        <attribute name="iaActive" optional="YES" attributeType="Boolean" defaultValueString="YES" usesScalarValueType="YES"/>
+        <attribute name="isActive" optional="YES" attributeType="Boolean" defaultValueString="YES" usesScalarValueType="YES"/>
         <attribute name="lastName" optional="YES" attributeType="String" allowsCloudEncryption="YES"/>
         <attribute name="middleName" optional="YES" attributeType="String" allowsCloudEncryption="YES"/>
         <attribute name="timeStamp" optional="YES" attributeType="Date" usesScalarValueType="NO"/>

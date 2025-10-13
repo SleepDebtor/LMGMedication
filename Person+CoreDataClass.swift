@@ -6,8 +6,8 @@
 //
 //
 
-public import Foundation
-public import CoreData
+import Foundation
+import CoreData
 
 public typealias PersonCoreDataClassSet = NSSet
 
@@ -15,3 +15,4 @@ public typealias PersonCoreDataClassSet = NSSet
 public class Person: NSManagedObject {
 
 }
+

@@ -6,8 +6,8 @@
 //
 //
 
-public import Foundation
-public import CoreData
+import Foundation
+import CoreData
 
 public typealias PatientCoreDataClassSet = NSSet
 
@@ -42,3 +42,4 @@ public class Patient: Person {
         }
     }
 }
+
