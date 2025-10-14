@@ -62,7 +62,7 @@ class SharingManager: ObservableObject {
     }
     
     private func createParticipants(from emailAddresses: [String]) async throws -> [CKShare.Participant] {
-        let container = CKContainer(identifier: "iCloud.com.LMGMedications")
+        let container = CKContainer(identifier: "iCloud.LMGMedications")
         var participants: [CKShare.Participant] = []
         
         func fetchParticipant(for email: String) async throws -> CKShare.Participant {

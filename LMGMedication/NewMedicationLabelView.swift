@@ -524,10 +524,21 @@ struct InjectableLabelPreview: View {
                 
                 // Pharmacy info with fill volume spanning full width
                 if let pharmacy = medication.baseMedication?.pharmacy {
-                    let fillAmount = medication.fillAmount
-                    let fillText = String(format: "%.2f", fillAmount)
-                    let fillTextUnits = String(format: "%.0f", fillAmount * 100)
-                    let pharmacyText = "\(pharmacy) \(fillText)mL (\(fillTextUnits)U)"
+                    let pharmacyText: String = {
+                        let fillAmount = medication.fillAmount
+                        let fillText = String(format: "%.2f", fillAmount)
+                        let fillTextUnits = String(format: "%.0f", fillAmount * 100)
+                        var text = "\(pharmacy) \(fillText)mL (\(fillTextUnits)U)"
+                        if let lot = medication.lotNum, !lot.isEmpty {
+                            text += " • Lot: \(lot)"
+                        }
+                        if let exp = medication.expDate {
+                            let formatter = DateFormatter()
+                            formatter.dateStyle = .short
+                            text += " • Exp: \(formatter.string(from: exp))"
+                        }
+                        return text
+                    }()
                     
                     Text(pharmacyText)
                         .font(.system(size: 8, weight: .bold)) // 11/200*144 ≈ 8
@@ -671,15 +682,28 @@ struct NonInjectableLabelPreview: View {
                 
                 Spacer()
                 
-                // Lot number at bottom right
+                // Lot and Expiration at bottom right
                 HStack {
                     Spacer()
-                    if let lotNum = medication.lotNum, !lotNum.isEmpty {
-                        Text("Lot: \(lotNum)")
+                    let lotText: String? = {
+                        if let lot = medication.lotNum, !lot.isEmpty { return "Lot: \(lot)" } else { return nil }
+                    }()
+                    let expText: String? = {
+                        if let exp = medication.expDate {
+                            let formatter = DateFormatter()
+                            formatter.dateStyle = .short
+                            return "Exp: \(formatter.string(from: exp))"
+                        } else { return nil }
+                    }()
+                    let combined = [lotText, expText].compactMap { $0 }.joined(separator: " • ")
+                    if !combined.isEmpty {
+                        Text(combined)
                             .font(.system(size: 7))
                             .foregroundColor(Color(.darkGray))
                             .padding(.trailing, 4)
                             .padding(.bottom, 2)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
                     }
                 }
             }

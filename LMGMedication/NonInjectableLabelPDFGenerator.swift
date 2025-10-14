@@ -212,14 +212,24 @@ class NonInjectableLabelPDFGenerator {
             )
         }
         
-        // Lot number (if available) - bottom right
+        // Lot and Expiration at bottom-right (if available)
+        var bottomInfoParts: [String] = []
         if let lotNum = medication.lotNum, !lotNum.isEmpty {
-            let lotText = "Lot: \(lotNum)"
+            bottomInfoParts.append("Lot: \(lotNum)")
+        }
+        if let exp = medication.expDate {
+            let formatter = DateFormatter()
+            formatter.dateStyle = .short
+            bottomInfoParts.append("Exp: \(formatter.string(from: exp))")
+        }
+        if !bottomInfoParts.isEmpty {
+            let bottomText = bottomInfoParts.joined(separator: " • ")
+            let bottomWidth: CGFloat = 130
             drawText(
-                lotText,
+                bottomText,
                 font: UIFont.systemFont(ofSize: 7),
                 color: UIColor.darkGray,
-                rect: CGRect(x: contentRect.maxX - 60, y: contentRect.maxY - 12, width: 60, height: 10),
+                rect: CGRect(x: contentRect.maxX - bottomWidth, y: contentRect.maxY - 12, width: bottomWidth, height: 10),
                 context: context,
                 alignment: .right
             )

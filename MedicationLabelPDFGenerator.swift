@@ -208,7 +208,17 @@ class MedicationLabelPDFGenerator {
             let fillAmount = medication.fillAmount
             let fillText = String(format: "%.2f", fillAmount)
             let fillTextUnits = String(format: "%.0f", fillAmount * 100)
-            let pharmacyText = "\(pharmacy) \(fillText)mL (\(fillTextUnits)U)"
+            var pharmacyText = "\(pharmacy) \(fillText)mL (\(fillTextUnits)U)"
+            
+            // Append Lot and Exp (if available) on the same line
+            if let lot = medication.lotNum, !lot.isEmpty {
+                pharmacyText += " • Lot: \(lot)"
+            }
+            if let exp = medication.expDate {
+                let formatter = DateFormatter()
+                formatter.dateStyle = .short
+                pharmacyText += " • Exp: \(formatter.string(from: exp))"
+            }
             
             currentY += drawText(
                 pharmacyText,
