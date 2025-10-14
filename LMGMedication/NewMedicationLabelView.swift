@@ -130,10 +130,19 @@ struct MedicationLabelView: View {
                     Text("Label Preview")
                         .font(.headline)
                     
-                    MedicationLabelPreview(medication: medication)
-                        .frame(width: 288, height: 144) // 2x1 inch at 144 DPI for preview
-                        .border(Color.gray, width: 1)
-                        .cornerRadius(4)
+                    if medication.baseMedication?.injectable == true {
+                        // Injectable medication preview (400x200 scaled to 288x144)
+                        InjectableLabelPreview(medication: medication)
+                            .frame(width: 288, height: 144) // 2x1 inch at 144 DPI for preview
+                            .border(Color.gray, width: 1)
+                            .cornerRadius(4)
+                    } else {
+                        // Non-injectable medication preview (216x144 at actual size)
+                        NonInjectableLabelPreview(medication: medication)
+                            .frame(width: 216, height: 144) // 3x2 inch at 72 DPI for preview
+                            .border(Color.gray, width: 1)
+                            .cornerRadius(4)
+                    }
                 }
                 
                 // Action buttons
@@ -190,6 +199,28 @@ struct MedicationLabelView: View {
                             .buttonStyle(.borderedProminent)
                             .controlSize(.large)
                             .tint(.green)
+                            .disabled(isProcessing || isUpdatingNextDose)
+                            
+                            Button(action: {
+                                Task {
+                                    isProcessing = true
+                                    await MedicationPrintManager.shared.reprintLabel(for: medication)
+                                    isProcessing = false
+                                }
+                            }) {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "printer")
+                                    Text("Reprint (No Update)")
+                                        .font(.system(size: 16, weight: .semibold))
+                                        .multilineTextAlignment(.center)
+                                        .lineLimit(2)
+                                        .minimumScaleFactor(0.85)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
+                                .frame(maxWidth: .infinity)
+                            }
+                            .buttonStyle(.bordered)
+                            .controlSize(.large)
                             .disabled(isProcessing || isUpdatingNextDose)
 
                             // Update-only button (full width, tan)
@@ -282,6 +313,14 @@ struct MedicationLabelView: View {
                         
                         Button(action: {
                             Task {
+                                await MedicationPrintManager.shared.reprintLabel(for: medication)
+                            }
+                        }) {
+                            Label("Reprint (No Update)", systemImage: "printer")
+                        }
+                        
+                        Button(action: {
+                            Task {
                                 await MedicationPrintManager.shared.sharePDF(for: medication)
                             }
                         }) {
@@ -358,14 +397,12 @@ struct MedicationLabelView: View {
     }
 }
 
-struct MedicationLabelPreview: View {
+struct InjectableLabelPreview: View {
     let medication: DispencedMedication
     
     var body: some View {
-        ZStack {
-            Rectangle()
-                .fill(Color.white)
-            
+        VStack(spacing: 0) {
+            // Main content area
             HStack(spacing: 0) {
                 // QR Code on left - reduced size to match PDF layout
                 VStack {
@@ -383,7 +420,7 @@ struct MedicationLabelPreview: View {
                 }
                 .frame(width: 86, height: 86)
                 .padding(.leading, 4)
-                
+
                 // Text area on right - more space due to smaller QR code
                 VStack(alignment: .leading, spacing: 1) {
                     // Patient name (matching PDF font proportions)
@@ -503,6 +540,7 @@ struct MedicationLabelPreview: View {
             .padding(.horizontal, 4)
             .padding(.bottom, 2)
         }
+        .background(Color.white)
         .overlay(
             Rectangle()
                 .stroke(Color.black, lineWidth: 1)
@@ -514,6 +552,143 @@ struct MedicationLabelPreview: View {
         Image(systemName: "qrcode")
             .font(.system(size: 60)) // Reduced size to match smaller QR code
             .foregroundColor(.black)
+    }
+}
+
+struct NonInjectableLabelPreview: View {
+    let medication: DispencedMedication
+    
+    var body: some View {
+        ZStack {
+            Rectangle()
+                .fill(Color.white)
+            
+            VStack(spacing: 0) {
+                // Practice header - centered and prominent
+                VStack(spacing: 1) {
+                    Text("LAZAR MEDICAL GROUP")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(.black)
+                    
+                    Text("400 Market St, Suite 5, Williamsport, PA 17701")
+                        .font(.system(size: 8))
+                        .foregroundColor(.black)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                    
+                    Text("Phone: (570) 933-5507")
+                        .font(.system(size: 8))
+                        .foregroundColor(.black)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.top, 4)
+                
+                Spacer(minLength: 4)
+                
+                // Patient and medication info
+                VStack(alignment: .leading, spacing: 2) {
+                    // Patient name
+                    if let patient = medication.patient {
+                        let firstName = patient.firstName ?? "Patient"
+                        let lastName = patient.lastName ?? "Unknown"
+                        Text("Patient: \(firstName) \(lastName)")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(.black)
+                            .lineLimit(1)
+                    }
+                    
+                    // Date of birth (if available)
+                    if let patient = medication.patient, let birthdate = patient.birthdate {
+                        Text("DOB: \(birthdate, style: .date)")
+                            .font(.system(size: 9))
+                            .foregroundColor(.black)
+                            .lineLimit(1)
+                    }
+                    
+                    // Prescription date
+                    if let dispenseDate = medication.dispenceDate {
+                        Text("Date: \(dispenseDate, style: .date)")
+                            .font(.system(size: 9))
+                            .foregroundColor(.black)
+                            .lineLimit(1)
+                    }
+                    
+                    // Medication name and strength
+                    let medicationName = medication.baseMedication?.name ?? "Unknown Medication"
+                    let dose = medication.dose ?? ""
+                    let doseUnit = medication.doseUnit ?? ""
+                    let medicationTitle = "\(medicationName) \(dose)\(doseUnit)"
+                    
+                    Text(medicationTitle)
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundColor(.black)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.8)
+                        .padding(.top, 2)
+                    
+                    // Generic name or secondary ingredient (if different)
+                    if let ingredient1 = medication.baseMedication?.ingredient1,
+                       !ingredient1.isEmpty,
+                       ingredient1.lowercased() != medicationName.lowercased() {
+                        Text("Generic: \(ingredient1)")
+                            .font(.system(size: 9))
+                            .italic()
+                            .foregroundColor(Color(.darkGray))
+                            .lineLimit(1)
+                    }
+                    
+                    // Quantity dispensed
+                    let dispenseAmt = medication.dispenceAmt > 0 ? Int(medication.dispenceAmt) : 1
+                    let dispenseUnit = medication.dispenceUnit ?? "tablets"
+                    Text("Qty: \(dispenseAmt) \(dispenseUnit)")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(.black)
+                        .lineLimit(1)
+                    
+                    // Prescriber information
+                    if let prescriber = medication.prescriber {
+                        let firstName = prescriber.firstName ?? ""
+                        let lastName = prescriber.lastName ?? ""
+                        let prescriberName = "\(firstName) \(lastName), MD".trimmingCharacters(in: .whitespacesAndNewlines)
+                        Text("Prescriber: \(prescriberName)")
+                            .font(.system(size: 9))
+                            .foregroundColor(.black)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
+                    }
+                    
+                    // Pharmacy information (if available)
+                    if let pharmacy = medication.baseMedication?.pharmacy {
+                        Text("Pharmacy: \(pharmacy)")
+                            .font(.system(size: 8))
+                            .foregroundColor(.black)
+                            .lineLimit(1)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 6)
+                
+                Spacer()
+                
+                // Lot number at bottom right
+                HStack {
+                    Spacer()
+                    if let lotNum = medication.lotNum, !lotNum.isEmpty {
+                        Text("Lot: \(lotNum)")
+                            .font(.system(size: 7))
+                            .foregroundColor(Color(.darkGray))
+                            .padding(.trailing, 4)
+                            .padding(.bottom, 2)
+                    }
+                }
+            }
+        }
+        .overlay(
+            Rectangle()
+                .stroke(Color.black, lineWidth: 1)
+        )
+        .frame(width: 216, height: 144) // 3x2 inch at 72 DPI
     }
 }
 
@@ -547,11 +722,19 @@ struct PrintPreviewView: View {
                 .padding()
                 
                 // Scaled up preview
-                MedicationLabelPreview(medication: medication)
-                    .scaleEffect(2.5) // Scale up for better visibility
-                    .padding()
-                    .background(Color(.systemGray6))
-                    .cornerRadius(8)
+                if medication.baseMedication?.injectable == true {
+                    InjectableLabelPreview(medication: medication)
+                        .scaleEffect(2.5) // Scale up for better visibility
+                        .padding()
+                        .background(Color(.systemGray6))
+                        .cornerRadius(8)
+                } else {
+                    NonInjectableLabelPreview(medication: medication)
+                        .scaleEffect(2.5) // Scale up for better visibility  
+                        .padding()
+                        .background(Color(.systemGray6))
+                        .cornerRadius(8)
+                }
                 
                 Spacer()
                 
@@ -630,6 +813,20 @@ struct PrintPreviewView: View {
                         }
                     }
                     .frame(height: 60)
+
+                    Button(action: {
+                        Task {
+                            isPrinting = true
+                            await MedicationPrintManager.shared.reprintLabel(for: medication)
+                            isPrinting = false
+                            dismiss()
+                        }
+                    }) {
+                        Label("Reprint (No Update)", systemImage: "printer")
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.large)
+                    .disabled(isPrinting || isUpdatingNextDose)
 
                     Button(action: {
                         Task {

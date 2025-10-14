@@ -9,7 +9,7 @@ struct EditProviderView: View {
 
     @State private var firstName: String = ""
     @State private var lastName: String = ""
-    @State private var degree: String = ""
+    @State private var degree: Degree? = nil
     @State private var npi: String = ""
 
     init(provider: Provider) {
@@ -27,7 +27,14 @@ struct EditProviderView: View {
             }
 
             Section(header: Text("Details")) {
-                TextField("Degree (e.g., MD, DO)", text: $degree)
+                Picker("Degree", selection: $degree) {
+                    Text("None").tag(nil as Degree?)
+                    ForEach(Degree.allCases) { d in
+                        Text(d.displayName).tag(d as Degree?)
+                    }
+                }
+                .pickerStyle(.menu)
+
                 TextField("NPI", text: $npi)
                     .keyboardType(.numberPad)
                     .textInputAutocapitalization(.never)
@@ -49,7 +56,7 @@ struct EditProviderView: View {
             // Load current values into local state for an editable buffer
             firstName = provider.firstName ?? ""
             lastName = provider.lastName ?? ""
-            degree = provider.degree ?? ""
+            degree = provider.degreeEnum
             npi = provider.npi ?? ""
         }
     }
@@ -63,7 +70,7 @@ struct EditProviderView: View {
     private func saveChanges() {
         provider.firstName = firstName.trimmingCharacters(in: .whitespacesAndNewlines)
         provider.lastName = lastName.trimmingCharacters(in: .whitespacesAndNewlines)
-        provider.degree = degree.trimmingCharacters(in: .whitespacesAndNewlines)
+        provider.degreeEnum = degree
         provider.npi = npi.trimmingCharacters(in: .whitespacesAndNewlines)
 
         do {

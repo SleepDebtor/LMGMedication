@@ -14,17 +14,18 @@ public typealias PlatformColor = UIColor
 
 class MedicationLabelPDFGenerator {
     
-    static func generatePDF(for medication: DispencedMedication) async -> Data? {
+    static func generatePDF(for medication: DispencedMedication, overrideDispenseDate: Date? = nil) async -> Data? {
         return await withCheckedContinuation { continuation in
             nonisolated(unsafe) let med = medication
+            nonisolated(unsafe) let overrideDate = overrideDispenseDate
             DispatchQueue.global(qos: .userInitiated).async {
-                let pdfData = createMedicationLabelPDF(for: med)
+                let pdfData = createMedicationLabelPDF(for: med, overrideDispenseDate: overrideDate)
                 continuation.resume(returning: pdfData)
             }
         }
     }
     
-    private static func createMedicationLabelPDF(for medication: DispencedMedication) -> Data? {
+    private static func createMedicationLabelPDF(for medication: DispencedMedication, overrideDispenseDate: Date? = nil) -> Data? {
         // Use 72 DPI as standard (1 point = 1/72 inch)
         // For a 2"x1" label at 72 DPI: 144x72 points
         // For better quality, we'll use 400x200 points (roughly 5.5"x2.8" at 72 DPI)
@@ -50,12 +51,12 @@ class MedicationLabelPDFGenerator {
             cgContext.setAllowsFontSubpixelPositioning(true)
             cgContext.setAllowsFontSubpixelQuantization(true)
             
-            drawMedicationLabel(in: pageRect, for: medication, context: cgContext)
+            drawMedicationLabel(in: pageRect, for: medication, context: cgContext, overrideDispenseDate: overrideDispenseDate)
         }
         return data
     }
     
-    static func drawMedicationLabel(in rect: CGRect, for medication: DispencedMedication, context: CGContext) {
+    static func drawMedicationLabel(in rect: CGRect, for medication: DispencedMedication, context: CGContext, overrideDispenseDate: Date? = nil) {
         let margin: CGFloat = 6 // Scaled margin for 200 DPI
         let contentRect = rect.insetBy(dx: margin, dy: margin)
         
@@ -73,7 +74,7 @@ class MedicationLabelPDFGenerator {
             height: qrCodeSize
         )
         
-        if let qrCodeImage = generateQRCode(for: medication) {
+        if let qrCodeImage = generateQRCode(for: medication, overrideDispenseDate: overrideDispenseDate) {
             context.draw(qrCodeImage, in: qrCodeRect)
         }
         
@@ -259,7 +260,7 @@ class MedicationLabelPDFGenerator {
         return boundingRect.height + 5 // Add some spacing
     }
     
-    private static func generateQRCode(for medication: DispencedMedication) -> CGImage? {
+    private static func generateQRCode(for medication: DispencedMedication, overrideDispenseDate: Date? = nil) -> CGImage? {
         // Create QR code data - you can customize this based on your needs
         var qrData = ""
         
@@ -277,7 +278,7 @@ class MedicationLabelPDFGenerator {
         
         qrData += "Dispense: \(medication.dispenceAmt) \(medication.dispenceUnit ?? "")\n"
         
-        if let dispenseDate = medication.dispenceDate {
+        if let dispenseDate = overrideDispenseDate ?? medication.dispenceDate {
             let formatter = DateFormatter()
             formatter.dateStyle = .short
             qrData += "Date: \(formatter.string(from: dispenseDate))\n"

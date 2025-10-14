@@ -27,10 +27,11 @@ struct PatientDetailView: View {
     @State private var shareErrorMessage: String?
     @State private var showingErrorAlert = false
     
-    // Custom colors - matching ContentView
-    private let goldColor = Color(red: 1.0, green: 0.843, blue: 0.0) // Pure gold
-    private let darkGoldColor = Color(red: 0.8, green: 0.6, blue: 0.0) // Darker gold
-    private let charcoalColor = Color(red: 0.1, green: 0.1, blue: 0.1) // Near black
+    // Custom colors - light theme with dark bronze accents
+    private let goldColor = Color(red: 0.6, green: 0.4, blue: 0.2) // Dark bronze
+    private let darkGoldColor = Color(red: 0.45, green: 0.3, blue: 0.15) // Darker bronze
+    private let lightBackgroundColor = Color(red: 0.99, green: 0.985, blue: 0.97) // Light background with subtle gold tint
+    private let textColor = Color.black // Black text
     
     var sortedMedications: [DispencedMedication] {
         patient.dispensedMedicationsArray.sorted { med1, med2 in
@@ -43,13 +44,9 @@ struct PatientDetailView: View {
     
     var body: some View {
         ZStack {
-            // Background gradient
-            LinearGradient(
-                colors: [charcoalColor, Color.black],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
+            // Light background
+            lightBackgroundColor
+                .ignoresSafeArea()
             
             VStack(spacing: 0) {
                 // Header and actions
@@ -59,6 +56,7 @@ struct PatientDetailView: View {
                         patient: patient,
                         goldColor: goldColor,
                         darkGoldColor: darkGoldColor,
+                        textColor: textColor,
                         onEditTapped: { showingEditPatient = true }
                     )
                     .padding(.horizontal, 20)
@@ -107,7 +105,7 @@ struct PatientDetailView: View {
                                         .stroke(goldColor, lineWidth: 1.5)
                                         .background(
                                             RoundedRectangle(cornerRadius: 12)
-                                                .fill(Color.white.opacity(0.05))
+                                                .fill(Color.white.opacity(0.8))
                                         )
                                 )
                             }
@@ -130,7 +128,7 @@ struct PatientDetailView: View {
                                     .stroke(goldColor, lineWidth: 1.5)
                                     .background(
                                         RoundedRectangle(cornerRadius: 12)
-                                            .fill(Color.white.opacity(0.05))
+                                            .fill(Color.white.opacity(0.8))
                                     )
                             )
                         }
@@ -189,6 +187,7 @@ struct PatientDetailView: View {
                                     medication: medication,
                                     goldColor: goldColor,
                                     darkGoldColor: darkGoldColor,
+                                    textColor: textColor,
                                     onPrintTapped: { printSingleLabel(medication) },
                                     onDeactivate: { toggleMedicationActive(medication, active: false) },
                                     onActivate: { toggleMedicationActive(medication, active: true) }
@@ -234,8 +233,8 @@ struct PatientDetailView: View {
         }
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.large)
-        .toolbarBackground(charcoalColor, for: .navigationBar)
-        .toolbarColorScheme(.dark, for: .navigationBar)
+        .toolbarBackground(lightBackgroundColor, for: .navigationBar)
+        .toolbarColorScheme(.light, for: .navigationBar)
         .sheet(isPresented: $showingAddMedication) {
             AddMedicationView(patient: patient)
         }
@@ -335,6 +334,7 @@ struct PatientHeaderCard: View {
     let patient: Patient
     let goldColor: Color
     let darkGoldColor: Color
+    let textColor: Color
     let onEditTapped: () -> Void
     
     var body: some View {
@@ -361,7 +361,7 @@ struct PatientHeaderCard: View {
                 Text(patient.displayName)
                     .font(.title)
                     .fontWeight(.bold)
-                    .foregroundColor(.white)
+                    .foregroundColor(textColor)
                 
                 if let birthdate = patient.birthdate {
                     Text("DOB: \(birthdate, style: .date)")
@@ -400,8 +400,8 @@ struct PatientHeaderCard: View {
                 .fill(
                     LinearGradient(
                         colors: [
-                            Color.white.opacity(0.08),
-                            Color.white.opacity(0.03)
+                            Color.white.opacity(0.9),
+                            Color.white.opacity(0.7)
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
@@ -427,6 +427,7 @@ struct MedicationCardView: View {
     let medication: DispencedMedication
     let goldColor: Color
     let darkGoldColor: Color
+    let textColor: Color
     let onPrintTapped: () -> Void
     let onDeactivate: () -> Void
     let onActivate: () -> Void
@@ -455,7 +456,7 @@ struct MedicationCardView: View {
                 Text(medication.displayName)
                     .font(.headline)
                     .fontWeight(.semibold)
-                    .foregroundColor(medication.isActive ? .white : .gray)
+                    .foregroundColor(medication.isActive ? textColor : textColor.opacity(0.6))
                     .lineLimit(1)
                 
                 let fillAmount = medication.fillAmount
@@ -528,8 +529,8 @@ struct MedicationCardView: View {
                 .fill(
                     LinearGradient(
                         colors: [
-                            Color.white.opacity(0.05),
-                            Color.white.opacity(0.02)
+                            Color.white.opacity(0.9),
+                            Color.white.opacity(0.7)
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
@@ -611,21 +612,17 @@ struct BulkPrintSelectionView: View {
     @Binding var selectedMedications: Set<DispencedMedication>
     @Environment(\.dismiss) private var dismiss
     
-    // Custom colors - matching the app
-    private let goldColor = Color(red: 1.0, green: 0.843, blue: 0.0)
-    private let darkGoldColor = Color(red: 0.8, green: 0.6, blue: 0.0)
-    private let charcoalColor = Color(red: 0.1, green: 0.1, blue: 0.1)
+    // Custom colors - light theme with dark bronze accents
+    private let goldColor = Color(red: 0.6, green: 0.4, blue: 0.2) // Dark bronze
+    private let darkGoldColor = Color(red: 0.45, green: 0.3, blue: 0.15) // Darker bronze
+    private let lightBackgroundColor = Color(red: 0.99, green: 0.985, blue: 0.97) // Light background with subtle gold tint
     
     var body: some View {
         NavigationView {
             ZStack {
-                // Background gradient
-                LinearGradient(
-                    colors: [charcoalColor, Color.black],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                .ignoresSafeArea()
+                // Light background
+                lightBackgroundColor
+                    .ignoresSafeArea()
                 
                 ScrollView {
                     LazyVStack(spacing: 12) {
@@ -646,7 +643,7 @@ struct BulkPrintSelectionView: View {
                                         Text(medication.displayName)
                                             .font(.headline)
                                             .fontWeight(.semibold)
-                                            .foregroundColor(.white)
+                                            .foregroundColor(.black)
                                         
                                         if !medication.concentrationInfo.isEmpty {
                                             Text(medication.concentrationInfo)
@@ -657,7 +654,7 @@ struct BulkPrintSelectionView: View {
                                         if let date = medication.dispenceDate {
                                             Text("Dispensed: \(date, style: .date)")
                                                 .font(.caption)
-                                                .foregroundColor(.gray)
+                                                .foregroundColor(.black.opacity(0.6))
                                         }
                                     }
                                     
@@ -674,7 +671,7 @@ struct BulkPrintSelectionView: View {
                                                 endPoint: .bottomTrailing
                                             ) :
                                             LinearGradient(
-                                                colors: [Color.white.opacity(0.05), Color.white.opacity(0.02)],
+                                                colors: [Color.white.opacity(0.9), Color.white.opacity(0.7)],
                                                 startPoint: .topLeading,
                                                 endPoint: .bottomTrailing
                                             )
@@ -698,8 +695,8 @@ struct BulkPrintSelectionView: View {
             }
             .navigationTitle("Select Labels to Print")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(charcoalColor, for: .navigationBar)
-            .toolbarColorScheme(.dark, for: .navigationBar)
+            .toolbarBackground(lightBackgroundColor, for: .navigationBar)
+            .toolbarColorScheme(.light, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") {
@@ -758,6 +755,6 @@ struct BulkPrintSelectionView: View {
         PatientDetailView(patient: patient)
     }
     .environment(\.managedObjectContext, context)
-    .preferredColorScheme(.dark)
+    .preferredColorScheme(.light)
 }
 

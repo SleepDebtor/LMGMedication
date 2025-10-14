@@ -12,17 +12,18 @@ import UIKit
 
 class NonInjectableLabelPDFGenerator {
     
-    static func generatePDF(for medication: DispencedMedication) async -> Data? {
+    static func generatePDF(for medication: DispencedMedication, overrideDispenseDate: Date? = nil) async -> Data? {
         return await withCheckedContinuation { continuation in
             nonisolated(unsafe) let med = medication
+            nonisolated(unsafe) let overrideDate = overrideDispenseDate
             DispatchQueue.global(qos: .userInitiated).async {
-                let pdfData = createNonInjectableLabelPDF(for: med)
+                let pdfData = createNonInjectableLabelPDF(for: med, overrideDispenseDate: overrideDate)
                 continuation.resume(returning: pdfData)
             }
         }
     }
     
-    private static func createNonInjectableLabelPDF(for medication: DispencedMedication) -> Data? {
+    private static func createNonInjectableLabelPDF(for medication: DispencedMedication, overrideDispenseDate: Date? = nil) -> Data? {
         // 3" x 2" at 72 DPI = 216 x 144 points
         let pageRect = CGRect(x: 0, y: 0, width: 216, height: 144)
         
@@ -46,12 +47,12 @@ class NonInjectableLabelPDFGenerator {
             cgContext.setAllowsFontSubpixelPositioning(true)
             cgContext.setAllowsFontSubpixelQuantization(true)
             
-            drawNonInjectableLabel(in: pageRect, for: medication, context: cgContext)
+            drawNonInjectableLabel(in: pageRect, for: medication, context: cgContext, overrideDispenseDate: overrideDispenseDate)
         }
         return data
     }
     
-    static func drawNonInjectableLabel(in rect: CGRect, for medication: DispencedMedication, context: CGContext) {
+    static func drawNonInjectableLabel(in rect: CGRect, for medication: DispencedMedication, context: CGContext, overrideDispenseDate: Date? = nil) {
         let margin: CGFloat = 6
         let contentRect = rect.insetBy(dx: margin, dy: margin)
         
@@ -126,7 +127,7 @@ class NonInjectableLabelPDFGenerator {
         }
         
         // Prescription date
-        if let dispenseDate = medication.dispenceDate {
+        if let dispenseDate = overrideDispenseDate ?? medication.dispenceDate {
             let formatter = DateFormatter()
             formatter.dateStyle = .short
             let dateText = "Date: \(formatter.string(from: dispenseDate))"

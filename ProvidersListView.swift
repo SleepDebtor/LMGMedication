@@ -15,21 +15,18 @@ struct ProvidersListView: View {
     
     @State private var showingAddProvider = false
     
-    // Custom colors
-    private let goldColor = Color(red: 1.0, green: 0.843, blue: 0.0) // Pure gold
-    private let darkGoldColor = Color(red: 0.8, green: 0.6, blue: 0.0) // Darker gold
-    private let charcoalColor = Color(red: 0.1, green: 0.1, blue: 0.1) // Near black
+    // Custom colors - light theme with dark bronze accents
+    private let goldColor = Color(red: 0.6, green: 0.4, blue: 0.2) // Dark bronze
+    private let darkGoldColor = Color(red: 0.45, green: 0.3, blue: 0.15) // Darker bronze
+    private let lightBackgroundColor = Color(red: 0.99, green: 0.985, blue: 0.97) // Light background with subtle gold tint
+    private let textColor = Color.black // Black text
     
     var body: some View {
         NavigationView {
             ZStack {
-                // Background gradient
-                LinearGradient(
-                    colors: [charcoalColor, Color.black],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                .ignoresSafeArea()
+                // Light background
+                lightBackgroundColor
+                    .ignoresSafeArea()
                 
                 ScrollView {
                     LazyVStack(spacing: 12) {
@@ -89,7 +86,7 @@ struct ProvidersListView: View {
                         // Providers list
                         ForEach(providers) { provider in
                             NavigationLink(destination: EditProviderView(provider: provider)) {
-                                ProviderCardView(provider: provider, goldColor: goldColor, darkGoldColor: darkGoldColor)
+                                ProviderCardView(provider: provider, goldColor: goldColor, darkGoldColor: darkGoldColor, textColor: textColor)
                             }
                             .buttonStyle(PlainButtonStyle())
                         }
@@ -108,7 +105,7 @@ struct ProvidersListView: View {
                                 
                                 Text("Tap the button above to add your first healthcare provider")
                                     .font(.body)
-                                    .foregroundColor(.gray)
+                                    .foregroundColor(textColor.opacity(0.6))
                                     .multilineTextAlignment(.center)
                                     .padding(.horizontal, 40)
                             }
@@ -143,6 +140,7 @@ struct ProviderCardView: View {
     let provider: Provider
     let goldColor: Color
     let darkGoldColor: Color
+    let textColor: Color
     
     var body: some View {
         HStack {
@@ -168,7 +166,7 @@ struct ProviderCardView: View {
                 Text(provider.displayName)
                     .font(.headline)
                     .fontWeight(.semibold)
-                    .foregroundColor(.white)
+                    .foregroundColor(textColor)
                 
                 if let degree = provider.degree, !degree.isEmpty,
                    let npi = provider.npi, !npi.isEmpty {
@@ -199,8 +197,8 @@ struct ProviderCardView: View {
                 .fill(
                     LinearGradient(
                         colors: [
-                            Color.white.opacity(0.05),
-                            Color.white.opacity(0.02)
+                            Color.white.opacity(0.9),
+                            Color.white.opacity(0.7)
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
@@ -257,5 +255,5 @@ private extension Provider {
     }
     return ProvidersListView()
         .environment(\.managedObjectContext, context)
-        .preferredColorScheme(.dark)
+        .preferredColorScheme(.light)
 }

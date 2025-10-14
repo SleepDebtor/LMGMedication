@@ -31,7 +31,8 @@ struct MedicationLabelPreviewView: View {
                     VStack(spacing: 0) {
                         // Size information
                         HStack {
-                            Text("Label Size: 400×200 points")
+                            let isInjectable = medication.baseMedication?.injectable == true
+                            Text("Label Size: \(isInjectable ? "400×200" : "216×144") points")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                             
@@ -48,12 +49,17 @@ struct MedicationLabelPreviewView: View {
                         
                         // PDF Preview
                         ScrollView([.horizontal, .vertical]) {
+                            let isInjectable = medication.baseMedication?.injectable == true
+                            let aspectRatio = isInjectable ? 2.0 : (216.0/144.0) // Injectable is 2:1, Non-injectable is 3:2
+                            let width = isInjectable ? 400.0 : 216.0
+                            let height = isInjectable ? 200.0 : 144.0
+                            
                             PDFKitView(document: pdfDocument, showActualSize: showActualSize)
                                 .frame(
-                                    width: showActualSize ? 400 : nil,
-                                    height: showActualSize ? 200 : nil
+                                    width: showActualSize ? width : nil,
+                                    height: showActualSize ? height : nil
                                 )
-                                .aspectRatio(2.0, contentMode: showActualSize ? .fill : .fit)
+                                .aspectRatio(aspectRatio, contentMode: showActualSize ? .fill : .fit)
                                 .padding()
                         }
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -108,8 +114,17 @@ struct MedicationLabelPreviewView: View {
         generationError = nil
         
         Task {
-            if let pdfData = await MedicationLabelPDFGenerator.generatePDF(for: medication) {
-                let document = PDFDocument(data: pdfData)
+            let pdfData: Data?
+            
+            // Use appropriate generator based on medication type
+            if medication.baseMedication?.injectable == true {
+                pdfData = await MedicationLabelPDFGenerator.generatePDF(for: medication)
+            } else {
+                pdfData = await NonInjectableLabelPDFGenerator.generatePDF(for: medication)
+            }
+            
+            if let data = pdfData {
+                let document = PDFDocument(data: data)
                 await MainActor.run {
                     pdfDocument = document
                     isGenerating = false

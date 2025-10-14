@@ -9,6 +9,7 @@ import Foundation
 import PDFKit
 import CoreGraphics
 import UIKit
+import CoreData
 
 @MainActor
 class MedicationPrintManager {
@@ -18,26 +19,105 @@ class MedicationPrintManager {
     
     /// Print a single medication label
     func printLabel(for medication: DispencedMedication) async {
-        // Update nextDoseDue based on medication type and dispensed amount when printing
-        medication.updateNextDoseDueOnPrint()
-        
+        let originalMed = medication
+        // Update next dose for the original medication
+        originalMed.updateNextDoseDueOnPrint()
+
+        // Generate PDF with today's date
         let pdfData: Data?
-        
-        // Use different PDF generators based on whether medication is injectable
+        if originalMed.baseMedication?.injectable == true {
+            pdfData = await MedicationLabelPDFGenerator.generatePDF(for: originalMed, overrideDispenseDate: Date())
+        } else {
+            pdfData = await NonInjectableLabelPDFGenerator.generatePDF(for: originalMed, overrideDispenseDate: Date())
+        }
+
+        if let finalPdfData = pdfData {
+            await presentPrintInterface(
+                with: finalPdfData,
+                jobName: "Medication Label - \(originalMed.displayName)"
+            )
+        } else {
+            print("Failed to generate PDF for medication: \(originalMed.displayName)")
+        }
+    }
+    
+    /// Print a dual medication label (original + today's date)
+    func printDualLabel(for medication: DispencedMedication) async {
+        let originalMed = medication
+        // Update next dose for the original medication
+        originalMed.updateNextDoseDueOnPrint()
+
+        // Generate PDF for original
+        let originalPDF: Data?
+        if originalMed.baseMedication?.injectable == true {
+            originalPDF = await MedicationLabelPDFGenerator.generatePDF(for: originalMed)
+        } else {
+            originalPDF = await NonInjectableLabelPDFGenerator.generatePDF(for: originalMed)
+        }
+
+        // Create a duplicate PDF with today's date
+        let duplicatePDF: Data?
+        if originalMed.baseMedication?.injectable == true {
+            duplicatePDF = await MedicationLabelPDFGenerator.generatePDF(for: originalMed, overrideDispenseDate: Date())
+        } else {
+            duplicatePDF = await NonInjectableLabelPDFGenerator.generatePDF(for: originalMed, overrideDispenseDate: Date())
+        }
+
+        // If both PDFs exist, combine into one; else fall back to original
+        if let orig = originalPDF, let dup = duplicatePDF {
+            // Combine two PDFs into a single document
+            let combined = NSMutableData()
+            let consumer = CGDataConsumer(data: combined as CFMutableData)!
+            var mediaBox = CGRect(x: 0, y: 0, width: 400, height: 200)
+            let context = CGContext(consumer: consumer, mediaBox: &mediaBox, nil)!
+
+            // Helper to append pages of a PDF
+            func append(pdf data: Data) {
+                guard let provider = CGDataProvider(data: data as CFData),
+                      let doc = CGPDFDocument(provider) else { return }
+                for pageIndex in 1...doc.numberOfPages {
+                    guard let page = doc.page(at: pageIndex) else { continue }
+                    let box = page.getBoxRect(.mediaBox)
+                    var pageBox = box
+                    context.beginPage(mediaBox: &pageBox)
+                    context.drawPDFPage(page)
+                    context.endPage()
+                }
+            }
+
+            append(pdf: orig)
+            append(pdf: dup)
+            context.closePDF()
+
+            await presentPrintInterface(
+                with: combined as Data,
+                jobName: "Dual Medication Labels - \(originalMed.displayName)"
+            )
+        } else if let orig = originalPDF {
+            await presentPrintInterface(
+                with: orig,
+                jobName: "Medication Label - \(originalMed.displayName)"
+            )
+        } else {
+            print("Failed to generate PDF for medication: \(originalMed.displayName)")
+        }
+    }
+    
+    /// Reprint a single medication label without updating next dose
+    func reprintLabel(for medication: DispencedMedication) async {
+        let pdfData: Data?
         if medication.baseMedication?.injectable == true {
             pdfData = await MedicationLabelPDFGenerator.generatePDF(for: medication)
         } else {
             pdfData = await NonInjectableLabelPDFGenerator.generatePDF(for: medication)
         }
-        
         guard let finalPdfData = pdfData else {
             print("Failed to generate PDF for medication: \(medication.displayName)")
             return
         }
-        
         await presentPrintInterface(
             with: finalPdfData,
-            jobName: "Medication Label - \(medication.displayName)"
+            jobName: "Medication Label (Reprint) - \(medication.displayName)"
         )
     }
     

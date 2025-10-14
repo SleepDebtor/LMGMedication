@@ -19,7 +19,10 @@
 		275592AD2E8B60C700A524A7 /* Patient+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 275592AA2E8B60C700A524A7 /* Patient+CoreDataClass.swift */; };
 		275592BD2E8B6F9C00A524A7 /* CloudKitManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 275592BC2E8B6F9C00A524A7 /* CloudKitManager.swift */; };
 		275592BF2E8B702800A524A7 /* SharingManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 275592BE2E8B702800A524A7 /* SharingManager.swift */; };
+		278823182E9DC90200BCBD57 /* Degree.swift in Sources */ = {isa = PBXBuildFile; fileRef = 278823172E9DC90200BCBD57 /* Degree.swift */; };
 		27BFA0F12E9C335C003B4292 /* EditProviderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27BFA0F02E9C335C003B4292 /* EditProviderView.swift */; };
+		BD080A382E9D382300400DFD /* StateLicense+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD080A362E9D382300400DFD /* StateLicense+CoreDataClass.swift */; };
+		BD080A392E9D382300400DFD /* StateLicense+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD080A372E9D382300400DFD /* StateLicense+CoreDataProperties.swift */; };
 		BD482A262E9B4DA800A52070 /* DispencedMedication+BusinessLogic.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD482A252E9B4DA800A52070 /* DispencedMedication+BusinessLogic.swift */; };
 		BD59A1A42E92BA8600C4516C /* MedicationLabelPDFGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD59A1A32E92BA8600C4516C /* MedicationLabelPDFGenerator.swift */; };
 		BD59A1A62E92BA9900C4516C /* ParticipantSelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD59A1A52E92BA9900C4516C /* ParticipantSelectionView.swift */; };
@@ -66,7 +69,10 @@
 		275592AB2E8B60C700A524A7 /* Patient+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Patient+CoreDataProperties.swift"; sourceTree = "<group>"; };
 		275592BC2E8B6F9C00A524A7 /* CloudKitManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitManager.swift; sourceTree = "<group>"; };
 		275592BE2E8B702800A524A7 /* SharingManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharingManager.swift; sourceTree = "<group>"; };
+		278823172E9DC90200BCBD57 /* Degree.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Degree.swift; sourceTree = "<group>"; };
 		27BFA0F02E9C335C003B4292 /* EditProviderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditProviderView.swift; sourceTree = "<group>"; };
+		BD080A362E9D382300400DFD /* StateLicense+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StateLicense+CoreDataClass.swift"; sourceTree = "<group>"; };
+		BD080A372E9D382300400DFD /* StateLicense+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StateLicense+CoreDataProperties.swift"; sourceTree = "<group>"; };
 		BD482A252E9B4DA800A52070 /* DispencedMedication+BusinessLogic.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DispencedMedication+BusinessLogic.swift"; sourceTree = "<group>"; };
 		BD59A1A32E92BA8600C4516C /* MedicationLabelPDFGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicationLabelPDFGenerator.swift; sourceTree = "<group>"; };
 		BD59A1A52E92BA9900C4516C /* ParticipantSelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParticipantSelectionView.swift; sourceTree = "<group>"; };
@@ -145,6 +151,8 @@
 		BD5B52962E89564F00DD14F1 = {
 			isa = PBXGroup;
 			children = (
+				BD080A362E9D382300400DFD /* StateLicense+CoreDataClass.swift */,
+				BD080A372E9D382300400DFD /* StateLicense+CoreDataProperties.swift */,
 				275592AA2E8B60C700A524A7 /* Patient+CoreDataClass.swift */,
 				275592AB2E8B60C700A524A7 /* Patient+CoreDataProperties.swift */,
 				2755929A2E8B5FCE00A524A7 /* DispencedMedication+CoreDataClass.swift */,
@@ -176,6 +184,7 @@
 				BD59A1D92E936BFC00C4516C /* AuthenticationGateView.swift */,
 				BD482A252E9B4DA800A52070 /* DispencedMedication+BusinessLogic.swift */,
 				27BFA0F02E9C335C003B4292 /* EditProviderView.swift */,
+				278823172E9DC90200BCBD57 /* Degree.swift */,
 			);
 			sourceTree = "<group>";
 		};
@@ -334,6 +343,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BD080A382E9D382300400DFD /* StateLicense+CoreDataClass.swift in Sources */,
+				BD080A392E9D382300400DFD /* StateLicense+CoreDataProperties.swift in Sources */,
 				275592A22E8B5FCE00A524A7 /* Provider+CoreDataClass.swift in Sources */,
 				BD482A262E9B4DA800A52070 /* DispencedMedication+BusinessLogic.swift in Sources */,
 				275592A32E8B5FCE00A524A7 /* Person+CoreDataProperties.swift in Sources */,
@@ -353,6 +364,7 @@
 				275592A72E8B5FCE00A524A7 /* Provider+CoreDataProperties.swift in Sources */,
 				BD59A1B22E92FAC200C4516C /* QRCodeTestView.swift in Sources */,
 				275592A82E8B5FCE00A524A7 /* Medication+CoreDataProperties.swift in Sources */,
+				278823182E9DC90200BCBD57 /* Degree.swift in Sources */,
 				275592A92E8B5FCE00A524A7 /* DispencedMedication+CoreDataClass.swift in Sources */,
 				275592BD2E8B6F9C00A524A7 /* CloudKitManager.swift in Sources */,
 				275592AC2E8B60C700A524A7 /* Patient+CoreDataProperties.swift in Sources */,

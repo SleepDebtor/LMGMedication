@@ -7,7 +7,7 @@ struct AddProviderView: View {
 
     @State private var firstName: String = ""
     @State private var lastName: String = ""
-    @State private var degree: String = ""
+    @State private var degree: Degree? = nil
     @State private var npi: String = ""
     @State private var dea: String = ""
     @State private var license: String = ""
@@ -29,10 +29,13 @@ struct AddProviderView: View {
 #endif
                 }
                 Section(header: Text("Credentials")) {
-                    TextField("Degree", text: $degree)
-#if os(iOS)
-                        .textInputAutocapitalization(.characters)
-#endif
+                    Picker("Degree", selection: $degree) {
+                        Text("Select...").tag(nil as Degree?)
+                        ForEach(Degree.allCases) { d in
+                            Text(d.displayName).tag(d as Degree?)
+                        }
+                    }
+                    .pickerStyle(.menu)
                     TextField("NPI", text: $npi)
 #if os(iOS)
                         .keyboardType(.numberPad)
@@ -70,7 +73,6 @@ struct AddProviderView: View {
         // Validate required fields (keep only name and degree requirements)
         let trimmedFirstName = firstName.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedLastName = lastName.trimmingCharacters(in: .whitespacesAndNewlines)
-        let trimmedDegree = degree.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedNPI = npi.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedDEA = dea.trimmingCharacters(in: .whitespacesAndNewlines)
         let trimmedLicense = license.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -85,7 +87,7 @@ struct AddProviderView: View {
             showingAlert = true
             return
         }
-        guard !trimmedDegree.isEmpty else {
+        guard let selectedDegree = degree else {
             alertMessage = "Degree is required."
             showingAlert = true
             return
@@ -96,7 +98,7 @@ struct AddProviderView: View {
         let newProvider = Provider(context: viewContext)
         newProvider.firstName = trimmedFirstName
         newProvider.lastName = trimmedLastName
-        newProvider.degree = trimmedDegree
+        newProvider.degreeEnum = selectedDegree
         // Store optional identifiers only if provided
         newProvider.npi = trimmedNPI.isEmpty ? nil : trimmedNPI
         newProvider.dea = trimmedDEA.isEmpty ? nil : trimmedDEA

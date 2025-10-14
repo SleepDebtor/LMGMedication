@@ -35,10 +35,11 @@ struct PatientsListRootView: View {
     @State private var showingErrorAlert = false
     @State private var errorMessage: String = ""
     
-    // Custom colors - matching ProvidersListView
-    private let goldColor = Color(red: 1.0, green: 0.843, blue: 0.0) // Pure gold
-    private let darkGoldColor = Color(red: 0.8, green: 0.6, blue: 0.0) // Darker gold
-    private let charcoalColor = Color(red: 0.1, green: 0.1, blue: 0.1) // Near black
+    // Custom colors - light theme with dark bronze accents
+    private let goldColor = Color(red: 0.6, green: 0.4, blue: 0.2) // Dark bronze
+    private let darkGoldColor = Color(red: 0.45, green: 0.3, blue: 0.15) // Darker bronze
+    private let lightBackgroundColor = Color(red: 0.99, green: 0.985, blue: 0.97) // Light background with subtle gold tint
+    private let textColor = Color.black // Black text
 
     private func nextDoseDueDate(for patient: Patient) -> Date? {
         // Use the earliest upcoming nextDoseDue across all active dispensed medications
@@ -108,13 +109,9 @@ struct PatientsListRootView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                // Background gradient
-                LinearGradient(
-                    colors: [charcoalColor, Color.black],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                .ignoresSafeArea()
+                // Light background
+                lightBackgroundColor
+                    .ignoresSafeArea()
                 
                 ScrollView {
                     LazyVStack(spacing: 16) {
@@ -178,7 +175,7 @@ struct PatientsListRootView: View {
                                             .stroke(goldColor, lineWidth: 1.5)
                                             .background(
                                                 RoundedRectangle(cornerRadius: 12)
-                                                    .fill(Color.white.opacity(0.05))
+                                                    .fill(Color.white.opacity(0.8))
                                             )
                                     )
                                 }
@@ -200,7 +197,7 @@ struct PatientsListRootView: View {
                                             .stroke(goldColor, lineWidth: 1.5)
                                             .background(
                                                 RoundedRectangle(cornerRadius: 12)
-                                                    .fill(Color.white.opacity(0.05))
+                                                    .fill(Color.white.opacity(0.8))
                                             )
                                     )
                                 }
@@ -215,6 +212,7 @@ struct PatientsListRootView: View {
                                 patients: section.patients,
                                 goldColor: goldColor,
                                 darkGoldColor: darkGoldColor,
+                                textColor: textColor,
                                 nextDoseDueDate: nextDoseDueDate,
                                 onDelete: { offsets in
                                     deletePatientsFromSection(section.patients, offsets: offsets)
@@ -231,6 +229,7 @@ struct PatientsListRootView: View {
                                 patients: noNextDosePatients,
                                 goldColor: goldColor,
                                 darkGoldColor: darkGoldColor,
+                                textColor: textColor,
                                 onDelete: { offsets in
                                     deletePatientsFromSection(noNextDosePatients, offsets: offsets)
                                 },
@@ -253,7 +252,7 @@ struct PatientsListRootView: View {
                                 
                                 Text("Tap 'Add Patient' above to get started")
                                     .font(.body)
-                                    .foregroundColor(.gray)
+                                    .foregroundColor(textColor.opacity(0.6))
                                     .multilineTextAlignment(.center)
                                     .padding(.horizontal, 40)
                             }
@@ -333,6 +332,7 @@ struct WeekSectionView: View {
     let patients: [Patient]
     let goldColor: Color
     let darkGoldColor: Color
+    let textColor: Color
     let nextDoseDueDate: (Patient) -> Date?
     let onDelete: (IndexSet) -> Void
     let onToggleActive: (Patient, Bool) -> Void
@@ -365,6 +365,7 @@ struct WeekSectionView: View {
                         patient: patient,
                         goldColor: goldColor,
                         darkGoldColor: darkGoldColor,
+                        textColor: textColor,
                         nextDoseDate: nextDoseDueDate(patient)
                     )
                 }
@@ -394,6 +395,7 @@ struct NoNextDoseSectionView: View {
     let patients: [Patient]
     let goldColor: Color
     let darkGoldColor: Color
+    let textColor: Color
     let onDelete: (IndexSet) -> Void
     let onToggleActive: (Patient, Bool) -> Void
     
@@ -425,6 +427,7 @@ struct NoNextDoseSectionView: View {
                         patient: patient,
                         goldColor: goldColor,
                         darkGoldColor: darkGoldColor,
+                        textColor: textColor,
                         nextDoseDate: nil,
                         showBirthdate: true
                     )
@@ -455,13 +458,15 @@ struct PatientCardView: View {
     let patient: Patient
     let goldColor: Color
     let darkGoldColor: Color
+    let textColor: Color
     let nextDoseDate: Date?
     let showBirthdate: Bool
     
-    init(patient: Patient, goldColor: Color, darkGoldColor: Color, nextDoseDate: Date?, showBirthdate: Bool = false) {
+    init(patient: Patient, goldColor: Color, darkGoldColor: Color, textColor: Color, nextDoseDate: Date?, showBirthdate: Bool = false) {
         self.patient = patient
         self.goldColor = goldColor
         self.darkGoldColor = darkGoldColor
+        self.textColor = textColor
         self.nextDoseDate = nextDoseDate
         self.showBirthdate = showBirthdate
     }
@@ -490,7 +495,7 @@ struct PatientCardView: View {
                 Text(patient.displayName)
                     .font(.headline)
                     .fontWeight(.semibold)
-                    .foregroundColor(.white)
+                    .foregroundColor(textColor)
                 
                 if let nextDose = nextDoseDate {
                     Text("Next dose due: \(nextDose, style: .date)")
@@ -503,7 +508,7 @@ struct PatientCardView: View {
                 } else {
                     Text("No scheduled doses")
                         .font(.subheadline)
-                        .foregroundColor(.gray)
+                        .foregroundColor(textColor.opacity(0.6))
                 }
             }
             
@@ -520,8 +525,8 @@ struct PatientCardView: View {
                 .fill(
                     LinearGradient(
                         colors: [
-                            Color.white.opacity(0.05),
-                            Color.white.opacity(0.02)
+                            Color.white.opacity(0.9),
+                            Color.white.opacity(0.7)
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
@@ -549,6 +554,6 @@ struct PatientCardView: View {
 #Preview {
     ContentView()
         .environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
-        .preferredColorScheme(.dark)
+        .preferredColorScheme(.light)
 }
 

@@ -23,6 +23,7 @@ extension Provider {
     @NSManaged public var license: String?
     @NSManaged public var npi: String?
     @NSManaged public var relationship: NSSet?
+    @NSManaged public var stateLicenses: NSSet?
 
 }
 
@@ -40,5 +41,22 @@ extension Provider {
 
     @objc(removeRelationship:)
     @NSManaged public func removeFromRelationship(_ values: NSSet)
+
+}
+
+// MARK: Generated accessors for stateLicenses
+extension Provider {
+
+    @objc(addStateLicensesObject:)
+    @NSManaged public func addToStateLicenses(_ value: StateLicense)
+
+    @objc(removeStateLicensesObject:)
+    @NSManaged public func removeFromStateLicenses(_ value: StateLicense)
+
+    @objc(addStateLicenses:)
+    @NSManaged public func addToStateLicenses(_ values: NSSet)
+
+    @objc(removeStateLicenses:)
+    @NSManaged public func removeFromStateLicenses(_ values: NSSet)
 
 }

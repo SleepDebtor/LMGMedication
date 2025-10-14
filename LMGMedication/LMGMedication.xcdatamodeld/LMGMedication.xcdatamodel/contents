@@ -47,5 +47,12 @@
         <attribute name="license" optional="YES" attributeType="String"/>
         <attribute name="npi" optional="YES" attributeType="String"/>
         <relationship name="relationship" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="DispencedMedication" inverseName="prescriber" inverseEntity="DispencedMedication"/>
+        <relationship name="stateLicenses" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="StateLicense" inverseName="provider" inverseEntity="StateLicense"/>
+    </entity>
+    <entity name="StateLicense" representedClassName="StateLicense" syncable="YES">
+        <attribute name="controlledSub" optional="YES" attributeType="String" allowsCloudEncryption="YES"/>
+        <attribute name="number" optional="YES" attributeType="String" allowsCloudEncryption="YES"/>
+        <attribute name="state" optional="YES" attributeType="String" allowsCloudEncryption="YES"/>
+        <relationship name="provider" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Provider" inverseName="stateLicenses" inverseEntity="Provider"/>
     </entity>
 </model>

@@ -22,10 +22,11 @@ struct EditPatientView: View {
     @State private var showingErrorAlert = false
     @State private var errorMessage: String = ""
     
-    // Custom colors - matching the app
-    private let goldColor = Color(red: 1.0, green: 0.843, blue: 0.0) // Pure gold
-    private let darkGoldColor = Color(red: 0.8, green: 0.6, blue: 0.0) // Darker gold
-    private let charcoalColor = Color(red: 0.1, green: 0.1, blue: 0.1) // Near black
+    // Custom colors - light theme with dark bronze accents
+    private let goldColor = Color(red: 0.6, green: 0.4, blue: 0.2) // Dark bronze
+    private let darkGoldColor = Color(red: 0.45, green: 0.3, blue: 0.15) // Darker bronze
+    private let lightBackgroundColor = Color(red: 0.99, green: 0.985, blue: 0.97) // Light background with subtle gold tint
+    private let textColor = Color.black // Black text
     
     init(patient: Patient) {
         self.patient = patient
@@ -38,13 +39,9 @@ struct EditPatientView: View {
     var body: some View {
         NavigationView {
             ZStack {
-                // Background gradient
-                LinearGradient(
-                    colors: [charcoalColor, Color.black],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                .ignoresSafeArea()
+                // Light background
+                lightBackgroundColor
+                    .ignoresSafeArea()
                 
                 ScrollView {
                     VStack(spacing: 24) {
@@ -87,12 +84,12 @@ struct EditPatientView: View {
                                         Text("\(firstName) \(lastName)".trimmingCharacters(in: .whitespaces))
                                             .font(.title2)
                                             .fontWeight(.semibold)
-                                            .foregroundColor(.white)
+                                            .foregroundColor(textColor)
                                     } else {
                                         Text("Patient Name")
                                             .font(.title2)
                                             .fontWeight(.semibold)
-                                            .foregroundColor(.gray)
+                                            .foregroundColor(textColor.opacity(0.6))
                                     }
                                     
                                     Text("DOB: \(birthdate, style: .date)")
@@ -108,8 +105,8 @@ struct EditPatientView: View {
                                     .fill(
                                         LinearGradient(
                                             colors: [
-                                                Color.white.opacity(0.08),
-                                                Color.white.opacity(0.03)
+                                                Color.white.opacity(0.9),
+                                                Color.white.opacity(0.7)
                                             ],
                                             startPoint: .topLeading,
                                             endPoint: .bottomTrailing
@@ -138,6 +135,7 @@ struct EditPatientView: View {
                                     title: "First Name",
                                     text: $firstName,
                                     goldColor: goldColor,
+                                    textColor: textColor,
                                     isRequired: true
                                 )
                                 
@@ -145,7 +143,8 @@ struct EditPatientView: View {
                                 CustomTextField(
                                     title: "Middle Name",
                                     text: $middleName,
-                                    goldColor: goldColor
+                                    goldColor: goldColor,
+                                    textColor: textColor
                                 )
                                 
                                 // Last Name
@@ -153,6 +152,7 @@ struct EditPatientView: View {
                                     title: "Last Name",
                                     text: $lastName,
                                     goldColor: goldColor,
+                                    textColor: textColor,
                                     isRequired: true
                                 )
                                 
@@ -187,7 +187,7 @@ struct EditPatientView: View {
                                     .stroke(goldColor, lineWidth: 1.5)
                                     .background(
                                         RoundedRectangle(cornerRadius: 12)
-                                            .fill(Color.white.opacity(0.05))
+                                            .fill(Color.white.opacity(0.8))
                                     )
                             )
                     }
@@ -216,7 +216,7 @@ struct EditPatientView: View {
                 .padding(.vertical, 16)
                 .background(
                     LinearGradient(
-                        colors: [charcoalColor, Color.black],
+                        colors: [lightBackgroundColor, lightBackgroundColor],
                         startPoint: .top,
                         endPoint: .bottom
                     )
@@ -254,12 +254,14 @@ struct CustomTextField: View {
     let title: String
     @Binding var text: String
     let goldColor: Color
+    let textColor: Color
     let isRequired: Bool
     
-    init(title: String, text: Binding<String>, goldColor: Color, isRequired: Bool = false) {
+    init(title: String, text: Binding<String>, goldColor: Color, textColor: Color, isRequired: Bool = false) {
         self.title = title
         self._text = text
         self.goldColor = goldColor
+        self.textColor = textColor
         self.isRequired = isRequired
     }
     
@@ -280,7 +282,7 @@ struct CustomTextField: View {
                 .padding(16)
                 .background(
                     RoundedRectangle(cornerRadius: 12)
-                        .fill(Color.white.opacity(0.05))
+                        .fill(Color.white.opacity(0.8))
                         .overlay(
                             RoundedRectangle(cornerRadius: 12)
                                 .stroke(
@@ -289,7 +291,7 @@ struct CustomTextField: View {
                                 )
                         )
                 )
-                .foregroundColor(.white)
+                .foregroundColor(textColor)
                 .font(.body)
         }
     }
@@ -311,13 +313,13 @@ struct CustomDatePicker: View {
                 .padding(16)
                 .background(
                     RoundedRectangle(cornerRadius: 12)
-                        .fill(Color.white.opacity(0.05))
+                        .fill(Color.white.opacity(0.8))
                         .overlay(
                             RoundedRectangle(cornerRadius: 12)
                                 .stroke(goldColor.opacity(0.3), lineWidth: 1)
                         )
                 )
-                .colorScheme(.dark)
+                .colorScheme(.light)
         }
     }
 }
@@ -331,5 +333,5 @@ struct CustomDatePicker: View {
     
     return EditPatientView(patient: patient)
         .environment(\.managedObjectContext, context)
-        .preferredColorScheme(.dark)
+        .preferredColorScheme(.light)
 }
