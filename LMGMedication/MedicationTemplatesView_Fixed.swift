@@ -1,3 +1,38 @@
+/**
+ * MedicationTemplatesView.swift
+ * LMGMedication
+ *
+ * A comprehensive medication template management interface for iOS.
+ * 
+ * This file provides a complete SwiftUI-based medication template management system that supports:
+ * 
+ * ## Key Features:
+ * - **Dual Template Types**: Local Core Data templates and public CloudKit-synced templates
+ * - **Search Functionality**: Real-time filtering across medication names and ingredients
+ * - **QR Code Generation**: Automatic QR code creation and preview for medication URLs
+ * - **Cloud Sync**: CloudKit integration for sharing public templates across users
+ * - **Offline Support**: Full functionality when iCloud is unavailable
+ * - **Error Handling**: Comprehensive error states and user feedback
+ * 
+ * ## Architecture:
+ * - Uses MVVM pattern with SwiftUI and Combine
+ * - Core Data for local persistence
+ * - CloudKit for public template sharing
+ * - Async/await for modern concurrency handling
+ * 
+ * ## Views Included:
+ * - `MedicationTemplatesView`: Main container view with segmented control
+ * - `CloudMedicationTemplateRow`: Display row for public templates
+ * - `LocalMedicationTemplateRow`: Display row for local templates  
+ * - `AddMedicationTemplateView`: Create new local templates
+ * - `EditMedicationTemplateView`: Edit existing local templates
+ * - `AddCloudMedicationTemplateView`: Create new public templates
+ * - `CloudMedicationTemplateDetailView`: View public template details
+ * - `EditCloudMedicationTemplateView`: Edit existing public templates
+ * 
+ * Created by Michael Lazar on 9/29/25.
+ */
+
 //
 //  MedicationTemplatesView.swift
 //  LMGMedication
@@ -8,26 +43,56 @@
 import SwiftUI
 import CoreData
 import UIKit
+import CloudKit
 
+/**
+ * `MedicationTemplatesView` - Main view for managing medication templates
+ * 
+ * This view provides functionality to view, create, edit, and manage both public (CloudKit-synced)
+ * and local medication templates. It includes:
+ * - Segmented control to switch between public and local templates
+ * - Search functionality across template names and ingredients
+ * - iCloud status monitoring and error handling
+ * - Template creation and editing capabilities
+ * - Integration with CloudKit for public template sharing
+ * 
+ * The view automatically handles iCloud authentication states and provides appropriate
+ * UI feedback for network errors and connectivity issues.
+ */
 struct MedicationTemplatesView: View {
+    // MARK: - Environment & State Properties
+    
+    /// Core Data managed object context for local data operations
     @Environment(\.managedObjectContext) private var viewContext
+    /// Dismiss action for modal presentation
     @Environment(\.dismiss) private var dismiss
+    /// Shared CloudKit manager instance for public template operations
     @StateObject private var cloudManager = CloudKitManager.shared
     
+    /// Fetch request for local medications sorted by name
     @FetchRequest(
         sortDescriptors: [NSSortDescriptor(keyPath: \Medication.name, ascending: true)],
         animation: .default)
     private var localMedications: FetchedResults<Medication>
     
+    /// Controls the presentation of the add medication sheet
     @State private var showingAddMedication = false
+    /// User input for filtering templates by name/ingredients
     @State private var searchText = ""
-    @State private var selectedSegment = 0 // 0 = Public, 1 = Local
+    /// Segmented control state: 0 = Public Templates, 1 = Local Templates
+    @State private var selectedSegment = 0
     
-    // iOS color
+    // MARK: - UI Helpers
+    
+    /// Platform-appropriate gray background color for iOS
     private var platformSystemGray6: Color {
         Color(.systemGray6)
     }
     
+    // MARK: - Computed Properties
+    
+    /// Filtered public templates based on search criteria
+    /// Searches across template name and both ingredient fields
     var filteredPublicTemplates: [CloudMedicationTemplate] {
         if searchText.isEmpty {
             return cloudManager.publicMedicationTemplates
@@ -40,6 +105,8 @@ struct MedicationTemplatesView: View {
         }
     }
     
+    /// Filtered local medications based on search criteria
+    /// Searches across medication name and both ingredient fields
     var filteredLocalMedications: [Medication] {
         if searchText.isEmpty {
             return Array(localMedications)
@@ -52,9 +119,12 @@ struct MedicationTemplatesView: View {
         }
     }
     
+    // MARK: - Body
+    
     var body: some View {
         NavigationView {
             VStack {
+                // MARK: Template Source Selection
                 // Segmented Control for Public/Local
                 Picker("Template Source", selection: $selectedSegment) {
                     Text("Public Templates").tag(0)
@@ -63,6 +133,7 @@ struct MedicationTemplatesView: View {
                 .pickerStyle(.segmented)
                 .padding(.horizontal)
                 
+                // MARK: iCloud Status Banner
                 // iCloud Status Banner
                 if !cloudManager.isSignedInToiCloud && selectedSegment == 0 {
                     VStack(spacing: 8) {
@@ -88,6 +159,7 @@ struct MedicationTemplatesView: View {
                     .padding(.horizontal)
                 }
                 
+                // MARK: Search Interface
                 // Search bar
                 HStack {
                     Image(systemName: "magnifyingglass")
@@ -97,6 +169,8 @@ struct MedicationTemplatesView: View {
                 }
                 .padding(.horizontal)
                 
+                // MARK: Error Display
+                // Cloud error banner with retry functionality
                 if let error = cloudManager.lastErrorMessage, selectedSegment == 0 {
                     HStack(alignment: .top, spacing: 8) {
                         Image(systemName: "exclamationmark.triangle.fill")
@@ -206,6 +280,10 @@ struct MedicationTemplatesView: View {
         }
     }
     
+    // MARK: - Private Methods
+    
+    /// Deletes selected local medications from Core Data
+    /// - Parameter offsets: Index set of medications to delete from the filtered list
     private func deleteLocalMedications(offsets: IndexSet) {
         withAnimation {
             let medicationsToDelete = offsets.map { filteredLocalMedications[$0] }
@@ -221,8 +299,23 @@ struct MedicationTemplatesView: View {
     }
 }
 
+// MARK: - CloudMedicationTemplateRow
+
+/**
+ * `CloudMedicationTemplateRow` - Row view for displaying public medication templates
+ * 
+ * Displays essential information about a CloudKit-synced medication template including:
+ * - Template name and concentration information
+ * - Pharmacy information if available
+ * - Visual indicators for injectable medications and cloud sync status
+ * - Creation/modification timestamps
+ * 
+ * Tapping the row presents a detailed view of the template.
+ */
 struct CloudMedicationTemplateRow: View {
+    /// The cloud medication template to display
     let template: CloudMedicationTemplate
+    /// Controls presentation of the template detail sheet
     @State private var showingDetails = false
     
     var body: some View {
@@ -291,8 +384,23 @@ struct CloudMedicationTemplateRow: View {
     }
 }
 
+// MARK: - LocalMedicationTemplateRow
+
+/**
+ * `LocalMedicationTemplateRow` - Row view for displaying local medication templates
+ * 
+ * Displays information about locally stored medication templates including:
+ * - Medication name and ingredient concentrations
+ * - Pharmacy information if available
+ * - Usage statistics (how many times the medication has been dispensed)
+ * - Visual indicators for injectable medications and local storage
+ * 
+ * Tapping the row presents an edit view for the template.
+ */
 struct LocalMedicationTemplateRow: View {
+    /// The local medication template to display
     let medication: Medication
+    /// Controls presentation of the edit template sheet
     @State private var showingEditTemplate = false
     
     var body: some View {
@@ -377,21 +485,52 @@ struct LocalMedicationTemplateRow: View {
     }
 }
 
+// MARK: - EditMedicationTemplateView
+
+/**
+ * `EditMedicationTemplateView` - Modal view for editing existing local medication templates
+ * 
+ * Provides a comprehensive form interface for modifying all aspects of a local medication template:
+ * - Basic information (name, pharmacy, injectable status)
+ * - Ingredient details (names and concentrations for up to 2 ingredients)
+ * - URL fields for pharmacy website and QR code destinations
+ * - QR code generation and preview functionality
+ * 
+ * Changes are saved directly to Core Data and the view automatically updates
+ * the modification timestamp when changes are made.
+ */
 struct EditMedicationTemplateView: View {
+    // MARK: - Environment & Properties
+    
+    /// Core Data managed object context for saving changes
     @Environment(\.managedObjectContext) private var viewContext
+    /// Dismiss action for modal presentation
     @Environment(\.dismiss) private var dismiss
     
+    /// The medication template being edited
     let medication: Medication
     
+    // MARK: - Form State
+    
+    /// Editable medication name
     @State private var medicationName = ""
+    /// Editable pharmacy name
     @State private var pharmacy = ""
+    /// Editable first ingredient name
     @State private var ingredient1 = ""
+    /// Editable first ingredient concentration
     @State private var concentration1: Double = 0
+    /// Editable second ingredient name (optional)
     @State private var ingredient2 = ""
+    /// Editable second ingredient concentration (optional)
     @State private var concentration2: Double = 0
+    /// Whether the medication is injectable
     @State private var injectable = false
+    /// Optional pharmacy website URL
     @State private var pharmacyURL = ""
+    /// URL to be encoded in QR code
     @State private var urlForQR = ""
+    /// Generated QR code image for preview
     @State private var qrCodeImage: UIImage?
     
     var body: some View {
@@ -489,16 +628,22 @@ struct EditMedicationTemplateView: View {
         }
     }
     
+    // MARK: - Private Methods
+    
+    /// Updates the QR code preview when the URL changes
+    /// Uses default URL if urlForQR is empty
     private func updateQRCodePreview() {
         let urlToUse = urlForQR.isEmpty ? "https://hushmedicalspa.com/medications" : QRCodeGenerator.formatURL(urlForQR)
         qrCodeImage = QRCodeGenerator.generateQRCode(from: urlToUse, size: CGSize(width: 150, height: 150))
     }
     
+    /// Generates a higher resolution QR code for saving
     private func generateQRCode() {
         let urlToUse = urlForQR.isEmpty ? "https://hushmedicalspa.com/medications" : QRCodeGenerator.formatURL(urlForQR)
         qrCodeImage = QRCodeGenerator.generateQRCode(from: urlToUse, size: CGSize(width: 200, height: 200))
     }
     
+    /// Loads existing QR code from the medication entity or generates a new preview
     private func loadExistingQRCode() {
         if let qrData = medication.qrImage,
            let image = UIImage(data: qrData) {
@@ -508,6 +653,7 @@ struct EditMedicationTemplateView: View {
         }
     }
     
+    /// Loads medication data into form fields for editing
     private func loadFromMedication() {
         medicationName = medication.name ?? ""
         pharmacy = medication.pharmacy ?? ""
@@ -520,6 +666,8 @@ struct EditMedicationTemplateView: View {
         urlForQR = medication.urlForQR ?? "https://hushmedicalspa.com/medications"
     }
     
+    /// Saves the edited medication template to Core Data
+    /// Automatically updates the modification timestamp and regenerates QR code if needed
     private func saveMedication() {
         medication.name = medicationName
         medication.pharmacy = pharmacy
@@ -532,7 +680,7 @@ struct EditMedicationTemplateView: View {
         medication.urlForQR = urlForQR.isEmpty ? nil : urlForQR
         medication.timestamp = Date() // Update the timestamp to reflect the edit
         
-        // Generate and save QR code if we have one or generate a new one
+        // Ensure QR code exists - generate if needed and save to Core Data
         if qrCodeImage == nil { generateQRCode() }
         if let qrImage = qrCodeImage, let qrData = qrImage.pngData() { medication.qrImage = qrData }
         
@@ -546,19 +694,49 @@ struct EditMedicationTemplateView: View {
     }
 }
 
+// MARK: - AddMedicationTemplateView
+
+/**
+ * `AddMedicationTemplateView` - Modal view for creating new local medication templates
+ * 
+ * Provides a comprehensive form interface for creating new local medication templates with:
+ * - Basic information (name, pharmacy with default "Beaker Pharmacy", injectable status)
+ * - Ingredient details (names and concentrations for up to 2 ingredients)
+ * - URL fields for pharmacy website and QR code destinations
+ * - Real-time QR code generation and preview
+ * 
+ * Templates are saved to Core Data with automatic timestamp generation.
+ * The QR code defaults to "https://hushmedicalspa.com/medications" if no custom URL is provided.
+ */
 struct AddMedicationTemplateView: View {
+    // MARK: - Environment & State
+    
+    /// Core Data managed object context for saving new templates
     @Environment(\.managedObjectContext) private var viewContext
+    /// Dismiss action for modal presentation
     @Environment(\.dismiss) private var dismiss
     
+    // MARK: - Form State
+    
+    /// New medication name (required)
     @State private var medicationName = ""
+    /// Pharmacy name with default value
     @State private var pharmacy = "Beaker Pharmacy"
+    /// First ingredient name
     @State private var ingredient1 = ""
+    /// First ingredient concentration
     @State private var concentration1: Double = 0
+    /// Second ingredient name (optional)
     @State private var ingredient2 = ""
+    /// Second ingredient concentration (optional)
     @State private var concentration2: Double = 0
+    /// Whether the medication is injectable
     @State private var injectable = false
+    /// Optional pharmacy website URL
     @State private var pharmacyURL = ""
+    /// URL to be encoded in QR code (defaults to company website)
     @State private var urlForQR = "https://hushmedicalspa.com/medications"
+    /// Generated QR code image for preview
     @State private var qrCodeImage: UIImage?
     
     var body: some View {
@@ -658,16 +836,21 @@ struct AddMedicationTemplateView: View {
         }
     }
     
+    // MARK: - Private Methods
+    
+    /// Updates the QR code preview when the URL changes
     private func updateQRCodePreview() {
         let urlToUse = urlForQR.isEmpty ? "https://hushmedicalspa.com/medications" : QRCodeGenerator.formatURL(urlForQR)
         qrCodeImage = QRCodeGenerator.generateQRCode(from: urlToUse, size: CGSize(width: 150, height: 150))
     }
     
+    /// Generates a higher resolution QR code for saving
     private func generateQRCode() {
         let urlToUse = urlForQR.isEmpty ? "https://hushmedicalspa.com/medications" : QRCodeGenerator.formatURL(urlForQR)
         qrCodeImage = QRCodeGenerator.generateQRCode(from: urlToUse, size: CGSize(width: 200, height: 200))
     }
     
+    /// Creates and saves a new medication template to Core Data
     private func saveMedication() {
         let newMedication = Medication(context: viewContext)
         newMedication.name = medicationName
@@ -681,7 +864,7 @@ struct AddMedicationTemplateView: View {
         newMedication.urlForQR = urlForQR.isEmpty ? nil : urlForQR
         newMedication.timestamp = Date()
         
-        // Generate and save QR code if we have one or generate a new one
+        // Ensure QR code exists - generate if needed and save to Core Data
         if qrCodeImage == nil { generateQRCode() }
         if let qrImage = qrCodeImage, let qrData = qrImage.pngData() { newMedication.qrImage = qrData }
         
@@ -695,21 +878,55 @@ struct AddMedicationTemplateView: View {
     }
 }
 
+// MARK: - AddCloudMedicationTemplateView
+
+/**
+ * `AddCloudMedicationTemplateView` - Modal view for creating new public medication templates
+ * 
+ * Provides a comprehensive form interface for creating CloudKit-synced public medication templates.
+ * Features include:
+ * - iCloud authentication status checking and user guidance
+ * - Complete medication information entry (name, pharmacy, ingredients, concentrations)
+ * - QR code generation and preview functionality
+ * - URL management for pharmacy websites and QR code destinations
+ * - Async CloudKit operations with error handling
+ * 
+ * Public templates are visible to all app users and require iCloud authentication.
+ * The view handles network errors gracefully and provides user feedback during submission.
+ */
 struct AddCloudMedicationTemplateView: View {
+    // MARK: - Environment & State
+    
+    /// Dismiss action for modal presentation
     @Environment(\.dismiss) private var dismiss
+    /// Shared CloudKit manager for public template operations
     @StateObject private var cloudManager = CloudKitManager.shared
     
+    // MARK: - Form State
+    
+    /// New medication name (required)
     @State private var medicationName = ""
+    /// Pharmacy name with default value
     @State private var pharmacy = "Beaker Pharmacy"
+    /// First ingredient name
     @State private var ingredient1 = ""
+    /// First ingredient concentration
     @State private var concentration1: Double = 0
+    /// Second ingredient name (optional)
     @State private var ingredient2 = ""
+    /// Second ingredient concentration (optional)
     @State private var concentration2: Double = 0
+    /// Whether the medication is injectable
     @State private var injectable = false
+    /// Optional pharmacy website URL
     @State private var pharmacyURL = ""
+    /// URL to be encoded in QR code (defaults to company website)
     @State private var urlForQR = "https://hushmedicalspa.com/medications"
+    /// Generated QR code image for preview
     @State private var qrCodeImage: UIImage?
+    /// Tracks submission state to prevent double-submission
     @State private var isSubmitting = false
+    /// Error message for display to user
     @State private var errorMessage: String?
     
     var body: some View {
@@ -851,16 +1068,22 @@ struct AddCloudMedicationTemplateView: View {
         }
     }
     
+    // MARK: - Private Methods
+    
+    /// Updates the QR code preview when the URL changes
     private func updateQRCodePreview() {
         let urlToUse = urlForQR.isEmpty ? "https://hushmedicalspa.com/medications" : QRCodeGenerator.formatURL(urlForQR)
         qrCodeImage = QRCodeGenerator.generateQRCode(from: urlToUse, size: CGSize(width: 150, height: 150))
     }
     
+    /// Generates a higher resolution QR code for saving
     private func generateQRCode() {
         let urlToUse = urlForQR.isEmpty ? "https://hushmedicalspa.com/medications" : QRCodeGenerator.formatURL(urlForQR)
         qrCodeImage = QRCodeGenerator.generateQRCode(from: urlToUse, size: CGSize(width: 200, height: 200))
     }
     
+    /// Saves the new template to CloudKit as a public medication template
+    /// Handles async CloudKit operations with proper error handling
     private func saveTemplate() async {
         isSubmitting = true
         errorMessage = nil
@@ -892,9 +1115,26 @@ struct AddCloudMedicationTemplateView: View {
     }
 }
 
+// MARK: - CloudMedicationTemplateDetailView
+
+/**
+ * `CloudMedicationTemplateDetailView` - Detail view for public medication templates
+ * 
+ * Displays comprehensive read-only information about a public medication template including:
+ * - Basic information (name, pharmacy, injectable status)
+ * - Ingredient details with concentrations
+ * - Creation and modification timestamps
+ * - Template type indication (public/cloud)
+ * 
+ * Provides navigation to edit the template if the user has appropriate permissions.
+ */
 struct CloudMedicationTemplateDetailView: View {
+    /// The cloud medication template to display
     let template: CloudMedicationTemplate
+    /// Dismiss action for modal presentation
     @Environment(\.dismiss) private var dismiss
+    /// Controls presentation of the edit sheet
+    @State private var showingEdit = false
     
     var body: some View {
         NavigationView {
@@ -976,14 +1216,188 @@ struct CloudMedicationTemplateDetailView: View {
             .navigationTitle("Template Details")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) { Button("Edit") { showingEdit = true } }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Done") { dismiss() }
                 }
+            }
+            .sheet(isPresented: $showingEdit) {
+                EditCloudMedicationTemplateView(template: template)
             }
         }
     }
 }
 
+// MARK: - EditCloudMedicationTemplateView
+
+/**
+ * `EditCloudMedicationTemplateView` - Modal view for editing existing public medication templates
+ * 
+ * Provides a form interface for modifying CloudKit-synced public medication templates.
+ * Features include:
+ * - Complete medication information editing (name, pharmacy, ingredients, concentrations)
+ * - URL management for pharmacy websites and QR code destinations
+ * - Async CloudKit update operations with error handling
+ * - Prevention of double-submission during save operations
+ * 
+ * Changes are synchronized to CloudKit and propagated to all app users.
+ * The view preserves the original template's creation metadata while updating modification timestamps.
+ */
+struct EditCloudMedicationTemplateView: View {
+    // MARK: - Environment & Properties
+    
+    /// Dismiss action for modal presentation
+    @Environment(\.dismiss) private var dismiss
+    /// Shared CloudKit manager for public template operations
+    @StateObject private var cloudManager = CloudKitManager.shared
+    
+    /// The template being edited (read-only reference)
+    let template: CloudMedicationTemplate
+    
+    // MARK: - Form State
+    
+    /// Editable medication name
+    @State private var medicationName: String = ""
+    /// Editable pharmacy name
+    @State private var pharmacy: String = ""
+    /// Editable first ingredient name
+    @State private var ingredient1: String = ""
+    /// Editable first ingredient concentration
+    @State private var concentration1: Double = 0
+    /// Editable second ingredient name (optional)
+    @State private var ingredient2: String = ""
+    /// Editable second ingredient concentration (optional)
+    @State private var concentration2: Double = 0
+    /// Whether the medication is injectable
+    @State private var injectable: Bool = false
+    /// Optional pharmacy website URL
+    @State private var pharmacyURL: String = ""
+    /// URL to be encoded in QR code
+    @State private var urlForQR: String = ""
+    
+    /// Tracks submission state to prevent double-submission
+    @State private var isSubmitting = false
+    /// Error message for display to user
+    @State private var errorMessage: String?
+    
+    var body: some View {
+        NavigationView {
+            Form {
+                Section(header: Text("Basic Information")) {
+                    TextField("Medication Name", text: $medicationName)
+                    TextField("Pharmacy", text: $pharmacy)
+                    Toggle("Injectable", isOn: $injectable)
+                }
+                
+                Section(header: Text("Ingredients")) {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Ingredient 1")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        TextField("Ingredient name", text: $ingredient1)
+                        HStack {
+                            Text("Concentration:")
+                            TextField("0.0", value: $concentration1, format: .number)
+                                .keyboardType(.decimalPad)
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                        }
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Ingredient 2 (Optional)")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        TextField("Ingredient name", text: $ingredient2)
+                        HStack {
+                            Text("Concentration:")
+                            TextField("0.0", value: $concentration2, format: .number)
+                                .keyboardType(.decimalPad)
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                        }
+                    }
+                }
+                
+                Section(header: Text("URLs (Optional)")) {
+                    TextField("Pharmacy URL", text: $pharmacyURL)
+                    TextField("QR Code URL", text: $urlForQR)
+                }
+                
+                if let errorMessage = errorMessage {
+                    Section {
+                        Text(errorMessage)
+                            .foregroundColor(.red)
+                            .font(.caption)
+                    }
+                }
+            }
+            .navigationTitle("Edit Public Template")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) { Button("Cancel") { dismiss() } }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Save") { Task { await saveChanges() } }
+                        .disabled(medicationName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSubmitting)
+                }
+            }
+            .onAppear { loadFromTemplate() }
+        }
+    }
+    
+    // MARK: - Private Methods
+    
+    /// Loads template data into form fields for editing
+    private func loadFromTemplate() {
+        medicationName = template.name
+        pharmacy = template.pharmacy ?? ""
+        ingredient1 = template.ingredient1 ?? ""
+        concentration1 = template.concentration1
+        ingredient2 = template.ingredient2 ?? ""
+        concentration2 = template.concentration2
+        injectable = template.injectable
+        pharmacyURL = template.pharmacyURL ?? ""
+        urlForQR = template.urlForQR ?? ""
+    }
+    
+    /// Saves changes to the CloudKit public template
+    /// Creates an updated template preserving original metadata while updating modification time
+    private func saveChanges() async {
+        isSubmitting = true
+        errorMessage = nil
+        
+        // Construct an updated template preserving identifiers
+        let updated = CloudMedicationTemplate(
+            id: template.id,
+            recordID: template.recordID,
+            name: medicationName,
+            pharmacy: pharmacy.isEmpty ? nil : pharmacy,
+            ingredient1: ingredient1.isEmpty ? nil : ingredient1,
+            concentration1: concentration1,
+            ingredient2: ingredient2.isEmpty ? nil : ingredient2,
+            concentration2: concentration2,
+            injectable: injectable,
+            pharmacyURL: pharmacyURL.isEmpty ? nil : pharmacyURL,
+            urlForQR: urlForQR.isEmpty ? nil : urlForQR,
+            createdDate: template.createdDate,
+            modifiedDate: Date(),
+            createdBy: template.createdBy
+        )
+        
+        do {
+            _ = try await cloudManager.updatePublicMedicationTemplate(updated)
+            await cloudManager.loadPublicMedicationTemplates()
+            await MainActor.run { dismiss() }
+        } catch {
+            await MainActor.run {
+                errorMessage = "Failed to update template: \(error.localizedDescription)"
+                isSubmitting = false
+            }
+        }
+    }
+}
+
+// MARK: - Preview
+
+/// SwiftUI preview with sample medication data for testing and development
 #Preview {
     let context = PersistenceController.preview.container.viewContext
     

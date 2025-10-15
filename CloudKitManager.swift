@@ -449,6 +449,38 @@ struct CloudMedicationTemplate: Identifiable, Codable, Hashable {
         self.createdBy = record.creatorUserRecordID?.recordName
     }
     
+    init(
+        id: String,
+        recordID: CKRecord.ID,
+        name: String,
+        pharmacy: String?,
+        ingredient1: String?,
+        concentration1: Double,
+        ingredient2: String?,
+        concentration2: Double,
+        injectable: Bool,
+        pharmacyURL: String?,
+        urlForQR: String?,
+        createdDate: Date,
+        modifiedDate: Date,
+        createdBy: String?
+    ) {
+        self.id = id
+        self.recordID = recordID
+        self.name = name
+        self.pharmacy = pharmacy
+        self.ingredient1 = ingredient1
+        self.concentration1 = concentration1
+        self.ingredient2 = ingredient2
+        self.concentration2 = concentration2
+        self.injectable = injectable
+        self.pharmacyURL = pharmacyURL
+        self.urlForQR = urlForQR
+        self.createdDate = createdDate
+        self.modifiedDate = modifiedDate
+        self.createdBy = createdBy
+    }
+    
     init(name: String, pharmacy: String? = nil, ingredient1: String? = nil, concentration1: Double = 0.0, ingredient2: String? = nil, concentration2: Double = 0.0, injectable: Bool = false, pharmacyURL: String? = nil, urlForQR: String? = nil) {
         self.id = UUID().uuidString
         self.recordID = CKRecord.ID(recordName: id)
