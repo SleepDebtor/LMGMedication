@@ -108,11 +108,23 @@ struct MedicationTemplatesView: View {
                             Text(error)
                                 .font(.caption2)
                                 .foregroundColor(.secondary)
-                                .lineLimit(3)
+                                .textSelection(.enabled)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
                         Spacer()
                         Button("Reload") {
                             Task { await cloudManager.loadPublicMedicationTemplates() }
+                        }
+                        .font(.caption)
+                        Button {
+                            #if os(iOS)
+                            UIPasteboard.general.string = error
+                            #endif
+                        } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: "doc.on.doc")
+                                Text("Copy")
+                            }
                         }
                         .font(.caption)
                     }
