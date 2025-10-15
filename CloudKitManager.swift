@@ -100,14 +100,33 @@ class CloudKitManager: ObservableObject {
     }
     
     func updatePublicMedicationTemplate(_ template: CloudMedicationTemplate) async throws -> CloudMedicationTemplate {
-        let record = template.toCKRecord()
-         do {
-             let savedRecord = try await publicDatabase.save(record)
-             return CloudMedicationTemplate(from: savedRecord)
-         } catch {
-             await MainActor.run { self.lastErrorMessage = error.localizedDescription }
-             throw error
-         }
+        do {
+            // Fetch the existing record to obtain the current change tag
+            let existing = try await publicDatabase.record(for: template.recordID)
+            
+            // Update fields on the fetched record
+            existing["name"] = template.name as CKRecordValue
+            existing["pharmacy"] = template.pharmacy as CKRecordValue?
+            existing["ingredient1"] = template.ingredient1 as CKRecordValue?
+            existing["concentration1"] = template.concentration1 as CKRecordValue
+            existing["ingredient2"] = template.ingredient2 as CKRecordValue?
+            existing["concentration2"] = template.concentration2 as CKRecordValue
+            existing["injectable"] = template.injectable as CKRecordValue
+            existing["pharmacyURL"] = template.pharmacyURL as CKRecordValue?
+            existing["urlForQR"] = template.urlForQR as CKRecordValue?
+            
+            // Save the updated record (CloudKit will validate using the change tag)
+            let savedRecord = try await publicDatabase.save(existing)
+            return CloudMedicationTemplate(from: savedRecord)
+        } catch let ckError as CKError where ckError.code == .serverRecordChanged {
+            await MainActor.run {
+                self.lastErrorMessage = "This template was modified elsewhere. Please reload and try again."
+            }
+            throw ckError
+        } catch {
+            await MainActor.run { self.lastErrorMessage = error.localizedDescription }
+            throw error
+        }
     }
     
     func deletePublicMedicationTemplate(_ template: CloudMedicationTemplate) async throws {

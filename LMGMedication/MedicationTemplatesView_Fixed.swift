@@ -1043,9 +1043,24 @@ struct AddCloudMedicationTemplateView: View {
                     
                     if let errorMessage = errorMessage {
                         Section {
-                            Text(errorMessage)
-                                .foregroundColor(.red)
+                            HStack(alignment: .top, spacing: 8) {
+                                Text(errorMessage)
+                                    .foregroundColor(.red)
+                                    .font(.caption)
+                                    .textSelection(.enabled)
+                                Spacer()
+                                #if os(iOS)
+                                Button {
+                                    UIPasteboard.general.string = errorMessage
+                                } label: {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "doc.on.doc")
+                                        Text("Copy")
+                                    }
+                                }
                                 .font(.caption)
+                                #endif
+                            }
                         }
                     }
                 }
@@ -1324,9 +1339,24 @@ struct EditCloudMedicationTemplateView: View {
                 
                 if let errorMessage = errorMessage {
                     Section {
-                        Text(errorMessage)
-                            .foregroundColor(.red)
+                        HStack(alignment: .top, spacing: 8) {
+                            Text(errorMessage)
+                                .foregroundColor(.red)
+                                .font(.caption)
+                                .textSelection(.enabled)
+                            Spacer()
+                            #if os(iOS)
+                            Button {
+                                UIPasteboard.general.string = errorMessage
+                            } label: {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "doc.on.doc")
+                                    Text("Copy")
+                                }
+                            }
                             .font(.caption)
+                            #endif
+                        }
                     }
                 }
             }
@@ -1419,3 +1449,4 @@ struct EditCloudMedicationTemplateView: View {
     return MedicationTemplatesView()
         .environment(\.managedObjectContext, context)
 }
+
