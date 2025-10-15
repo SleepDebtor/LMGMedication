@@ -22,6 +22,7 @@ class CloudKitManager: ObservableObject {
     @Published var accountStatus: CKAccountStatus = .couldNotDetermine
     @Published var isSignedInToiCloud = false
     @Published var publicMedicationTemplates: [CloudMedicationTemplate] = []
+    @Published var lastErrorMessage: String? = nil
     
     private init() {
         container = CKContainer(identifier: "iCloud.LMGMedications")
@@ -50,6 +51,7 @@ class CloudKitManager: ObservableObject {
                 }
             } catch {
                 print("Error checking account status: \(error)")
+                await MainActor.run { self.lastErrorMessage = error.localizedDescription }
             }
         }
     }
@@ -82,23 +84,39 @@ class CloudKitManager: ObservableObject {
             }
         } catch {
             print("Error loading public medication templates: \(error)")
+            await MainActor.run { self.lastErrorMessage = error.localizedDescription }
         }
     }
     
     func createPublicMedicationTemplate(_ template: CloudMedicationTemplate) async throws -> CloudMedicationTemplate {
         let record = template.toCKRecord()
-        let savedRecord = try await publicDatabase.save(record)
-        return CloudMedicationTemplate(from: savedRecord)
+         do {
+             let savedRecord = try await publicDatabase.save(record)
+             return CloudMedicationTemplate(from: savedRecord)
+         } catch {
+             await MainActor.run { self.lastErrorMessage = error.localizedDescription }
+             throw error
+         }
     }
     
     func updatePublicMedicationTemplate(_ template: CloudMedicationTemplate) async throws -> CloudMedicationTemplate {
         let record = template.toCKRecord()
-        let savedRecord = try await publicDatabase.save(record)
-        return CloudMedicationTemplate(from: savedRecord)
+         do {
+             let savedRecord = try await publicDatabase.save(record)
+             return CloudMedicationTemplate(from: savedRecord)
+         } catch {
+             await MainActor.run { self.lastErrorMessage = error.localizedDescription }
+             throw error
+         }
     }
     
     func deletePublicMedicationTemplate(_ template: CloudMedicationTemplate) async throws {
-        try await publicDatabase.deleteRecord(withID: template.recordID)
+         do {
+             try await publicDatabase.deleteRecord(withID: template.recordID)
+         } catch {
+             await MainActor.run { self.lastErrorMessage = error.localizedDescription }
+             throw error
+         }
     }
     
     // MARK: - Patient Sharing
@@ -260,6 +278,7 @@ class CloudKitManager: ObservableObject {
             print("Successfully created subscription")
         } catch {
             print("Error setting up subscription: \(error)")
+            await MainActor.run { self.lastErrorMessage = error.localizedDescription }
         }
     }
     

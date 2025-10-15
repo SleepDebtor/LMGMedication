@@ -97,6 +97,31 @@ struct MedicationTemplatesView: View {
                 }
                 .padding(.horizontal)
                 
+                if let error = cloudManager.lastErrorMessage, selectedSegment == 0 {
+                    HStack(alignment: .top, spacing: 8) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundColor(.yellow)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Cloud Error")
+                                .font(.caption)
+                                .fontWeight(.semibold)
+                            Text(error)
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
+                                .lineLimit(3)
+                        }
+                        Spacer()
+                        Button("Reload") {
+                            Task { await cloudManager.loadPublicMedicationTemplates() }
+                        }
+                        .font(.caption)
+                    }
+                    .padding(8)
+                    .background(Color.yellow.opacity(0.15))
+                    .cornerRadius(8)
+                    .padding(.horizontal)
+                }
+                
                 List {
                     if selectedSegment == 0 {
                         // Public Templates
@@ -968,4 +993,3 @@ struct CloudMedicationTemplateDetailView: View {
     return MedicationTemplatesView()
         .environment(\.managedObjectContext, context)
 }
-

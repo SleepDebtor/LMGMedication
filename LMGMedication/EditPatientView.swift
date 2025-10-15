@@ -21,6 +21,7 @@ struct EditPatientView: View {
     
     @State private var showingErrorAlert = false
     @State private var errorMessage: String = ""
+    @State private var showingDeleteConfirm = false
     
     // Custom colors - light theme with dark bronze accents
     private let goldColor = Color(red: 0.6, green: 0.4, blue: 0.2) // Dark bronze
@@ -173,44 +174,73 @@ struct EditPatientView: View {
             }
             .navigationBarHidden(true)
             .safeAreaInset(edge: .bottom) {
-                // Action buttons
-                HStack(spacing: 16) {
-                    Button(action: { dismiss() }) {
-                        Text("Cancel")
+                VStack(spacing: 12) {
+                    // Destructive / status actions
+                    HStack(spacing: 16) {
+                        Button(role: .destructive, action: { showingDeleteConfirm = true }) {
+                            HStack {
+                                Image(systemName: "trash")
+                                Text("Delete Patient")
+                            }
                             .font(.headline)
-                            .fontWeight(.semibold)
-                            .foregroundColor(goldColor)
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, 16)
-                            .background(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .stroke(goldColor, lineWidth: 1.5)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 12)
-                                            .fill(Color.white.opacity(0.8))
-                                    )
-                            )
+                            .padding(.vertical, 14)
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(.red)
+                        
+                        Button(action: toggleActiveStatus) {
+                            HStack {
+                                Image(systemName: patient.isActive ? "pause.circle" : "play.circle")
+                                Text(patient.isActive ? "Make Inactive" : "Make Active")
+                            }
+                            .font(.headline)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(patient.isActive ? .orange : .green)
                     }
                     
-                    Button(action: saveChanges) {
-                        Text("Save Changes")
-                            .font(.headline)
-                            .fontWeight(.semibold)
-                            .foregroundColor(.black)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 16)
-                            .background(
-                                LinearGradient(
-                                    colors: [goldColor, darkGoldColor],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
+                    // Primary actions
+                    HStack(spacing: 16) {
+                        Button(action: { dismiss() }) {
+                            Text("Cancel")
+                                .font(.headline)
+                                .fontWeight(.semibold)
+                                .foregroundColor(goldColor)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 16)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(goldColor, lineWidth: 1.5)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 12)
+                                                .fill(Color.white.opacity(0.8))
+                                        )
                                 )
-                            )
-                            .cornerRadius(12)
-                            .shadow(color: goldColor.opacity(0.3), radius: 6, x: 0, y: 3)
+                        }
+                        
+                        Button(action: saveChanges) {
+                            Text("Save Changes")
+                                .font(.headline)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.black)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 16)
+                                .background(
+                                    LinearGradient(
+                                        colors: [goldColor, darkGoldColor],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                                .cornerRadius(12)
+                                .shadow(color: goldColor.opacity(0.3), radius: 6, x: 0, y: 3)
+                        }
+                        .disabled(firstName.isEmpty || lastName.isEmpty)
+                        .opacity((firstName.isEmpty || lastName.isEmpty) ? 0.6 : 1.0)
                     }
-                    .disabled(firstName.isEmpty || lastName.isEmpty)
-                    .opacity((firstName.isEmpty || lastName.isEmpty) ? 0.6 : 1.0)
                 }
                 .padding(.horizontal, 20)
                 .padding(.vertical, 16)
@@ -228,6 +258,12 @@ struct EditPatientView: View {
             } message: {
                 Text(errorMessage)
             }
+            .alert("Delete Patient?", isPresented: $showingDeleteConfirm) {
+                Button("Delete", role: .destructive) { deletePatient() }
+                Button("Cancel", role: .cancel) { }
+            } message: {
+                Text("This will permanently remove the patient and all associated dispensed medications.")
+            }
         }
     }
     
@@ -244,6 +280,33 @@ struct EditPatientView: View {
             } catch {
                 let nsError = error as NSError
                 errorMessage = "Failed to update patient: \(nsError.localizedDescription)"
+                showingErrorAlert = true
+            }
+        }
+    }
+    
+    private func toggleActiveStatus() {
+        withAnimation {
+            patient.isActive.toggle()
+            do {
+                try viewContext.save()
+            } catch {
+                let nsError = error as NSError
+                errorMessage = "Failed to update patient status: \(nsError.localizedDescription)"
+                showingErrorAlert = true
+            }
+        }
+    }
+    
+    private func deletePatient() {
+        withAnimation {
+            viewContext.delete(patient)
+            do {
+                try viewContext.save()
+                dismiss()
+            } catch {
+                let nsError = error as NSError
+                errorMessage = "Failed to delete patient: \(nsError.localizedDescription)"
                 showingErrorAlert = true
             }
         }

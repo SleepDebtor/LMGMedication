@@ -296,6 +296,11 @@ struct PatientsListRootView: View {
                     dataVersion += 1
                 }
             }
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    EnvironmentBadgeView()
+                }
+            }
         }
     }
 
@@ -556,4 +561,3 @@ struct PatientCardView: View {
         .environment(\.managedObjectContext, PersistenceController.preview.container.viewContext)
         .preferredColorScheme(.light)
 }
-

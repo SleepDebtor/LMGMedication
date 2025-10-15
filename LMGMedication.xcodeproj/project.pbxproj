@@ -20,6 +20,7 @@
 		275592BD2E8B6F9C00A524A7 /* CloudKitManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 275592BC2E8B6F9C00A524A7 /* CloudKitManager.swift */; };
 		275592BF2E8B702800A524A7 /* SharingManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 275592BE2E8B702800A524A7 /* SharingManager.swift */; };
 		278823182E9DC90200BCBD57 /* Degree.swift in Sources */ = {isa = PBXBuildFile; fileRef = 278823172E9DC90200BCBD57 /* Degree.swift */; };
+		2788231A2E9FD50500BCBD57 /* EnvironmentInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 278823192E9FD50500BCBD57 /* EnvironmentInfo.swift */; };
 		27BFA0F12E9C335C003B4292 /* EditProviderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27BFA0F02E9C335C003B4292 /* EditProviderView.swift */; };
 		BD080A382E9D382300400DFD /* StateLicense+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD080A362E9D382300400DFD /* StateLicense+CoreDataClass.swift */; };
 		BD080A392E9D382300400DFD /* StateLicense+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD080A372E9D382300400DFD /* StateLicense+CoreDataProperties.swift */; };
@@ -70,6 +71,7 @@
 		275592BC2E8B6F9C00A524A7 /* CloudKitManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitManager.swift; sourceTree = "<group>"; };
 		275592BE2E8B702800A524A7 /* SharingManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharingManager.swift; sourceTree = "<group>"; };
 		278823172E9DC90200BCBD57 /* Degree.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Degree.swift; sourceTree = "<group>"; };
+		278823192E9FD50500BCBD57 /* EnvironmentInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnvironmentInfo.swift; sourceTree = "<group>"; };
 		27BFA0F02E9C335C003B4292 /* EditProviderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditProviderView.swift; sourceTree = "<group>"; };
 		BD080A362E9D382300400DFD /* StateLicense+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StateLicense+CoreDataClass.swift"; sourceTree = "<group>"; };
 		BD080A372E9D382300400DFD /* StateLicense+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StateLicense+CoreDataProperties.swift"; sourceTree = "<group>"; };
@@ -185,6 +187,7 @@
 				BD482A252E9B4DA800A52070 /* DispencedMedication+BusinessLogic.swift */,
 				27BFA0F02E9C335C003B4292 /* EditProviderView.swift */,
 				278823172E9DC90200BCBD57 /* Degree.swift */,
+				278823192E9FD50500BCBD57 /* EnvironmentInfo.swift */,
 			);
 			sourceTree = "<group>";
 		};
@@ -372,6 +375,7 @@
 				BD59A1DA2E936BFC00C4516C /* AuthenticationGateView.swift in Sources */,
 				BD59A1D82E936BFA00C4516C /* BiometricAuth.swift in Sources */,
 				BD59A1D62E93238300C4516C /* ProvidersListView.swift in Sources */,
+				2788231A2E9FD50500BCBD57 /* EnvironmentInfo.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
