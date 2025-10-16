@@ -1295,6 +1295,11 @@ struct EditCloudMedicationTemplateView: View {
     /// Error message for display to user
     @State private var errorMessage: String?
     
+    // Added state properties for deletion support
+    @State private var canDelete = false
+    @State private var showDeleteConfirm = false
+    @State private var isDeleting = false
+    
     var body: some View {
         NavigationView {
             Form {
@@ -1359,6 +1364,20 @@ struct EditCloudMedicationTemplateView: View {
                         }
                     }
                 }
+                
+                if canDelete {
+                    Section {
+                        Button(role: .destructive) {
+                            showDeleteConfirm = true
+                        } label: {
+                            HStack {
+                                Image(systemName: "trash")
+                                Text("Delete Template")
+                            }
+                        }
+                        .disabled(isDeleting)
+                    }
+                }
             }
             .navigationTitle("Edit Public Template")
             .navigationBarTitleDisplayMode(.inline)
@@ -1366,10 +1385,33 @@ struct EditCloudMedicationTemplateView: View {
                 ToolbarItem(placement: .navigationBarLeading) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Save") { Task { await saveChanges() } }
-                        .disabled(medicationName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSubmitting)
+                        .disabled(medicationName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSubmitting || isDeleting)
                 }
             }
-            .onAppear { loadFromTemplate() }
+            .onAppear {
+                loadFromTemplate()
+                Task { canDelete = await cloudManager.canCurrentUserDeletePublicTemplate(template) }
+            }
+            .alert("Delete Template?", isPresented: $showDeleteConfirm) {
+                Button("Delete", role: .destructive) {
+                    Task {
+                        isDeleting = true
+                        do {
+                            try await cloudManager.deletePublicMedicationTemplateIfAllowed(template)
+                            await MainActor.run { dismiss() }
+                        } catch {
+                            await MainActor.run {
+                                errorMessage = "Failed to delete template: \(error.localizedDescription)"
+                                isSubmitting = false
+                            }
+                        }
+                        isDeleting = false
+                    }
+                }
+                Button("Cancel", role: .cancel) { }
+            } message: {
+                Text("This action cannot be undone.")
+            }
         }
     }
     

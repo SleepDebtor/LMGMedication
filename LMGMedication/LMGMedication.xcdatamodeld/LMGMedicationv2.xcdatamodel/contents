@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="24299" systemVersion="25A362" minimumToolsVersion="Automatic" sourceLanguage="Swift" usedWithCloudKit="YES" userDefinedModelVersionIdentifier="">
+    <entity name="DispencedMedication" representedClassName="DispencedMedication" syncable="YES">
+        <attribute name="additionalSg" optional="YES" attributeType="String" allowsCloudEncryption="YES"/>
+        <attribute name="amtEachTime" optional="YES" attributeType="Integer 16" defaultValueString="1" allowsCloudEncryption="YES" usesScalarValueType="YES"/>
+        <attribute name="createdDate" optional="YES" attributeType="Date" allowsCloudEncryption="YES" usesScalarValueType="NO" elementID="creationDate"/>
+        <attribute name="dispenceAmt" optional="YES" attributeType="Integer 16" defaultValueString="0" allowsCloudEncryption="YES" usesScalarValueType="YES"/>
+        <attribute name="dispenceDate" optional="YES" attributeType="Date" allowsCloudEncryption="YES" usesScalarValueType="NO"/>
+        <attribute name="dispenceUnit" optional="YES" attributeType="String" allowsCloudEncryption="YES"/>
+        <attribute name="dose" optional="YES" attributeType="String" allowsCloudEncryption="YES"/>
+        <attribute name="doseNum" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
+        <attribute name="doseUnit" optional="YES" attributeType="String" allowsCloudEncryption="YES"/>
+        <attribute name="expDate" optional="YES" attributeType="Date" allowsCloudEncryption="YES" usesScalarValueType="NO"/>
+        <attribute name="frequency" optional="YES" attributeType="String" allowsCloudEncryption="YES"/>
+        <attribute name="isActive" optional="YES" attributeType="Boolean" defaultValueString="YES" usesScalarValueType="YES"/>
+        <attribute name="lotNum" optional="YES" attributeType="String" allowsCloudEncryption="YES"/>
+        <attribute name="nextDoseDue" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="sig" optional="YES" attributeType="String" allowsCloudEncryption="YES"/>
+        <relationship name="baseMedication" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Medication" inverseName="dispenced" inverseEntity="Medication"/>
+        <relationship name="patient" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Patient" inverseName="medicationsPrescribed" inverseEntity="Patient"/>
+        <relationship name="prescriber" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Provider" inverseName="relationship" inverseEntity="Provider"/>
+    </entity>
+    <entity name="Medication" representedClassName="Medication" syncable="YES">
+        <attribute name="concentration1" optional="YES" attributeType="Double" defaultValueString="0.0" allowsCloudEncryption="YES" usesScalarValueType="YES"/>
+        <attribute name="concentration2" optional="YES" attributeType="Double" defaultValueString="0.0" allowsCloudEncryption="YES" usesScalarValueType="YES"/>
+        <attribute name="ingredient1" optional="YES" attributeType="String" allowsCloudEncryption="YES"/>
+        <attribute name="ingredient2" optional="YES" attributeType="String" allowsCloudEncryption="YES"/>
+        <attribute name="injectable" optional="YES" attributeType="Boolean" allowsCloudEncryption="YES" usesScalarValueType="YES"/>
+        <attribute name="name" optional="YES" attributeType="String" allowsCloudEncryption="YES"/>
+        <attribute name="pharmacy" optional="YES" attributeType="String" allowsCloudEncryption="YES"/>
+        <attribute name="prarmacyURL" optional="YES" attributeType="String" allowsCloudEncryption="YES"/>
+        <attribute name="qrImage" optional="YES" attributeType="Binary" allowsCloudEncryption="YES"/>
+        <attribute name="timestamp" optional="YES" attributeType="Date" allowsCloudEncryption="YES" usesScalarValueType="NO"/>
+        <attribute name="urlForQR" optional="YES" attributeType="String" allowsCloudEncryption="YES"/>
+        <relationship name="dispenced" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="DispencedMedication" inverseName="baseMedication" inverseEntity="DispencedMedication"/>
+    </entity>
+    <entity name="Patient" representedClassName="Patient" parentEntity="Person" syncable="YES">
+        <relationship name="medicationsPrescribed" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="DispencedMedication" inverseName="patient" inverseEntity="DispencedMedication"/>
+    </entity>
+    <entity name="Person" representedClassName="Person" syncable="YES">
+        <attribute name="birthdate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="firstName" optional="YES" attributeType="String" allowsCloudEncryption="YES"/>
+        <attribute name="isActive" optional="YES" attributeType="Boolean" defaultValueString="YES" usesScalarValueType="YES"/>
+        <attribute name="lastName" optional="YES" attributeType="String" allowsCloudEncryption="YES"/>
+        <attribute name="middleName" optional="YES" attributeType="String" allowsCloudEncryption="YES"/>
+        <attribute name="timeStamp" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+    </entity>
+    <entity name="Provider" representedClassName="Provider" parentEntity="Person" syncable="YES">
+        <attribute name="dea" optional="YES" attributeType="String"/>
+        <attribute name="degree" optional="YES" attributeType="String"/>
+        <attribute name="license" optional="YES" attributeType="String"/>
+        <attribute name="npi" optional="YES" attributeType="String"/>
+        <relationship name="relationship" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="DispencedMedication" inverseName="prescriber" inverseEntity="DispencedMedication"/>
+        <relationship name="stateLicenses" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="StateLicense" inverseName="provider" inverseEntity="StateLicense"/>
+    </entity>
+    <entity name="StateLicense" representedClassName="StateLicense" syncable="YES">
+        <attribute name="controlledSub" optional="YES" attributeType="String" allowsCloudEncryption="YES"/>
+        <attribute name="number" optional="YES" attributeType="String" allowsCloudEncryption="YES"/>
+        <attribute name="state" optional="YES" attributeType="String" allowsCloudEncryption="YES"/>
+        <relationship name="provider" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Provider" inverseName="stateLicenses" inverseEntity="Provider"/>
+    </entity>
+</model>

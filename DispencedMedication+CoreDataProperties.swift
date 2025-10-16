@@ -2,7 +2,7 @@
 //  DispencedMedication+CoreDataProperties.swift
 //  LMGMedication
 //
-//  Created by Michael Lazar on 10/15/25.
+//  Created by Michael Lazar on 10/16/25.
 //
 //
 
@@ -18,7 +18,9 @@ extension DispencedMedication {
         return NSFetchRequest<DispencedMedication>(entityName: "DispencedMedication")
     }
 
-    @NSManaged public var creationDate: Date?
+    @NSManaged public var additionalSg: String?
+    @NSManaged public var amtEachTime: Int16
+    @NSManaged public var createdDate: Date?
     @NSManaged public var dispenceAmt: Int16
     @NSManaged public var dispenceDate: Date?
     @NSManaged public var dispenceUnit: String?
@@ -26,13 +28,11 @@ extension DispencedMedication {
     @NSManaged public var doseNum: Double
     @NSManaged public var doseUnit: String?
     @NSManaged public var expDate: Date?
+    @NSManaged public var frequency: String?
     @NSManaged public var isActive: Bool
     @NSManaged public var lotNum: String?
     @NSManaged public var nextDoseDue: Date?
-    @NSManaged public var frequency: String?
     @NSManaged public var sig: String?
-    @NSManaged public var additionalSg: String?
-    @NSManaged public var amtEachTime: Int16
     @NSManaged public var baseMedication: Medication?
     @NSManaged public var patient: Patient?
     @NSManaged public var prescriber: Provider?

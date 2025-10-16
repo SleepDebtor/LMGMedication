@@ -92,7 +92,12 @@ class CloudKitManager: ObservableObject {
         let record = template.toCKRecord()
          do {
              let savedRecord = try await publicDatabase.save(record)
-             return CloudMedicationTemplate(from: savedRecord)
+             let newTemplate = CloudMedicationTemplate(from: savedRecord)
+             await MainActor.run {
+                 self.publicMedicationTemplates.append(newTemplate)
+                 self.publicMedicationTemplates.sort { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+             }
+             return newTemplate
          } catch {
              await MainActor.run { self.lastErrorMessage = error.localizedDescription }
              throw error
@@ -117,7 +122,16 @@ class CloudKitManager: ObservableObject {
             
             // Save the updated record (CloudKit will validate using the change tag)
             let savedRecord = try await publicDatabase.save(existing)
-            return CloudMedicationTemplate(from: savedRecord)
+            let updated = CloudMedicationTemplate(from: savedRecord)
+            await MainActor.run {
+                if let idx = self.publicMedicationTemplates.firstIndex(where: { $0.recordID == updated.recordID }) {
+                    self.publicMedicationTemplates[idx] = updated
+                } else {
+                    self.publicMedicationTemplates.append(updated)
+                }
+                self.publicMedicationTemplates.sort { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+            }
+            return updated
         } catch let ckError as CKError where ckError.code == .serverRecordChanged {
             await MainActor.run {
                 self.lastErrorMessage = "This template was modified elsewhere. Please reload and try again."
@@ -132,56 +146,92 @@ class CloudKitManager: ObservableObject {
     func deletePublicMedicationTemplate(_ template: CloudMedicationTemplate) async throws {
          do {
              try await publicDatabase.deleteRecord(withID: template.recordID)
+             await MainActor.run {
+                 self.publicMedicationTemplates.removeAll { $0.recordID == template.recordID }
+             }
          } catch {
              await MainActor.run { self.lastErrorMessage = error.localizedDescription }
              throw error
          }
     }
+
+    /// Returns true if the current iCloud user is the creator of the template and can delete it.
+    func canCurrentUserDeletePublicTemplate(_ template: CloudMedicationTemplate) async -> Bool {
+        do {
+            // Fetch the most recent record to inspect creator
+            let record = try await publicDatabase.record(for: template.recordID)
+            guard let creator = record.creatorUserRecordID else { return false }
+            let currentUser = try await container.userRecordID()
+            return creator == currentUser
+        } catch {
+            print("Failed to determine delete permission: \(error)")
+            return false
+        }
+    }
+
+    /// Attempts to delete the template only if the current user is allowed to do so.
+    /// Throws a CKError(.permissionFailure) if not permitted.
+    func deletePublicMedicationTemplateIfAllowed(_ template: CloudMedicationTemplate) async throws {
+        let canDelete = await canCurrentUserDeletePublicTemplate(template)
+        guard canDelete else {
+            await MainActor.run { self.lastErrorMessage = "You don't have permission to delete this template." }
+            throw CKError(.permissionFailure)
+        }
+        try await deletePublicMedicationTemplate(template)
+    }
     
     // MARK: - Patient Sharing
     
     func sharePatient(_ patient: Patient, with participants: [CKShare.Participant]) async throws -> CKShare {
-        // Create a CloudKit record for the patient
-        let patientRecord = try createPatientRecord(from: patient)
-        let savedPatientRecord = try await privateDatabase.save(patientRecord)
-        
-        // Create dispensed medication records
+        // Ensure a custom zone exists for shareable records
+        let zoneID = try await ensureSharedPatientsZoneExists()
+
+        // Build patient record in the custom zone (do not save yet)
+        let patientRecord = try createPatientRecord(from: patient, in: zoneID)
+
+        // Build dispensed medication records in the same zone and parent them to the patient
         var medicationRecords: [CKRecord] = []
         for medication in patient.dispensedMedicationsArray {
-            let medicationRecord = try createDispensedMedicationRecord(from: medication, patientRecordID: savedPatientRecord.recordID)
+            let medicationRecord = try createDispensedMedicationRecord(from: medication, patientRecordID: patientRecord.recordID, in: zoneID)
             medicationRecords.append(medicationRecord)
         }
-        
-        // Save medication records
-        let savedMedicationRecords = try await saveRecords(medicationRecords, to: privateDatabase)
-        
-        // Create a share
-        let share = CKShare(rootRecord: savedPatientRecord)
+
+        // Create a share for the patient record and configure participants
+        let share = CKShare(rootRecord: patientRecord)
         share.publicPermission = .none
-        
-        // Add participants individually
         for participant in participants {
             share.addParticipant(participant)
         }
-        
-        // Save the share and root record together
-        let operation = CKModifyRecordsOperation(recordsToSave: [savedPatientRecord, share], recordIDsToDelete: nil)
-        operation.savePolicy = .changedKeys
-        
+
+        // Save patient + meds + share together so CloudKit can validate the hierarchy
+        let recordsToSave: [CKRecord] = [patientRecord] + medicationRecords + [share]
+        let operation = CKModifyRecordsOperation(recordsToSave: recordsToSave, recordIDsToDelete: nil)
+        operation.savePolicy = .allKeys
+
         return try await withCheckedThrowingContinuation { continuation in
             var savedRecords: [CKRecord] = []
 
             operation.perRecordSaveBlock = { recordID, result in
-                if case .success(let record) = result {
+                switch result {
+                case .success(let record):
                     savedRecords.append(record)
+                case .failure(let error):
+                    print("Per-record save failure for \(recordID): \(error)")
                 }
             }
 
             operation.modifyRecordsCompletionBlock = { _, _, error in
                 if let error = error {
+                    if let ckError = error as? CKError, ckError.code == .partialFailure,
+                       let partialErrors = ckError.userInfo[CKPartialErrorsByItemIDKey] as? [CKRecord.ID: Error] {
+                        for (rid, perRecordError) in partialErrors {
+                            print("Partial failure for record \(rid): \(perRecordError)")
+                        }
+                    }
                     continuation.resume(throwing: error)
                     return
                 }
+
                 if let share = savedRecords.compactMap({ $0 as? CKShare }).first {
                     continuation.resume(returning: share)
                 } else {
@@ -189,13 +239,159 @@ class CloudKitManager: ObservableObject {
                 }
             }
 
-            privateDatabase.add(operation)
+            self.privateDatabase.add(operation)
+        }
+    }
+
+    // MARK: - Convenience Sharing by Email / Phone
+
+    func sharePatient(_ patient: Patient, withEmailAddresses emails: [String]) async throws -> CKShare {
+        let participants = try await participants(forEmails: emails, permission: .readWrite)
+        return try await sharePatient(patient, with: participants)
+    }
+
+    func sharePatient(_ patient: Patient, withPhoneNumbers phoneNumbers: [String]) async throws -> CKShare {
+        let participants = try await participants(forPhoneNumbers: phoneNumbers, permission: .readWrite)
+        return try await sharePatient(patient, with: participants)
+    }
+
+    func resolveParticipants(emails: [String] = [], phoneNumbers: [String] = [], permission: CKShare.ParticipantPermission = .readWrite) async throws -> [CKShare.Participant] {
+        let emailParts = try await participants(forEmails: emails, permission: permission)
+        let phoneParts = try await participants(forPhoneNumbers: phoneNumbers, permission: permission)
+        return emailParts + phoneParts
+    }
+
+    private func participant(forEmail email: String, permission: CKShare.ParticipantPermission = .readWrite) async throws -> CKShare.Participant {
+        let fetched = try await fetchShareParticipant(email: email)
+        var participant = fetched
+        participant.permission = permission
+        return participant
+    }
+
+    private func participants(forEmails emails: [String], permission: CKShare.ParticipantPermission = .readWrite) async throws -> [CKShare.Participant] {
+        var results: [CKShare.Participant] = []
+        for email in emails {
+            do {
+                let p = try await participant(forEmail: email, permission: permission)
+                results.append(p)
+            } catch {
+                print("Failed to resolve participant for email \(email): \(error)")
+                await MainActor.run { self.lastErrorMessage = error.localizedDescription }
+                throw error
+            }
+        }
+        return results
+    }
+
+    private func participant(forPhoneNumber phone: String, permission: CKShare.ParticipantPermission = .readWrite) async throws -> CKShare.Participant {
+        let fetched = try await fetchShareParticipant(phoneNumber: phone)
+        var participant = fetched
+        participant.permission = permission
+        return participant
+    }
+
+    private func participants(forPhoneNumbers phones: [String], permission: CKShare.ParticipantPermission = .readWrite) async throws -> [CKShare.Participant] {
+        var results: [CKShare.Participant] = []
+        for phone in phones {
+            do {
+                let p = try await participant(forPhoneNumber: phone, permission: permission)
+                results.append(p)
+            } catch {
+                print("Failed to resolve participant for phone \(phone): \(error)")
+                await MainActor.run { self.lastErrorMessage = error.localizedDescription }
+                throw error
+            }
+        }
+        return results
+    }
+    
+    // MARK: - Share Participant Fetch Helpers (Async wrappers)
+    private func fetchShareParticipant(email: String) async throws -> CKShare.Participant {
+        try await withCheckedThrowingContinuation { continuation in
+            container.fetchShareParticipant(withEmailAddress: email) { participant, error in
+                if let participant = participant {
+                    continuation.resume(returning: participant)
+                } else if let error = error {
+                    continuation.resume(throwing: error)
+                } else {
+                    continuation.resume(throwing: CKError(.internalError))
+                }
+            }
+        }
+    }
+
+    private func fetchShareParticipant(phoneNumber: String) async throws -> CKShare.Participant {
+        try await withCheckedThrowingContinuation { continuation in
+            container.fetchShareParticipant(withPhoneNumber: phoneNumber) { participant, error in
+                if let participant = participant {
+                    continuation.resume(returning: participant)
+                } else if let error = error {
+                    continuation.resume(throwing: error)
+                } else {
+                    continuation.resume(throwing: CKError(.internalError))
+                }
+            }
         }
     }
     
-    func acceptShare(with metadata: CKShare.Metadata) async throws {
-        let acceptedShare = try await container.accept(metadata)
-        print("Successfully accepted share: \(acceptedShare)")
+    private func ensureSharedPatientsZoneExists() async throws -> CKRecordZone.ID {
+        let zoneID = CKRecordZone.ID(zoneName: "SharedPatients", ownerName: CKCurrentUserDefaultName)
+        // Try to fetch the zone; if it doesn't exist, create it
+        do {
+            _ = try await privateDatabase.recordZone(for: zoneID)
+            return zoneID
+        } catch {
+            // Create the zone
+            let zone = CKRecordZone(zoneID: zoneID)
+            _ = try await privateDatabase.save(zone)
+            return zoneID
+        }
+    }
+    
+    private func createPatientRecord(from patient: Patient, in zoneID: CKRecordZone.ID) throws -> CKRecord {
+        let recordID = CKRecord.ID(recordName: UUID().uuidString, zoneID: zoneID)
+        let record = CKRecord(recordType: "SharedPatient", recordID: recordID)
+        record["firstName"] = patient.firstName
+        record["lastName"] = patient.lastName
+        record["birthdate"] = patient.birthdate
+        record["timeStamp"] = patient.timeStamp
+        return record
+    }
+    
+    private func createDispensedMedicationRecord(from medication: DispencedMedication, patientRecordID: CKRecord.ID, in zoneID: CKRecordZone.ID) throws -> CKRecord {
+        let recordID = CKRecord.ID(recordName: UUID().uuidString, zoneID: zoneID)
+        let record = CKRecord(recordType: "SharedDispensedMedication", recordID: recordID)
+
+        // Parent the medication to the patient so it is included in the share hierarchy
+        record.parent = CKRecord.Reference(recordID: patientRecordID, action: .none)
+
+        record["dose"] = medication.dose
+        record["doseUnit"] = medication.doseUnit
+        record["dispenceAmt"] = medication.dispenceAmt
+        record["dispenceUnit"] = medication.dispenceUnit
+        record["dispenceDate"] = medication.dispenceDate
+        record["expDate"] = medication.expDate
+        record["lotNum"] = medication.lotNum
+        record["creationDate"] = medication.createdDate
+
+        // Medication details
+        if let baseMedication = medication.baseMedication {
+            record["medicationName"] = baseMedication.name
+            record["ingredient1"] = baseMedication.ingredient1
+            record["concentration1"] = baseMedication.concentration1
+            record["ingredient2"] = baseMedication.ingredient2
+            record["concentration2"] = baseMedication.concentration2
+            record["pharmacy"] = baseMedication.pharmacy
+            record["injectable"] = baseMedication.injectable
+        }
+
+        // Prescriber details
+        if let prescriber = medication.prescriber {
+            record["prescriberFirstName"] = prescriber.firstName
+            record["prescriberLastName"] = prescriber.lastName
+        }
+
+        return record
     }
     
     // MARK: - PDF Sharing
@@ -260,6 +456,16 @@ class CloudKitManager: ObservableObject {
         }
     }
     
+    func shareLabelPDF(data: Data, for medication: DispencedMedication, emailAddresses: [String]) async throws -> CKShare {
+        let participants = try await participants(forEmails: emailAddresses, permission: .readOnly)
+        return try await shareLabelPDF(data: data, for: medication, participants: participants)
+    }
+
+    func shareLabelPDF(data: Data, for medication: DispencedMedication, phoneNumbers: [String]) async throws -> CKShare {
+        let participants = try await participants(forPhoneNumbers: phoneNumbers, permission: .readOnly)
+        return try await shareLabelPDF(data: data, for: medication, participants: participants)
+    }
+    
     // MARK: - Subscription Management
     
     private func setupSubscriptions() {
@@ -303,46 +509,7 @@ class CloudKitManager: ObservableObject {
     
     // MARK: - Helper Methods
     
-    private func createPatientRecord(from patient: Patient) throws -> CKRecord {
-        let record = CKRecord(recordType: "SharedPatient")
-        record["firstName"] = patient.firstName
-        record["lastName"] = patient.lastName
-        record["birthdate"] = patient.birthdate
-        record["timeStamp"] = patient.timeStamp
-        return record
-    }
-    
-    private func createDispensedMedicationRecord(from medication: DispencedMedication, patientRecordID: CKRecord.ID) throws -> CKRecord {
-        let record = CKRecord(recordType: "SharedDispensedMedication")
-        record["patientReference"] = CKRecord.Reference(recordID: patientRecordID, action: .deleteSelf)
-        record["dose"] = medication.dose
-        record["doseUnit"] = medication.doseUnit
-        record["dispenceAmt"] = medication.dispenceAmt
-        record["dispenceUnit"] = medication.dispenceUnit
-        record["dispenceDate"] = medication.dispenceDate
-        record["expDate"] = medication.expDate
-        record["lotNum"] = medication.lotNum
-        record["creationDate"] = medication.creationDate
-        
-        // Medication details
-        if let baseMedication = medication.baseMedication {
-            record["medicationName"] = baseMedication.name
-            record["ingredient1"] = baseMedication.ingredient1
-            record["concentration1"] = baseMedication.concentration1
-            record["ingredient2"] = baseMedication.ingredient2
-            record["concentration2"] = baseMedication.concentration2
-            record["pharmacy"] = baseMedication.pharmacy
-            record["injectable"] = baseMedication.injectable
-        }
-        
-        // Prescriber details
-        if let prescriber = medication.prescriber {
-            record["prescriberFirstName"] = prescriber.firstName
-            record["prescriberLastName"] = prescriber.lastName
-        }
-        
-        return record
-    }
+
     
     private func saveRecords(_ records: [CKRecord], to database: CKDatabase) async throws -> [CKRecord] {
         let operation = CKModifyRecordsOperation(recordsToSave: records, recordIDsToDelete: nil)

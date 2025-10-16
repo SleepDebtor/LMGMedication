@@ -8,6 +8,7 @@
 import CoreData
 
 struct PersistenceController {
+    static let persistentStoreLoadFailedNotification = Notification.Name("PersistentStoreLoadFailed")
     static let shared = PersistenceController()
 
     @MainActor
@@ -69,7 +70,7 @@ struct PersistenceController {
         dispensed1.dispenceDate = Date()
         dispensed1.expDate = Calendar.current.date(byAdding: .year, value: 1, to: Date()) ?? Date()
         dispensed1.lotNum = "LOT123456"
-        dispensed1.creationDate = Date()
+        dispensed1.createdDate = Date()
         dispensed1.baseMedication = medication1
         dispensed1.patient = patient1
         dispensed1.prescriber = provider1
@@ -82,7 +83,7 @@ struct PersistenceController {
         dispensed2.dispenceUnit = "pen"
         dispensed2.dispenceDate = Calendar.current.date(byAdding: .day, value: -7, to: Date()) ?? Date()
         dispensed2.expDate = Calendar.current.date(byAdding: .year, value: 1, to: Date()) ?? Date()
-        dispensed2.creationDate = Date()
+        dispensed2.createdDate = Date()
         dispensed2.baseMedication = medication2
         dispensed2.patient = patient1
         dispensed2.prescriber = provider1
@@ -95,7 +96,7 @@ struct PersistenceController {
         dispensed3.dispenceUnit = "tablets"
         dispensed3.dispenceDate = Date()
         dispensed3.expDate = Calendar.current.date(byAdding: .year, value: 1, to: Date()) ?? Date()
-        dispensed3.creationDate = Date()
+        dispensed3.createdDate = Date()
         dispensed3.baseMedication = medication3
         dispensed3.patient = patient2
         dispensed3.prescriber = provider1
@@ -103,10 +104,11 @@ struct PersistenceController {
         do {
             try viewContext.save()
         } catch {
-            // Replace this implementation with code to handle the error appropriately.
-            // fatalError() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
-            let nsError = error as NSError
-            fatalError("Unresolved error \(nsError), \(nsError.userInfo)")
+            #if DEBUG
+            assertionFailure("Preview seeding failed: \(error)")
+            #else
+            print("Preview seeding failed: \(error)")
+            #endif
         }
         return result
     }()
@@ -115,25 +117,32 @@ struct PersistenceController {
 
     init(inMemory: Bool = false) {
         container = NSPersistentCloudKitContainer(name: "LMGMedication")
-        if inMemory {
-            container.persistentStoreDescriptions.first!.url = URL(fileURLWithPath: "/dev/null")
+        if let description = container.persistentStoreDescriptions.first {
+            if inMemory {
+                description.url = URL(fileURLWithPath: "/dev/null")
+            }
+            // Enable automatic lightweight migration
+            description.setOption(true as NSNumber, forKey: NSMigratePersistentStoresAutomaticallyOption)
+            description.setOption(true as NSNumber, forKey: NSInferMappingModelAutomaticallyOption)
+            // Enable persistent history tracking and remote change notifications for CloudKit sync/UI updates
+            description.setOption(true as NSNumber, forKey: NSPersistentHistoryTrackingKey)
+            description.setOption(true as NSNumber, forKey: NSPersistentStoreRemoteChangeNotificationPostOptionKey)
         }
         container.loadPersistentStores(completionHandler: { (storeDescription, error) in
             if let error = error as NSError? {
-                // Replace this implementation with code to handle the error appropriately.
-                // fatalError() causes the application to generate a crash log and terminate. You should not use this function in a shipping application, although it may be useful during development.
-
-                /*
-                 Typical reasons for an error here include:
-                 * The parent directory does not exist, cannot be created, or disallows writing.
-                 * The persistent store is not accessible, due to permissions or data protection when the device is locked.
-                 * The device is out of space.
-                 * The store could not be migrated to the current model version.
-                 Check the error message to determine what the actual problem was.
-                 */
-                fatalError("Unresolved error \(error), \(error.userInfo)")
+                #if DEBUG
+                assertionFailure("Failed to load persistent store: \(error), \(error.userInfo)")
+                #endif
+                NotificationCenter.default.post(name: PersistenceController.persistentStoreLoadFailedNotification,
+                                                object: nil,
+                                                userInfo: ["error": error])
             }
         })
         container.viewContext.automaticallyMergesChangesFromParent = true
+        container.viewContext.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
+        container.viewContext.transactionAuthor = "app"
+        container.viewContext.undoManager = nil
+        container.viewContext.shouldDeleteInaccessibleFaults = true
     }
 }
+
