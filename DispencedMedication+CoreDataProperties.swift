@@ -2,7 +2,7 @@
 //  DispencedMedication+CoreDataProperties.swift
 //  LMGMedication
 //
-//  Created by Michael Lazar on 10/13/25.
+//  Created by Michael Lazar on 10/15/25.
 //
 //
 
@@ -29,6 +29,10 @@ extension DispencedMedication {
     @NSManaged public var isActive: Bool
     @NSManaged public var lotNum: String?
     @NSManaged public var nextDoseDue: Date?
+    @NSManaged public var frequency: String?
+    @NSManaged public var sig: String?
+    @NSManaged public var additionalSg: String?
+    @NSManaged public var amtEachTime: Int16
     @NSManaged public var baseMedication: Medication?
     @NSManaged public var patient: Patient?
     @NSManaged public var prescriber: Provider?

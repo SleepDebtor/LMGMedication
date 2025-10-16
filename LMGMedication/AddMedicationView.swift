@@ -49,6 +49,9 @@ struct AddMedicationView: View {
     @State private var prescriberFirstName = ""
     @State private var prescriberLastName = ""
     @State private var injectable = false
+    @State private var dosingFrequency: DosingFrequency = .daily
+    @State private var amtEachTime: Int = 1
+    @State private var additionalSig: String = ""
     @State private var useTemplate = true
     @State private var showingError = false
     @State private var errorMessage = ""
@@ -84,6 +87,8 @@ struct AddMedicationView: View {
             return "Ready to save"
         }
     }
+    
+    private var generatedSig: String { "\(amtEachTime) \(dispenceUnit) \(dosingFrequency.instructionsSuffix)" }
     
     var body: some View {
         Form {
@@ -294,6 +299,31 @@ struct AddMedicationView: View {
                     TextField("Lot Number", text: $lotNumber)
                 }
                 
+                Section(header: Text("Frequency")) {
+                    Picker("Frequency", selection: $dosingFrequency) {
+                        ForEach(DosingFrequency.allCases) { freq in
+                            Text(freq.rawValue).tag(freq)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                }
+                
+                Section(header: Text("Directions")) {
+                    Stepper("Amount each time: \(amtEachTime)", value: $amtEachTime, in: 1...10)
+
+                    // Non-editable Sig generated automatically
+                    HStack {
+                        Text("Sig")
+                        Spacer()
+                        TextField("Sig", text: .constant(generatedSig))
+                            .disabled(true)
+                            .multilineTextAlignment(.trailing)
+                            .foregroundColor(.secondary)
+                    }
+
+                    TextField("Additional Sig (optional)", text: $additionalSig)
+                }
+                
                 Section(header: Text("Pharmacy")) {
                     if !useTemplate || !hasValidTemplate {
                         TextField("Pharmacy Name", text: $pharmacy)
@@ -466,6 +496,9 @@ struct AddMedicationView: View {
             dispensedMedication.expDate = expirationDate
             dispensedMedication.lotNum = lotNumber.isEmpty ? nil : lotNumber
             dispensedMedication.creationDate = Date()
+            dispensedMedication.dosingFrequency = dosingFrequency
+            dispensedMedication.sig = generatedSig
+            dispensedMedication.additionalSg = additionalSig.isEmpty ? nil : additionalSig
             
             // Parse dose string to populate doseNum for fill amount calculations
             if !dose.isEmpty, let doseValue = Double(dose) {

@@ -57,9 +57,9 @@ class NonInjectableLabelPDFGenerator {
         let contentRect = rect.insetBy(dx: margin, dy: margin)
         
         // Draw border (optional)
-        context.setStrokeColor(UIColor.black.cgColor)
-        context.setLineWidth(1)
-        context.stroke(rect.insetBy(dx: 0.5, dy: 0.5))
+        // context.setStrokeColor(UIColor.black.cgColor)
+        // context.setLineWidth(1)
+        // context.stroke(rect.insetBy(dx: 0.5, dy: 0.5))
         
         var currentY = contentRect.minY + 2
         
@@ -119,7 +119,7 @@ class NonInjectableLabelPDFGenerator {
             
             currentY += drawText(
                 dobText,
-                font: UIFont.systemFont(ofSize: 9),
+                font: UIFont.systemFont(ofSize: 6),
                 color: UIColor.black,
                 rect: CGRect(x: contentRect.minX, y: currentY, width: contentRect.width, height: 12),
                 context: context
@@ -134,7 +134,7 @@ class NonInjectableLabelPDFGenerator {
             
             currentY += drawText(
                 dateText,
-                font: UIFont.systemFont(ofSize: 9),
+                font: UIFont.systemFont(ofSize: 6),
                 color: UIColor.black,
                 rect: CGRect(x: contentRect.minX, y: currentY, width: contentRect.width, height: 12),
                 context: context
@@ -179,6 +179,18 @@ class NonInjectableLabelPDFGenerator {
         
         currentY += drawText(
             quantityText,
+            font: UIFont.boldSystemFont(ofSize: 10),
+            color: UIColor.black,
+            rect: CGRect(x: contentRect.minX, y: currentY, width: contentRect.width, height: 14),
+            context: context
+        )
+        
+        //Sig
+        let sig = medication.sig ?? "Take as directed."
+        let additionalSig = medication.additionalSg.flatMap { $0.isEmpty ? nil : " \($0)" } ?? ""
+        let dosingInstructions = sig + additionalSig
+        currentY += drawText(
+            dosingInstructions,
             font: UIFont.boldSystemFont(ofSize: 10),
             color: UIColor.black,
             rect: CGRect(x: contentRect.minX, y: currentY, width: contentRect.width, height: 14),

@@ -154,8 +154,9 @@ class MedicationLabelPDFGenerator {
         )
         
         // Dosing instructions (compact) - scaled for 200 DPI
-        let unitSingular = dispenseUnit.hasSuffix("s") ? String(dispenseUnit.dropLast()) : dispenseUnit
-        let dosingInstructions = "1 \(unitSingular) sq weekly"
+        let sig = medication.sig ?? "Take as directed."
+        let additionalSig = medication.additionalSg.flatMap { $0.isEmpty ? nil : " \($0)" } ?? ""
+        let dosingInstructions = sig + additionalSig
         currentY += drawText(
             dosingInstructions,
             font: PlatformFont.systemFont(ofSize: 14), // 5 * 2.78 ≈ 14

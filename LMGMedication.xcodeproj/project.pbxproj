@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		2702A9392EA065EE00B63BD1 /* DispencedMedication+Frequency.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2702A9382EA065EE00B63BD1 /* DispencedMedication+Frequency.swift */; };
 		275592A22E8B5FCE00A524A7 /* Provider+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 275592A02E8B5FCE00A524A7 /* Provider+CoreDataClass.swift */; };
 		275592A32E8B5FCE00A524A7 /* Person+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2755929F2E8B5FCE00A524A7 /* Person+CoreDataProperties.swift */; };
 		275592A42E8B5FCE00A524A7 /* Person+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2755929E2E8B5FCE00A524A7 /* Person+CoreDataClass.swift */; };
@@ -58,6 +59,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		2702A9382EA065EE00B63BD1 /* DispencedMedication+Frequency.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DispencedMedication+Frequency.swift"; sourceTree = "<group>"; };
 		2755929A2E8B5FCE00A524A7 /* DispencedMedication+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DispencedMedication+CoreDataClass.swift"; sourceTree = "<group>"; };
 		2755929B2E8B5FCE00A524A7 /* DispencedMedication+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DispencedMedication+CoreDataProperties.swift"; sourceTree = "<group>"; };
 		2755929C2E8B5FCE00A524A7 /* Medication+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Medication+CoreDataClass.swift"; sourceTree = "<group>"; };
@@ -188,6 +190,7 @@
 				27BFA0F02E9C335C003B4292 /* EditProviderView.swift */,
 				278823172E9DC90200BCBD57 /* Degree.swift */,
 				278823192E9FD50500BCBD57 /* EnvironmentInfo.swift */,
+				2702A9382EA065EE00B63BD1 /* DispencedMedication+Frequency.swift */,
 			);
 			sourceTree = "<group>";
 		};
@@ -371,6 +374,7 @@
 				275592A92E8B5FCE00A524A7 /* DispencedMedication+CoreDataClass.swift in Sources */,
 				275592BD2E8B6F9C00A524A7 /* CloudKitManager.swift in Sources */,
 				275592AC2E8B60C700A524A7 /* Patient+CoreDataProperties.swift in Sources */,
+				2702A9392EA065EE00B63BD1 /* DispencedMedication+Frequency.swift in Sources */,
 				275592AD2E8B60C700A524A7 /* Patient+CoreDataClass.swift in Sources */,
 				BD59A1DA2E936BFC00C4516C /* AuthenticationGateView.swift in Sources */,
 				BD59A1D82E936BFA00C4516C /* BiometricAuth.swift in Sources */,

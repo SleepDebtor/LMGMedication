@@ -470,8 +470,9 @@ struct InjectableLabelPreview: View {
                         .lineLimit(1)
                     
                     // Dosing instructions
-                    let unitSingular = dispenseUnit.hasSuffix("s") ? String(dispenseUnit.dropLast()) : dispenseUnit
-                    let dosingInstructions = "1 \(unitSingular) sq weekly"
+                    let sig = medication.sig ?? "Take as directed."
+                    let additionalSig = medication.additionalSg.flatMap { $0.isEmpty ? nil : " \($0)" } ?? ""
+                    let dosingInstructions = sig + additionalSig
                     Text(dosingInstructions)
                         .font(.system(size: 10, weight: .regular)) // 14/200*144 ≈ 10
                         .foregroundColor(.black)
@@ -653,6 +654,15 @@ struct NonInjectableLabelPreview: View {
                     let dispenseAmt = medication.dispenceAmt > 0 ? Int(medication.dispenceAmt) : 1
                     let dispenseUnit = medication.dispenceUnit ?? "tablets"
                     Text("Qty: \(dispenseAmt) \(dispenseUnit)")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(.black)
+                        .lineLimit(1)
+                    
+                    //Sig
+                    let sig = medication.sig ?? "Take as directed."
+                    let additionalSig = medication.additionalSg.flatMap { $0.isEmpty ? nil : " \($0)" } ?? ""
+                    let dosingInstructions = sig + additionalSig
+                    Text("Sig: \(dosingInstructions)")
                         .font(.system(size: 10, weight: .bold))
                         .foregroundColor(.black)
                         .lineLimit(1)

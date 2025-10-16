@@ -47,6 +47,7 @@ extension DispencedMedication {
         guard doseMg > 0 else { return 0 }
         let quantity = max(0, Int(dispenceAmt))
         let perUnitVolumeML = doseMg / concentration
-        return perUnitVolumeML * Double(quantity)
+        return perUnitVolumeML
     }
 }
+
