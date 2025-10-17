@@ -372,7 +372,7 @@ class CloudKitManager: ObservableObject {
         record["dispenceDate"] = medication.dispenceDate
         record["expDate"] = medication.expDate
         record["lotNum"] = medication.lotNum
-        record["creationDate"] = medication.createdDate
+        record["createdDate"] = medication.createdDate
 
         // Medication details
         if let baseMedication = medication.baseMedication {
@@ -630,8 +630,10 @@ struct CloudMedicationTemplate: Identifiable, Codable, Hashable {
         self.injectable = record["injectable"] as? Bool ?? false
         self.pharmacyURL = record["pharmacyURL"] as? String
         self.urlForQR = record["urlForQR"] as? String
-        self.createdDate = record.creationDate ?? Date()
-        self.modifiedDate = record.modificationDate ?? Date()
+        // Use current date as fallback for unsaved records
+        let currentDate = Date()
+        self.createdDate = record.creationDate ?? currentDate
+        self.modifiedDate = record.modificationDate ?? currentDate
         self.createdBy = record.creatorUserRecordID?.recordName
     }
     

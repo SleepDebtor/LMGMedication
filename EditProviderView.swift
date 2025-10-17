@@ -9,8 +9,13 @@ struct EditProviderView: View {
 
     @State private var firstName: String = ""
     @State private var lastName: String = ""
+    @State private var middleName: String = ""
     @State private var degree: Degree? = nil
     @State private var npi: String = ""
+    @State private var dea: String = ""
+    @State private var license: String = ""
+    @State private var isActive: Bool = true
+    @State private var birthdate: Date = Date()
 
     init(provider: Provider) {
         self.provider = provider
@@ -22,11 +27,18 @@ struct EditProviderView: View {
             Section(header: Text("Name")) {
                 TextField("First Name", text: $firstName)
                     .textContentType(.givenName)
+                TextField("Middle Name", text: $middleName)
+                    .textContentType(.middleName)
                 TextField("Last Name", text: $lastName)
                     .textContentType(.familyName)
             }
 
-            Section(header: Text("Details")) {
+            Section(header: Text("Personal Information")) {
+                DatePicker("Birth Date", selection: $birthdate, displayedComponents: .date)
+                Toggle("Active", isOn: $isActive)
+            }
+
+            Section(header: Text("Professional Details")) {
                 Picker("Degree", selection: $degree) {
                     Text("None").tag(nil as Degree?)
                     ForEach(Degree.allCases) { d in
@@ -37,6 +49,14 @@ struct EditProviderView: View {
 
                 TextField("NPI", text: $npi)
                     .keyboardType(.numberPad)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                
+                TextField("DEA Number", text: $dea)
+                    .textInputAutocapitalization(.characters)
+                    .autocorrectionDisabled()
+                
+                TextField("License Number", text: $license)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
             }
@@ -56,8 +76,13 @@ struct EditProviderView: View {
             // Load current values into local state for an editable buffer
             firstName = provider.firstName ?? ""
             lastName = provider.lastName ?? ""
+            middleName = provider.middleName ?? ""
             degree = provider.degreeEnum
             npi = provider.npi ?? ""
+            dea = provider.dea ?? ""
+            license = provider.license ?? ""
+            isActive = provider.isActive
+            birthdate = provider.birthdate ?? Date()
         }
     }
 
@@ -70,8 +95,13 @@ struct EditProviderView: View {
     private func saveChanges() {
         provider.firstName = firstName.trimmingCharacters(in: .whitespacesAndNewlines)
         provider.lastName = lastName.trimmingCharacters(in: .whitespacesAndNewlines)
+        provider.middleName = middleName.trimmingCharacters(in: .whitespacesAndNewlines)
         provider.degreeEnum = degree
         provider.npi = npi.trimmingCharacters(in: .whitespacesAndNewlines)
+        provider.dea = dea.trimmingCharacters(in: .whitespacesAndNewlines)
+        provider.license = license.trimmingCharacters(in: .whitespacesAndNewlines)
+        provider.isActive = isActive
+        provider.birthdate = birthdate
 
         do {
             try viewContext.save()
@@ -91,8 +121,13 @@ struct EditProviderView: View {
         let p = Provider(context: context)
         p.firstName = "Alex"
         p.lastName = "Johnson"
+        p.middleName = "Marie"
         p.degree = "MD"
         p.npi = "1234567890"
+        p.dea = "BJ1234567"
+        p.license = "MD123456"
+        p.isActive = true
+        p.birthdate = Calendar.current.date(from: DateComponents(year: 1980, month: 5, day: 15))
         return p
     }()
 
