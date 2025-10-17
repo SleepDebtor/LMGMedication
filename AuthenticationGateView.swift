@@ -54,18 +54,24 @@ struct AuthenticationGateView<Content: View>: View {
         VStack(spacing: 20) {
             Spacer()
 
-            // Branding image
-            Image("HushIconE")
-                .resizable()
-                .scaledToFit()
-                .frame(maxWidth: 220)
-                .cornerRadius(24)
-                .shadow(color: Color.black.opacity(0.2), radius: 12, x: 0, y: 8)
-                .padding(.horizontal, 32)
+            // Branding image - using system icon as fallback
+            VStack {
+                Image(systemName: "pills.circle.fill")
+                    .font(.system(size: 80))
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: [Color.blue, Color.cyan],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .shadow(color: Color.black.opacity(0.2), radius: 8, x: 0, y: 4)
+            }
+            .padding(.horizontal, 32)
 
             // Title and message
             VStack(spacing: 8) {
-                Text("Welcome to Hush")
+                Text("Welcome to LMG Medication")
                     .font(.title2)
                     .fontWeight(.semibold)
                 Text("Face ID or Passcode required to continue")

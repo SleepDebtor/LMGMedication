@@ -14,6 +14,12 @@ public typealias PatientCoreDataClassSet = NSSet
 @objc(Patient)
 public class Patient: Person {
     
+    public override func awakeFromInsert() {
+        super.awakeFromInsert()
+        self.isActive = true
+        self.timeStamp = Date()
+    }
+    
     public var fullName: String {
         let first = firstName ?? ""
         let last = lastName ?? ""
