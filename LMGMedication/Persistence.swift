@@ -117,32 +117,119 @@ struct PersistenceController {
 
     init(inMemory: Bool = false) {
         container = NSPersistentCloudKitContainer(name: "LMGMedication")
+        
         if let description = container.persistentStoreDescriptions.first {
             if inMemory {
                 description.url = URL(fileURLWithPath: "/dev/null")
             }
+            
+            // Configure CloudKit options
+            description.setOption(true as NSNumber, forKey: NSPersistentHistoryTrackingKey)
+            description.setOption(true as NSNumber, forKey: NSPersistentStoreRemoteChangeNotificationPostOptionKey)
+            
             // Enable automatic lightweight migration
             description.setOption(true as NSNumber, forKey: NSMigratePersistentStoresAutomaticallyOption)
             description.setOption(true as NSNumber, forKey: NSInferMappingModelAutomaticallyOption)
-            // Enable persistent history tracking and remote change notifications for CloudKit sync/UI updates
-            description.setOption(true as NSNumber, forKey: NSPersistentHistoryTrackingKey)
-            description.setOption(true as NSNumber, forKey: NSPersistentStoreRemoteChangeNotificationPostOptionKey)
+            
+            // CloudKit specific options - be more permissive in TestFlight
+            if !inMemory {
+                // Configure CloudKit container options
+                description.cloudKitContainerOptions = NSPersistentCloudKitContainerOptions(
+                    containerIdentifier: "iCloud.LMGMedication"
+                )
+            }
         }
-        container.loadPersistentStores(completionHandler: { (storeDescription, error) in
+        
+        container.loadPersistentStores(completionHandler: { [container] (storeDescription, error) in
             if let error = error as NSError? {
                 #if DEBUG
                 assertionFailure("Failed to load persistent store: \(error), \(error.userInfo)")
+                #else
+                print("Failed to load persistent store: \(error), \(error.userInfo)")
                 #endif
-                NotificationCenter.default.post(name: PersistenceController.persistentStoreLoadFailedNotification,
-                                                object: nil,
-                                                userInfo: ["error": error])
+                
+                // Post notification for error handling in the app
+                NotificationCenter.default.post(
+                    name: PersistenceController.persistentStoreLoadFailedNotification,
+                    object: nil,
+                    userInfo: ["error": error]
+                )
+                
+                // Try to recover by removing the problematic store and recreating
+                PersistenceController.handlePersistentStoreLoadFailure(container: container, error: error)
+            } else {
+                #if DEBUG
+                print("Successfully loaded persistent store: \(storeDescription)")
+                #endif
             }
         })
+        
+        // Configure the view context
         container.viewContext.automaticallyMergesChangesFromParent = true
         container.viewContext.mergePolicy = NSMergeByPropertyObjectTrumpMergePolicy
         container.viewContext.transactionAuthor = "app"
         container.viewContext.undoManager = nil
         container.viewContext.shouldDeleteInaccessibleFaults = true
+        
+        // Set a reasonable timeout for CloudKit operations
+        if let cloudKitContainer = container.persistentStoreDescriptions.first {
+            cloudKitContainer.timeout = 30.0 // 30 seconds timeout
+        }
+    }
+    
+    private static func handlePersistentStoreLoadFailure(container: NSPersistentCloudKitContainer, error: NSError) {
+        // This is a recovery mechanism for corrupted stores
+        guard let storeURL = container.persistentStoreDescriptions.first?.url else { 
+            print("No store URL found for recovery")
+            return 
+        }
+        
+        print("Attempting to recover from persistent store failure: \(error.localizedDescription)")
+        
+        do {
+            // Remove the corrupted store files
+            let fileManager = FileManager.default
+            
+            // Remove main store file
+            if fileManager.fileExists(atPath: storeURL.path) {
+                try fileManager.removeItem(at: storeURL)
+                print("Removed main store file")
+            }
+            
+            // Remove WAL files
+            let walURL = storeURL.appendingPathExtension("sqlite-wal")
+            if fileManager.fileExists(atPath: walURL.path) {
+                try fileManager.removeItem(at: walURL)
+                print("Removed WAL file")
+            }
+            
+            // Remove SHM files
+            let shmURL = storeURL.appendingPathExtension("sqlite-shm")
+            if fileManager.fileExists(atPath: shmURL.path) {
+                try fileManager.removeItem(at: shmURL)
+                print("Removed SHM file")
+            }
+            
+            print("Removed corrupted store files, attempting to recreate...")
+            
+            // Try to load stores again
+            container.loadPersistentStores { (_, secondError) in
+                if let secondError = secondError {
+                    print("Failed to recover from store corruption: \(secondError.localizedDescription)")
+                    // Post another notification about the final failure
+                    NotificationCenter.default.post(
+                        name: PersistenceController.persistentStoreLoadFailedNotification,
+                        object: nil,
+                        userInfo: ["error": secondError, "recoveryAttempted": true]
+                    )
+                } else {
+                    print("Successfully recovered from store corruption")
+                }
+            }
+            
+        } catch {
+            print("Failed to remove corrupted store files: \(error.localizedDescription)")
+        }
     }
 }
 
