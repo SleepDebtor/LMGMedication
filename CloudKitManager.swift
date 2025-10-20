@@ -372,7 +372,7 @@ class CloudKitManager: ObservableObject {
         record["dispenceDate"] = medication.dispenceDate
         record["expDate"] = medication.expDate
         record["lotNum"] = medication.lotNum
-        record["createdDate"] = medication.creationDate
+        // record["creationDate"] = medication.creationDate
 
         // Medication details
         if let baseMedication = medication.baseMedication {

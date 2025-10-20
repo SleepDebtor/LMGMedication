@@ -490,11 +490,6 @@ struct MedicationCardView: View {
             }
             
             Spacer()
-            
-            // Chevron - indicates tappability
-            Image(systemName: "chevron.right")
-                .font(.body)
-                .foregroundColor(goldColor.opacity(0.6))
         }
         .padding(16)
         .background(
@@ -523,6 +518,7 @@ struct MedicationCardView: View {
         )
         .padding(.horizontal, 20)
         .shadow(color: goldColor.opacity(0.1), radius: 4, x: 0, y: 2)
+        .contentShape(Rectangle())
     }
 }
 
