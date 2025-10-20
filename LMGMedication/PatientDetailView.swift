@@ -193,6 +193,8 @@ struct PatientDetailView: View {
                                     onActivate: { toggleMedicationActive(medication, active: true) }
                                 )
                             }
+                            .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
+                            .listRowBackground(Color.clear)
                             .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                                 if medication.isActive {
                                     Button(role: .destructive) {
@@ -222,8 +224,6 @@ struct PatientDetailView: View {
                                     Label("Delete", systemImage: "trash")
                                 }
                             }
-                            .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
-                            .listRowBackground(Color.clear)
                         }
                     }
                 }
@@ -232,9 +232,10 @@ struct PatientDetailView: View {
             }
         }
         .navigationTitle("")
-        .navigationBarTitleDisplayMode(.large)
+        .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(lightBackgroundColor, for: .navigationBar)
         .toolbarColorScheme(.light, for: .navigationBar)
+        .navigationBarBackButtonHidden(false)
         .sheet(isPresented: $showingAddMedication) {
             AddMedicationView(patient: patient)
         }
@@ -490,35 +491,7 @@ struct MedicationCardView: View {
             
             Spacer()
             
-            // Print button
-            Button(action: onPrintTapped) {
-                Image(systemName: "printer")
-                    .font(.title3)
-                    .foregroundColor(goldColor)
-                    .padding(8)
-                    .background(
-                        Circle()
-                            .fill(goldColor.opacity(0.1))
-                            .overlay(
-                                Circle()
-                                    .stroke(goldColor.opacity(0.3), lineWidth: 1)
-                            )
-                    )
-            }
-            .buttonStyle(PlainButtonStyle())
-            .contextMenu {
-                if medication.isActive {
-                    Button(role: .destructive) { onDeactivate() } label: {
-                        Label("Deactivate", systemImage: "xmark.circle")
-                    }
-                } else {
-                    Button { onActivate() } label: {
-                        Label("Activate", systemImage: "checkmark.circle")
-                    }
-                }
-            }
-            
-            // Chevron
+            // Chevron - indicates tappability
             Image(systemName: "chevron.right")
                 .font(.body)
                 .foregroundColor(goldColor.opacity(0.6))
