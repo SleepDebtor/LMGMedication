@@ -272,36 +272,15 @@ class MedicationLabelPDFGenerator {
     }
     
     private static func generateQRCode(for medication: DispencedMedication, overrideDispenseDate: Date? = nil) -> CGImage? {
-        // Create QR code data - you can customize this based on your needs
-        var qrData = ""
+        // Primary: Use the website URL from the medication template
+        var qrData: String
         
-        if let patient = medication.patient {
-            qrData += "Patient: \(patient.displayName)\n"
-        }
-        
-        if let medName = medication.baseMedication?.name {
-            qrData += "Medication: \(medName)\n"
-        }
-        
-        if let dose = medication.dose {
-            qrData += "Dose: \(dose)\(medication.doseUnit ?? "")\n"
-        }
-        
-        qrData += "Dispense: \(medication.dispenceAmt) \(medication.dispenceUnit ?? "")\n"
-        
-        if let dispenseDate = overrideDispenseDate ?? medication.dispenceDate {
-            let formatter = DateFormatter()
-            formatter.dateStyle = .short
-            qrData += "Date: \(formatter.string(from: dispenseDate))\n"
-        }
-        
-        if let lotNum = medication.lotNum {
-            qrData += "Lot: \(lotNum)"
-        }
-        
-        // If the medication has a URL for QR, use that instead
-        if let qrURL = medication.baseMedication?.urlForQR {
+        if let qrURL = medication.baseMedication?.urlForQR, !qrURL.isEmpty {
+            // Use the configured URL from the medication template
             qrData = qrURL
+        } else {
+            // Fallback to default website URL
+            qrData = "https://hushmedicalspa.com/medications"
         }
         
         let data = qrData.data(using: String.Encoding.utf8)

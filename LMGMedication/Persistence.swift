@@ -5,7 +5,9 @@
 //  Created by Michael Lazar on 9/28/25.
 //
 
+import Foundation
 import CoreData
+import CloudKit
 
 struct PersistenceController {
     static let persistentStoreLoadFailedNotification = Notification.Name("PersistentStoreLoadFailed")
@@ -70,7 +72,8 @@ struct PersistenceController {
         dispensed1.dispenceDate = Date()
         dispensed1.expDate = Calendar.current.date(byAdding: .year, value: 1, to: Date()) ?? Date()
         dispensed1.lotNum = "LOT123456"
-        dispensed1.createdDate = Date()
+        dispensed1.creationDate = Date()
+        dispensed1.isActive = true
         dispensed1.baseMedication = medication1
         dispensed1.patient = patient1
         dispensed1.prescriber = provider1
@@ -83,7 +86,8 @@ struct PersistenceController {
         dispensed2.dispenceUnit = "pen"
         dispensed2.dispenceDate = Calendar.current.date(byAdding: .day, value: -7, to: Date()) ?? Date()
         dispensed2.expDate = Calendar.current.date(byAdding: .year, value: 1, to: Date()) ?? Date()
-        dispensed2.createdDate = Date()
+        dispensed2.creationDate = Date()
+        dispensed2.isActive = true
         dispensed2.baseMedication = medication2
         dispensed2.patient = patient1
         dispensed2.prescriber = provider1
@@ -96,7 +100,8 @@ struct PersistenceController {
         dispensed3.dispenceUnit = "tablets"
         dispensed3.dispenceDate = Date()
         dispensed3.expDate = Calendar.current.date(byAdding: .year, value: 1, to: Date()) ?? Date()
-        dispensed3.createdDate = Date()
+        dispensed3.creationDate = Date()
+        dispensed3.isActive = true
         dispensed3.baseMedication = medication3
         dispensed3.patient = patient2
         dispensed3.prescriber = provider1
@@ -134,14 +139,67 @@ struct PersistenceController {
             // CloudKit specific options - be more permissive in TestFlight
             if !inMemory {
                 // Configure CloudKit container options
-                description.cloudKitContainerOptions = NSPersistentCloudKitContainerOptions(
-                    containerIdentifier: "iCloud.LMGMedication"
+                let containerOptions = NSPersistentCloudKitContainerOptions(
+                    containerIdentifier: "iCloud.com.lazarmedicalgroup.LMGMedication"
                 )
+                
+                // Use development environment for debug builds
+                #if DEBUG
+                containerOptions.databaseScope = .private
+                print("🔧 Using CloudKit development environment")
+                #else
+                // Production environment for release builds
+                containerOptions.databaseScope = .private
+                print("🚀 Using CloudKit production environment")
+                #endif
+                
+                description.cloudKitContainerOptions = containerOptions
             }
         }
         
         container.loadPersistentStores(completionHandler: { [container] (storeDescription, error) in
             if let error = error as NSError? {
+                // Log detailed CloudKit error information
+                print("🚨 Core Data CloudKit Error Details:")
+                print("Error Code: \(error.code)")
+                print("Error Domain: \(error.domain)")
+                print("Error Description: \(error.localizedDescription)")
+                print("User Info: \(error.userInfo)")
+                
+                // Check for specific CloudKit errors
+                if error.domain == "NSCocoaErrorDomain" {
+                    switch error.code {
+                    case 134060: // CloudKit account not available
+                        print("❌ CloudKit account not available - user not signed into iCloud")
+                    case 134070: // CloudKit container not found
+                        print("❌ CloudKit container not found - check container identifier")
+                    case 134080: // CloudKit network failure
+                        print("❌ CloudKit network failure - check internet connection")
+                    case 134090: // CloudKit quota exceeded
+                        print("❌ CloudKit quota exceeded")
+                    case 134100: // CloudKit zone not found
+                        print("❌ CloudKit zone not found")
+                    default:
+                        print("❌ Other CloudKit Core Data error: \(error.code)")
+                    }
+                } else if error.domain == CKError.errorDomain {
+                    // Handle CloudKit specific errors
+                    if let ckError = error as? CKError {
+                        switch ckError.code {
+                        case .accountTemporarilyUnavailable:
+                            print("❌ CloudKit account temporarily unavailable")
+                        case .networkUnavailable:
+                            print("❌ CloudKit network unavailable")
+                        case .quotaExceeded:
+                            print("❌ CloudKit quota exceeded")
+                        case .managedAccountRestricted:
+                            print("❌ CloudKit managed account restricted")
+                        default:
+                            print("❌ CloudKit error: \(ckError.localizedDescription)")
+                        }
+                    }
+                }
+                
                 #if DEBUG
                 assertionFailure("Failed to load persistent store: \(error), \(error.userInfo)")
                 #else
@@ -149,18 +207,33 @@ struct PersistenceController {
                 #endif
                 
                 // Post notification for error handling in the app
-                NotificationCenter.default.post(
-                    name: PersistenceController.persistentStoreLoadFailedNotification,
-                    object: nil,
-                    userInfo: ["error": error]
-                )
+                DispatchQueue.main.async {
+                    NotificationCenter.default.post(
+                        name: PersistenceController.persistentStoreLoadFailedNotification,
+                        object: nil,
+                        userInfo: ["error": error]
+                    )
+                }
                 
                 // Try to recover by removing the problematic store and recreating
-                PersistenceController.handlePersistentStoreLoadFailure(container: container, error: error)
+                Task {
+                    await PersistenceController.handlePersistentStoreLoadFailure(container: container, error: error)
+                }
             } else {
                 #if DEBUG
-                print("Successfully loaded persistent store: \(storeDescription)")
+                print("✅ Successfully loaded persistent store: \(storeDescription)")
+                print("📱 CloudKit container: \(storeDescription.cloudKitContainerOptions?.containerIdentifier ?? "none")")
                 #endif
+                
+                // Enable remote notifications after successful store load
+                DispatchQueue.main.async {
+                    do {
+                        try container.initializeCloudKitSchema(options: [])
+                        print("✅ CloudKit schema initialized")
+                    } catch {
+                        print("⚠️ CloudKit schema initialization failed: \(error)")
+                    }
+                }
             }
         })
         
@@ -177,7 +250,7 @@ struct PersistenceController {
         }
     }
     
-    private static func handlePersistentStoreLoadFailure(container: NSPersistentCloudKitContainer, error: NSError) {
+    private static func handlePersistentStoreLoadFailure(container: NSPersistentCloudKitContainer, error: NSError) async {
         // This is a recovery mechanism for corrupted stores
         guard let storeURL = container.persistentStoreDescriptions.first?.url else { 
             print("No store URL found for recovery")
@@ -213,17 +286,22 @@ struct PersistenceController {
             print("Removed corrupted store files, attempting to recreate...")
             
             // Try to load stores again
-            container.loadPersistentStores { (_, secondError) in
-                if let secondError = secondError {
-                    print("Failed to recover from store corruption: \(secondError.localizedDescription)")
-                    // Post another notification about the final failure
-                    NotificationCenter.default.post(
-                        name: PersistenceController.persistentStoreLoadFailedNotification,
-                        object: nil,
-                        userInfo: ["error": secondError, "recoveryAttempted": true]
-                    )
-                } else {
-                    print("Successfully recovered from store corruption")
+            await withCheckedContinuation { continuation in
+                container.loadPersistentStores { (_, secondError) in
+                    if let secondError = secondError {
+                        print("Failed to recover from store corruption: \(secondError.localizedDescription)")
+                        // Post another notification about the final failure
+                        DispatchQueue.main.async {
+                            NotificationCenter.default.post(
+                                name: PersistenceController.persistentStoreLoadFailedNotification,
+                                object: nil,
+                                userInfo: ["error": secondError, "recoveryAttempted": true]
+                            )
+                        }
+                    } else {
+                        print("Successfully recovered from store corruption")
+                    }
+                    continuation.resume()
                 }
             }
             

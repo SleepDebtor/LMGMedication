@@ -11,6 +11,7 @@ import CoreData
 @main
 struct LMGMedicationApp: App {
     let persistenceController = PersistenceController.shared
+    @StateObject private var biometricAuth = BiometricAuth()
     @State private var showingCoreDataError = false
     @State private var coreDataErrorMessage = ""
 
@@ -19,7 +20,10 @@ struct LMGMedicationApp: App {
             AuthenticationGateView {
                 ContentView()
                     .environment(\.managedObjectContext, persistenceController.container.viewContext)
+                    .environmentObject(biometricAuth)
+                    .trackUserActivity()
             }
+            .environmentObject(biometricAuth)
             .onReceive(NotificationCenter.default.publisher(for: PersistenceController.persistentStoreLoadFailedNotification)) { notification in
                 if let error = notification.userInfo?["error"] as? NSError {
                     coreDataErrorMessage = "Database initialization failed: \(error.localizedDescription)"

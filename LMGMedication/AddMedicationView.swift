@@ -495,7 +495,7 @@ struct AddMedicationView: View {
             dispensedMedication.dispenceDate = dispenceDate
             dispensedMedication.expDate = expirationDate
             dispensedMedication.lotNum = lotNumber.isEmpty ? nil : lotNumber
-            dispensedMedication.createdDate = Date()
+            dispensedMedication.creationDate = Date()
             dispensedMedication.dosingFrequency = dosingFrequency
             dispensedMedication.sig = generatedSig
             dispensedMedication.additionalSg = additionalSig.isEmpty ? nil : additionalSig
