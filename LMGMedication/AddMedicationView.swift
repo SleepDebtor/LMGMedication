@@ -37,7 +37,7 @@ struct AddMedicationView: View {
     @State private var dose = ""
     @State private var doseUnit = "mg"
     @State private var dispenceAmount: Int = 1
-    @State private var dispenceUnit = "syringes"
+    @State private var dispenceUnitType: DispenseUnit = .syringe
     @State private var dispenceDate = Date()
     @State private var expirationDate = Date().addingTimeInterval(365 * 24 * 60 * 60) // 1 year from now
     @State private var lotNumber = ""
@@ -88,7 +88,7 @@ struct AddMedicationView: View {
         }
     }
     
-    private var generatedSig: String { "\(amtEachTime) \(dispenceUnit) \(dosingFrequency.instructionsSuffix)" }
+    private var generatedSig: String { "\(amtEachTime) \(dispenceUnitType.label(for: amtEachTime)) \(dosingFrequency.instructionsSuffix)" }
     
     var body: some View {
         Form {
@@ -290,7 +290,12 @@ struct AddMedicationView: View {
                 Section(header: Text("Dispensing Information")) {
                     Stepper("Quantity: \(dispenceAmount)", value: $dispenceAmount, in: 1...100)
                     
-                    TextField("Dispense Unit", text: $dispenceUnit)
+                    Picker("Dispense Unit", selection: $dispenceUnitType) {
+                        ForEach(DispenseUnit.allCases) { unit in
+                            Text(unit.rawValue).tag(unit)
+                        }
+                    }
+                    .pickerStyle(.menu)
                     
                     DatePicker("Dispense Date", selection: $dispenceDate, displayedComponents: .date)
                     
@@ -491,7 +496,7 @@ struct AddMedicationView: View {
             dispensedMedication.dose = dose.isEmpty ? nil : dose
             dispensedMedication.doseUnit = doseUnit
             dispensedMedication.dispenceAmt = Int16(dispenceAmount)
-            dispensedMedication.dispenceUnit = dispenceUnit
+            dispensedMedication.dispenceUnit = dispenceUnitType.rawValue
             dispensedMedication.dispenceDate = dispenceDate
             dispensedMedication.expDate = expirationDate
             dispensedMedication.lotNum = lotNumber.isEmpty ? nil : lotNumber
@@ -594,4 +599,3 @@ struct AddMedicationView: View {
     return AddMedicationView(patient: patient)
         .environment(\.managedObjectContext, context)
 }
-

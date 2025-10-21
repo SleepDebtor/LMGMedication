@@ -10,16 +10,31 @@ extension DispencedMedication {
     ///   - Saves changes to the managed object context.
     public func updateNextDoseDueOnPrint() {
         let isInjectable = (baseMedication?.injectable == true)
-        let amount = max(0, Int(self.dispenceAmt))
         let now = Date()
         // Set the dispense date to the day of printing
         self.dispenceDate = now
         let calendar = Calendar.current
-        let component: Calendar.Component = isInjectable ? .weekOfYear : .day
         let baseDate = self.dispenceDate ?? now
-        let targetDate = calendar.date(byAdding: component, value: amount, to: baseDate)
-        self.nextDoseDue = targetDate
-        
+
+        let quantity = max(0, Int(self.dispenceAmt))
+        if let daysPerUnit = self.dosingFrequency.daysPerUnit, daysPerUnit > 0, quantity > 0 {
+            let totalDays = Double(quantity) * daysPerUnit
+            // Use whole days for scheduling
+            if let targetDate = calendar.date(byAdding: .day, value: Int(ceil(totalDays)), to: baseDate) {
+                self.nextDoseDue = targetDate
+            } else {
+                self.nextDoseDue = nil
+            }
+        } else if self.dosingFrequency == .weekly {
+            // Fallback: if quantity is zero but frequency is weekly, schedule one week out
+            self.nextDoseDue = calendar.date(byAdding: .weekOfYear, value: 1, to: baseDate)
+        } else {
+            // Preserve previous fallback based on injectable/day if frequency is PRN or missing mapping
+            let component: Calendar.Component = isInjectable ? .weekOfYear : .day
+            let targetDate = calendar.date(byAdding: component, value: quantity, to: baseDate)
+            self.nextDoseDue = targetDate
+        }
+
         // Persist the change safely
         if let context = self.managedObjectContext {
             context.perform {
@@ -50,4 +65,3 @@ extension DispencedMedication {
         return perUnitVolumeML
     }
 }
-

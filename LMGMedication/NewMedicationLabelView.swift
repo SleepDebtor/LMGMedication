@@ -23,9 +23,25 @@ struct MedicationLabelView: View {
     @State private var editDose = ""
     @State private var editDoseUnit = "mg"
     @State private var editDispenceAmount: Int = 1
-    @State private var editDispenceUnit = "syringes"
+    @State private var editDispenceUnitType: DispenseUnit = .syringe
     @State private var editLotNumber = ""
     @State private var editExpirationDate = Date()
+    
+    // Providers for selection
+    @FetchRequest(
+        sortDescriptors: [
+            NSSortDescriptor(keyPath: \Provider.lastName, ascending: true),
+            NSSortDescriptor(keyPath: \Provider.firstName, ascending: true)
+        ],
+        animation: .default)
+    private var providers: FetchedResults<Provider>
+
+    // Additional editable fields to reach parity with creation page
+    @State private var editDosingFrequency: DosingFrequency = .daily
+    @State private var editAmtEachTime: Int = 1
+    @State private var editAdditionalSig: String = ""
+    @State private var editDispenceDate: Date = Date()
+    @State private var editSelectedProvider: Provider?
     
     var body: some View {
         ScrollView {
@@ -78,11 +94,94 @@ struct MedicationLabelView: View {
                                     .onChange(of: editDispenceAmount) { _, _ in
                                         hasChanges = true
                                     }
-                                TextField("Unit", text: $editDispenceUnit)
-                                    .textFieldStyle(.roundedBorder)
-                                    .frame(width: 80)
+                                
+                                Picker("Unit", selection: $editDispenceUnitType) {
+                                    ForEach(DispenseUnit.allCases) { unit in
+                                        Text(unit.rawValue).tag(unit)
+                                    }
+                                }
+                                .pickerStyle(.menu)
+                                .frame(width: 120)
                             }
                             
+                            HStack {
+                                Text("Frequency:")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                Picker("Frequency", selection: $editDosingFrequency) {
+                                    ForEach(DosingFrequency.allCases) { freq in
+                                        Text(freq.rawValue).tag(freq)
+                                    }
+                                }
+                                .pickerStyle(.menu)
+                                .onChange(of: editDosingFrequency) { _, _ in hasChanges = true }
+                            }
+
+                            HStack {
+                                Text("Amount each time:")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                Stepper("\(editAmtEachTime)", value: $editAmtEachTime, in: 1...10)
+                                    .onChange(of: editAmtEachTime) { _, _ in hasChanges = true }
+                            }
+
+                            // Optional Sig preview (read-only)
+                            HStack {
+                                Text("Sig:")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                let sigPreview = "\(editAmtEachTime) \(editDispenceUnitType.label(for: editAmtEachTime)) \(editDosingFrequency.instructionsSuffix)"
+                                Text(sigPreview)
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .lineLimit(2)
+                                    .multilineTextAlignment(.leading)
+                                Spacer()
+                            }
+
+                            HStack {
+                                Text("Additional Sig:")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                TextField("Additional Sig (optional)", text: $editAdditionalSig)
+                                    .textFieldStyle(.roundedBorder)
+                                    .onChange(of: editAdditionalSig) { _, _ in hasChanges = true }
+                            }
+
+                            HStack {
+                                Text("Dispense Date:")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                DatePicker("", selection: $editDispenceDate, displayedComponents: .date)
+                                    .onChange(of: editDispenceDate) { _, _ in hasChanges = true }
+                            }
+
+                            // Provider selection
+                            if providers.isEmpty {
+                                HStack {
+                                    Text("No providers found")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                    Spacer()
+                                }
+                            } else {
+                                HStack {
+                                    Text("Provider:")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                    Picker("Provider", selection: $editSelectedProvider) {
+                                        ForEach(providers) { provider in
+                                            let first = provider.firstName ?? ""
+                                            let last = provider.lastName ?? ""
+                                            let degree = provider.degree?.isEmpty == false ? ", \(provider.degree!)" : ""
+                                            Text("\(first) \(last)\(degree)").tag(provider as Provider?)
+                                        }
+                                    }
+                                    .pickerStyle(.menu)
+                                    .onChange(of: editSelectedProvider) { _, _ in hasChanges = true }
+                                }
+                            }
+
                             HStack {
                                 Text("Lot Number:")
                                     .font(.caption)
@@ -104,7 +203,7 @@ struct MedicationLabelView: View {
                         .padding(.top, 8)
                         .onChange(of: editDose) { _, _ in hasChanges = true }
                         .onChange(of: editDoseUnit) { _, _ in hasChanges = true }
-                        .onChange(of: editDispenceUnit) { _, _ in hasChanges = true }
+                        .onChange(of: editDispenceUnitType) { _, _ in hasChanges = true }
                         .onChange(of: editLotNumber) { _, _ in hasChanges = true }
                     } else {
                         // Display mode - show current values
@@ -349,9 +448,15 @@ struct MedicationLabelView: View {
         editDose = medication.dose ?? ""
         editDoseUnit = medication.doseUnit ?? "mg"
         editDispenceAmount = Int(medication.dispenceAmt)
-        editDispenceUnit = medication.dispenceUnit ?? "syringes"
+        editDispenceUnitType = medication.dispenseUnitType
         editLotNumber = medication.lotNum ?? ""
         editExpirationDate = medication.expDate ?? Date().addingTimeInterval(365 * 24 * 60 * 60)
+        
+        editDosingFrequency = medication.dosingFrequency
+        editAmtEachTime = max(1, Int(medication.amtEachTime))
+        editAdditionalSig = medication.additionalSg ?? ""
+        editDispenceDate = medication.dispenceDate ?? Date()
+        editSelectedProvider = medication.prescriber ?? providers.first
     }
     
     private func startEditing() {
@@ -381,9 +486,20 @@ struct MedicationLabelView: View {
         
         medication.doseUnit = editDoseUnit
         medication.dispenceAmt = Int16(editDispenceAmount)
-        medication.dispenceUnit = editDispenceUnit
+        medication.dispenseUnitType = editDispenceUnitType
         medication.lotNum = editLotNumber.isEmpty ? nil : editLotNumber
         medication.expDate = editExpirationDate
+
+        // Update additional editable fields
+        medication.dosingFrequency = editDosingFrequency
+        medication.amtEachTime = Int16(editAmtEachTime)
+        medication.additionalSg = editAdditionalSig.isEmpty ? nil : editAdditionalSig
+        medication.dispenceDate = editDispenceDate
+        if let selected = editSelectedProvider { medication.prescriber = selected }
+
+        // Regenerate Sig from current fields
+        let regeneratedSig = "\(editAmtEachTime) \(medication.dispenseUnitType.label(for: editAmtEachTime)) \(editDosingFrequency.instructionsSuffix)"
+        medication.sig = regeneratedSig
         
         // Save to Core Data
         do {
@@ -462,7 +578,7 @@ struct InjectableLabelPreview: View {
                     
                     // Dispense information
                     let dispenseAmt = medication.dispenceAmt > 0 ? Int(medication.dispenceAmt) : 1
-                    let dispenseUnit = medication.dispenceUnit ?? "units"
+                    let dispenseUnit = medication.dispenseUnitType.label(for: dispenseAmt)
                     let dispenseInfo = "Disp: \(dispenseAmt) \(dispenseUnit)"
                     Text(dispenseInfo)
                         .font(.system(size: 12, weight: .bold)) // 17/200*144 ≈ 12
@@ -652,7 +768,7 @@ struct NonInjectableLabelPreview: View {
                     
                     // Quantity dispensed
                     let dispenseAmt = medication.dispenceAmt > 0 ? Int(medication.dispenceAmt) : 1
-                    let dispenseUnit = medication.dispenceUnit ?? "tablets"
+                    let dispenseUnit = medication.dispenseUnitType.label(for: dispenseAmt)
                     Text("Qty: \(dispenseAmt) \(dispenseUnit)")
                         .font(.system(size: 10, weight: .bold))
                         .foregroundColor(.black)
@@ -929,4 +1045,3 @@ struct PrintPreviewView: View {
     }
     .environment(\.managedObjectContext, context)
 }
-

@@ -23,11 +23,10 @@ public class DispencedMedication: NSManagedObject {
     }
     
     public var dispensedQuantityText: String {
-        if dispenceAmt > 0 {
-            let unit = dispenceUnit ?? ""
-            return "\(dispenceAmt) \(unit)".trimmingCharacters(in: .whitespaces)
-        }
-        return ""
+        let qty = max(0, Int(dispenceAmt))
+        guard qty > 0 else { return "" }
+        let unit = dispenseUnitType
+        return "\(qty) \(unit.label(for: qty))"
     }
     
     public var concentrationInfo: String {
@@ -64,3 +63,4 @@ public class DispencedMedication: NSManagedObject {
         return baseMedication?.pharmacy ?? ""
     }
 }
+
