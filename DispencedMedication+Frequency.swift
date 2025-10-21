@@ -2,7 +2,6 @@ import Foundation
 
 public enum DosingFrequency: String, CaseIterable, Identifiable, Codable {
     case daily = "Daily"
-    case weekly = "Weekly"
     case twicePerDay = "Twice per day"
     case twicePerWeek = "Twice per week"
     case threeTimesPerWeek = "Three times per week"
@@ -14,8 +13,6 @@ public enum DosingFrequency: String, CaseIterable, Identifiable, Codable {
         switch self {
         case .daily:
             return "Daily"
-        case .weekly:
-            return "Weekly"
         case .twicePerDay:
             return "BID"
         case .twicePerWeek:
@@ -31,8 +28,6 @@ public enum DosingFrequency: String, CaseIterable, Identifiable, Codable {
         switch self {
         case .daily:
             return "daily"
-        case .weekly:
-            return "weekly"
         case .twicePerDay:
             return "twice daily"
         case .twicePerWeek:

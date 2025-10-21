@@ -20,7 +20,7 @@ extension DispencedMedication {
 
     @NSManaged public var additionalSg: String?
     @NSManaged public var amtEachTime: Int16
-    @NSManaged public var creationDate: Date?
+    @NSManaged public var createdDate: Date?
     @NSManaged public var dispenceAmt: Int16
     @NSManaged public var dispenceDate: Date?
     @NSManaged public var dispenceUnit: String?

@@ -3,7 +3,7 @@
     <entity name="DispencedMedication" representedClassName="DispencedMedication" syncable="YES">
         <attribute name="additionalSg" optional="YES" attributeType="String" allowsCloudEncryption="YES"/>
         <attribute name="amtEachTime" optional="YES" attributeType="Integer 16" defaultValueString="1" allowsCloudEncryption="YES" usesScalarValueType="YES"/>
-        <attribute name="creationDate" optional="YES" attributeType="Date" allowsCloudEncryption="YES" usesScalarValueType="NO" elementID="creationDate"/>
+        <attribute name="createdDate" optional="YES" attributeType="Date" allowsCloudEncryption="YES" usesScalarValueType="NO" elementID="creationDate"/>
         <attribute name="dispenceAmt" optional="YES" attributeType="Integer 16" defaultValueString="0" allowsCloudEncryption="YES" usesScalarValueType="YES"/>
         <attribute name="dispenceDate" optional="YES" attributeType="Date" allowsCloudEncryption="YES" usesScalarValueType="NO"/>
         <attribute name="dispenceUnit" optional="YES" attributeType="String" allowsCloudEncryption="YES"/>

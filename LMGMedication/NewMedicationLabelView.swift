@@ -270,15 +270,9 @@ struct MedicationLabelView: View {
                             .buttonStyle(.bordered)
                             .controlSize(.large)
                             
-                            Button(action: {
-                                Task {
-                                    await MedicationPrintManager.shared.sharePDF(for: medication)
-                                }
-                            }) {
-                                Label("Share Label", systemImage: "square.and.arrow.up")
-                            }
-                            .buttonStyle(.bordered)
-                            .controlSize(.large)
+                            ShareLabelButton(medication: medication)
+                                .buttonStyle(.bordered)
+                                .controlSize(.large)
                         }
                     }
                 }
@@ -288,7 +282,6 @@ struct MedicationLabelView: View {
         }
         .navigationTitle("Medication Label")
         .navigationBarTitleDisplayMode(.inline)
-        .navigationBarBackButtonHidden(false)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
                 if isEditing {
