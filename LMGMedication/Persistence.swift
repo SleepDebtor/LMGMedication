@@ -7,10 +7,45 @@
 
 import CoreData
 
+/**
+ * PersistenceController
+ * 
+ * Manages Core Data stack with CloudKit integration for the LMGMedication app.
+ * Provides both production and preview configurations with comprehensive error handling.
+ * 
+ * Key Features:
+ * - CloudKit synchronization with iCloud.LMGMedication container
+ * - Automatic lightweight migration support
+ * - Robust error handling with recovery mechanisms
+ * - Preview data generation for SwiftUI previews and testing
+ * - Persistent store failure recovery via notification system
+ * 
+ * Architecture:
+ * - NSPersistentCloudKitContainer for CloudKit integration
+ * - Singleton pattern for shared instance across app
+ * - Automatic merge policy configuration for conflict resolution
+ * - Remote change notifications for real-time sync
+ * 
+ * Usage:
+ * ```swift
+ * let controller = PersistenceController.shared
+ * let context = controller.container.viewContext
+ * ```
+ */
 struct PersistenceController {
+    /// Notification sent when persistent store loading fails
     static let persistentStoreLoadFailedNotification = Notification.Name("PersistentStoreLoadFailed")
+    
+    /// Shared singleton instance for app-wide Core Data access
     static let shared = PersistenceController()
 
+    /**
+     * Preview instance configured with in-memory storage and sample data
+     * Used for SwiftUI previews and testing scenarios
+     * 
+     * Creates sample patients, providers, medications, and dispensed medications
+     * for development and preview purposes.
+     */
     @MainActor
     static let preview: PersistenceController = {
         let result = PersistenceController(inMemory: true)

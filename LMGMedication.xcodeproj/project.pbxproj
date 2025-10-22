@@ -28,6 +28,10 @@
 		BD080AF02EA1ABA300400DFD /* PrivacyPolicy.md in Resources */ = {isa = PBXBuildFile; fileRef = BD080AEF2EA1ABA300400DFD /* PrivacyPolicy.md */; };
 		BD080AF22EA2843700400DFD /* OfflinePatientManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD080AF12EA2843700400DFD /* OfflinePatientManager.swift */; };
 		BD28CAED2EA8450100303D86 /* DispencedMedication+DispenseUnit.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD28CAEC2EA8450100303D86 /* DispencedMedication+DispenseUnit.swift */; };
+		BD28CB392EA8770B00303D86 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = BD28CB382EA8770B00303D86 /* README.md */; };
+		BD28CB3B2EA8775200303D86 /* ARCHITECTURE.md in Resources */ = {isa = PBXBuildFile; fileRef = BD28CB3A2EA8775200303D86 /* ARCHITECTURE.md */; };
+		BD28CB3D2EA8778C00303D86 /* DEVELOPMENT_GUIDE.md in Resources */ = {isa = PBXBuildFile; fileRef = BD28CB3C2EA8778C00303D86 /* DEVELOPMENT_GUIDE.md */; };
+		BD28CB3F2EA877B700303D86 /* DOCUMENTATION_REVIEW.md in Resources */ = {isa = PBXBuildFile; fileRef = BD28CB3E2EA877B700303D86 /* DOCUMENTATION_REVIEW.md */; };
 		BD482A262E9B4DA800A52070 /* DispencedMedication+BusinessLogic.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD482A252E9B4DA800A52070 /* DispencedMedication+BusinessLogic.swift */; };
 		BD59A1A42E92BA8600C4516C /* MedicationLabelPDFGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD59A1A32E92BA8600C4516C /* MedicationLabelPDFGenerator.swift */; };
 		BD59A1A62E92BA9900C4516C /* ParticipantSelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD59A1A52E92BA9900C4516C /* ParticipantSelectionView.swift */; };
@@ -83,6 +87,10 @@
 		BD080AEF2EA1ABA300400DFD /* PrivacyPolicy.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = PrivacyPolicy.md; sourceTree = "<group>"; };
 		BD080AF12EA2843700400DFD /* OfflinePatientManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflinePatientManager.swift; sourceTree = "<group>"; };
 		BD28CAEC2EA8450100303D86 /* DispencedMedication+DispenseUnit.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DispencedMedication+DispenseUnit.swift"; sourceTree = "<group>"; };
+		BD28CB382EA8770B00303D86 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		BD28CB3A2EA8775200303D86 /* ARCHITECTURE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = ARCHITECTURE.md; sourceTree = "<group>"; };
+		BD28CB3C2EA8778C00303D86 /* DEVELOPMENT_GUIDE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = DEVELOPMENT_GUIDE.md; sourceTree = "<group>"; };
+		BD28CB3E2EA877B700303D86 /* DOCUMENTATION_REVIEW.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = DOCUMENTATION_REVIEW.md; sourceTree = "<group>"; };
 		BD482A252E9B4DA800A52070 /* DispencedMedication+BusinessLogic.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DispencedMedication+BusinessLogic.swift"; sourceTree = "<group>"; };
 		BD59A1A32E92BA8600C4516C /* MedicationLabelPDFGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicationLabelPDFGenerator.swift; sourceTree = "<group>"; };
 		BD59A1A52E92BA9900C4516C /* ParticipantSelectionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ParticipantSelectionView.swift; sourceTree = "<group>"; };
@@ -200,6 +208,10 @@
 				BD080AEF2EA1ABA300400DFD /* PrivacyPolicy.md */,
 				BD080AF12EA2843700400DFD /* OfflinePatientManager.swift */,
 				BD28CAEC2EA8450100303D86 /* DispencedMedication+DispenseUnit.swift */,
+				BD28CB382EA8770B00303D86 /* README.md */,
+				BD28CB3A2EA8775200303D86 /* ARCHITECTURE.md */,
+				BD28CB3C2EA8778C00303D86 /* DEVELOPMENT_GUIDE.md */,
+				BD28CB3E2EA877B700303D86 /* DOCUMENTATION_REVIEW.md */,
 			);
 			sourceTree = "<group>";
 		};
@@ -333,7 +345,11 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BD28CB3D2EA8778C00303D86 /* DEVELOPMENT_GUIDE.md in Resources */,
+				BD28CB3F2EA877B700303D86 /* DOCUMENTATION_REVIEW.md in Resources */,
 				BD080AF02EA1ABA300400DFD /* PrivacyPolicy.md in Resources */,
+				BD28CB3B2EA8775200303D86 /* ARCHITECTURE.md in Resources */,
+				BD28CB392EA8770B00303D86 /* README.md in Resources */,
 				BD59A1B42E92FB0100C4516C /* QR_Code_Implementation_README.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

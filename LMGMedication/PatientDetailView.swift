@@ -12,6 +12,32 @@ import CloudKit
 import UIKit
 #endif
 
+/**
+ * PatientDetailView
+ * 
+ * Detailed view for a specific patient showing their information and medication history.
+ * Provides functionality for managing patient medications, printing labels, and sharing data.
+ * 
+ * Key Features:
+ * - Patient information display with edit capability
+ * - Chronological medication history (most recent first)
+ * - Individual medication label printing (single/dual)
+ * - Bulk label printing for multiple medications  
+ * - Medication dispensing workflow
+ * - Patient data sharing functionality
+ * - Consistent bronze/gold theming
+ * 
+ * Architecture:
+ * - Observes patient Core Data object for real-time updates
+ * - State management for modal presentations and selections
+ * - Async operations for printing and sharing
+ * - Error handling with user-friendly alerts
+ * 
+ * Navigation:
+ * - Accessed via NavigationLink from main patient list
+ * - Modal presentations for medication dispensing and editing
+ * - Native sharing interface integration
+ */
 struct PatientDetailView: View {
     @Environment(\.managedObjectContext) private var viewContext
     

@@ -272,50 +272,28 @@ class MedicationLabelPDFGenerator {
     }
     
     private static func generateQRCode(for medication: DispencedMedication, overrideDispenseDate: Date? = nil) -> CGImage? {
-        // Create QR code data - you can customize this based on your needs
-        var qrData = ""
-        
-        if let patient = medication.patient {
-            qrData += "Patient: \(patient.displayName)\n"
+        // Prefer template URL if available; otherwise fall back to fixed medications page
+        let fallbackURL = "https://hushmedicalspa.com/medications"
+        let qrString: String
+        if let base = medication.baseMedication, let url = base.urlForQR, !url.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            // Use the template-provided URL
+            qrString = url
+        } else {
+            // No template or no URL provided: use the fixed medications page
+            qrString = fallbackURL
         }
         
-        if let medName = medication.baseMedication?.name {
-            qrData += "Medication: \(medName)\n"
-        }
-        
-        if let dose = medication.dose {
-            qrData += "Dose: \(dose)\(medication.doseUnit ?? "")\n"
-        }
-        
-        qrData += "Dispense: \(medication.dispenceAmt) \(medication.dispenceUnit ?? "")\n"
-        
-        if let dispenseDate = overrideDispenseDate ?? medication.dispenceDate {
-            let formatter = DateFormatter()
-            formatter.dateStyle = .short
-            qrData += "Date: \(formatter.string(from: dispenseDate))\n"
-        }
-        
-        if let lotNum = medication.lotNum {
-            qrData += "Lot: \(lotNum)"
-        }
-        
-        // If the medication has a URL for QR, use that instead
-        if let qrURL = medication.baseMedication?.urlForQR {
-            qrData = qrURL
-        }
-        
-        let data = qrData.data(using: String.Encoding.utf8)
+        guard let data = qrString.data(using: .utf8) else { return nil }
         
         let filter = CIFilter.qrCodeGenerator()
         filter.setValue(data, forKey: "inputMessage")
         filter.setValue("H", forKey: "inputCorrectionLevel") // High error correction
         
         // Create high-resolution QR code by scaling up significantly
-        let transform = CGAffineTransform(scaleX: 8, y: 8) // Higher scale for better quality
+        let transform = CGAffineTransform(scaleX: 8, y: 8)
         
         if let output = filter.outputImage?.transformed(by: transform) {
             let context = CIContext()
-            // Render with better quality settings
             if let cgImage = context.createCGImage(output, from: output.extent) {
                 return cgImage
             }

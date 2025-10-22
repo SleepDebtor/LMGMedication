@@ -515,6 +515,23 @@ struct MedicationLabelView: View {
 
 struct InjectableLabelPreview: View {
     let medication: DispencedMedication
+
+    private var qrUIImage: UIImage? {
+        // Prefer stored QR image if available
+        if let qrData = medication.baseMedication?.qrImage, !qrData.isEmpty, let uiImage = UIImage(data: qrData) {
+            return uiImage
+        }
+        // Fall back to template URL if present, otherwise fixed medications page
+        let fallbackURL = "https://hushmedicalspa.com/medications"
+        let urlString: String = {
+            if let raw = medication.baseMedication?.urlForQR?.trimmingCharacters(in: .whitespacesAndNewlines), !raw.isEmpty {
+                return raw
+            } else {
+                return fallbackURL
+            }
+        }()
+        return QRCodeGenerator.generateQRCode(from: urlString, size: CGSize(width: 86, height: 86))
+    }
     
     var body: some View {
         VStack(spacing: 0) {
@@ -522,14 +539,10 @@ struct InjectableLabelPreview: View {
             HStack(spacing: 0) {
                 // QR Code on left - reduced size to match PDF layout
                 VStack {
-                    if let qrData = medication.baseMedication?.qrImage, !qrData.isEmpty {
-                        if let uiImage = UIImage(data: qrData) {
-                            Image(uiImage: uiImage)
-                                .resizable()
-                                .frame(width: 86, height: 86) // Reduced from 120 to 86 (120/400 * 288 ≈ 86)
-                        } else {
-                            qrCodePlaceholder
-                        }
+                    if let uiImage = qrUIImage {
+                        Image(uiImage: uiImage)
+                            .resizable()
+                            .frame(width: 86, height: 86)
                     } else {
                         qrCodePlaceholder
                     }

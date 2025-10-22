@@ -8,39 +8,85 @@
 import SwiftUI
 import CoreData
 
+/**
+ * ContentView
+ * 
+ * Root view container that displays the main patients list interface.
+ * Acts as a simple wrapper around PatientsListRootView.
+ */
 struct ContentView: View {
     var body: some View {
         PatientsListRootView()
     }
 }
 
+/**
+ * PatientsListRootView
+ * 
+ * Main dashboard view that displays active patients organized by upcoming medication due dates.
+ * 
+ * Key Features:
+ * - Organizes patients by week based on next medication dose due dates
+ * - Provides quick actions for adding patients, managing templates, and providers
+ * - Supports patient activation/deactivation via swipe actions
+ * - Implements a light theme with bronze accent colors
+ * - Real-time updates via Core Data change notifications
+ * 
+ * Architecture:
+ * - Uses @FetchRequest for reactive Core Data integration
+ * - State management for modal presentations and error handling
+ * - Custom color scheme with consistent bronze/gold theming
+ * - Grouped data presentation with computed properties for organization
+ */
 struct PatientsListRootView: View {
     @Environment(\.managedObjectContext) private var viewContext
-
+    
+    // MARK: - Core Data Fetch Requests
+    
+    /// Fetches all patients sorted by last name
     @FetchRequest(
         sortDescriptors: [NSSortDescriptor(keyPath: \Patient.lastName, ascending: true)],
         animation: .default)
     private var patients: FetchedResults<Patient>
 
+    /// Fetches all dispensed medications for real-time updates
     @FetchRequest(
         sortDescriptors: [],
         animation: .default)
     private var dispensedMeds: FetchedResults<DispencedMedication>
 
+    // MARK: - State Management
+    
+    /// Triggers view updates when data changes
     @State private var dataVersion: Int = 0
 
+    /// Modal presentation states
     @State private var showingAddPatient = false
     @State private var showingMedicationTemplates = false
     @State private var showingProviders = false
+    
+    /// Error handling
     @State private var showingErrorAlert = false
     @State private var errorMessage: String = ""
     
-    // Custom colors - light theme with dark bronze accents
+    // MARK: - Theme Colors
+    
+    /// Custom color scheme for consistent app theming
+    /// Light theme with dark bronze accents for professional healthcare appearance
     private let goldColor = Color(red: 0.6, green: 0.4, blue: 0.2) // Dark bronze
     private let darkGoldColor = Color(red: 0.45, green: 0.3, blue: 0.15) // Darker bronze
     private let lightBackgroundColor = Color(red: 0.99, green: 0.985, blue: 0.97) // Light background with subtle gold tint
     private let textColor = Color.black // Black text
 
+    // MARK: - Helper Methods
+    
+    /**
+     * Calculates the next dose due date for a patient
+     * Uses the earliest upcoming nextDoseDue across all active dispensed medications
+     * 
+     * - Parameter patient: The patient to check
+     * - Returns: The earliest next dose date, or nil if no active medications
+     */
     private func nextDoseDueDate(for patient: Patient) -> Date? {
         // Use the earliest upcoming nextDoseDue across all active dispensed medications
         let dates = patient.dispensedMedicationsArray
@@ -49,6 +95,19 @@ struct PatientsListRootView: View {
         return dates.min()
     }
 
+    /**
+     * Groups active patients by the week their next medication dose is due
+     * Creates sections for each week with patients sorted by due date then name
+     * 
+     * Algorithm:
+     * 1. Filter to active patients with next dose dates
+     * 2. Calculate week start date for each patient's next dose
+     * 3. Group patients by week start date
+     * 4. Sort patients within each group by due date, then by name
+     * 5. Sort groups chronologically by week start date
+     * 
+     * - Returns: Array of (weekStart, patients) tuples sorted chronologically
+     */
     private var groupedByWeek: [(weekStart: Date, patients: [Patient])] {
         let calendar = Calendar.current
         let pairs: [(Date, Patient)] = patients.compactMap { patient in
@@ -82,6 +141,13 @@ struct PatientsListRootView: View {
         return grouped
     }
 
+    /**
+     * Returns active patients who don't have any upcoming medication doses scheduled
+     * These patients appear in a separate section for manual review
+     * Sorted alphabetically by last name, then first name
+     * 
+     * - Returns: Array of patients without scheduled doses, sorted by name
+     */
     private var noNextDosePatients: [Patient] {
         Array(patients).filter { $0.isActive && nextDoseDueDate(for: $0) == nil }
             .sorted { lhs, rhs in
@@ -92,6 +158,14 @@ struct PatientsListRootView: View {
             }
     }
 
+    /**
+     * Toggles a patient's active status with animation and error handling
+     * Updates Core Data and triggers UI refresh
+     * 
+     * - Parameters:
+     *   - patient: The patient to update
+     *   - active: New active status
+     */
     private func togglePatientActive(_ patient: Patient, active: Bool) {
         withAnimation(.easeInOut(duration: 0.2)) {
             patient.isActive = active

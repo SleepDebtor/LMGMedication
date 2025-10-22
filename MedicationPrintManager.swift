@@ -11,13 +11,46 @@ import CoreGraphics
 import UIKit
 import CoreData
 
+/**
+ * MedicationPrintManager
+ * 
+ * Manages medication label generation and printing functionality.
+ * Supports both injectable and non-injectable medication label formats.
+ * 
+ * Key Features:
+ * - Single label printing with current date
+ * - Dual label printing (original date + current date)
+ * - Bulk printing for multiple medications
+ * - PDF generation using Core Graphics
+ * - Print interface presentation with native iOS printing
+ * 
+ * Architecture:
+ * - Singleton pattern for app-wide access
+ * - MainActor isolation for UI operations
+ * - Async/await for PDF generation and printing
+ * - Delegates to specialized PDF generators for different medication types
+ * 
+ * Usage:
+ * ```swift
+ * await MedicationPrintManager.shared.printLabel(for: medication)
+ * await MedicationPrintManager.shared.printDualLabel(for: medication)
+ * ```
+ */
 @MainActor
 class MedicationPrintManager {
+    /// Shared singleton instance
     static let shared = MedicationPrintManager()
     
     private init() {}
     
-    /// Print a single medication label
+    // MARK: - Single Label Printing
+    
+    /**
+     * Prints a single medication label with today's date
+     * Updates the medication's next dose due date automatically
+     * 
+     * - Parameter medication: The dispensed medication to print
+     */
     func printLabel(for medication: DispencedMedication) async {
         let originalMed = medication
         // Update next dose for the original medication
@@ -41,7 +74,15 @@ class MedicationPrintManager {
         }
     }
     
-    /// Print a dual medication label (original + today's date)
+    // MARK: - Dual Label Printing
+    
+    /**
+     * Prints dual medication labels: one with original dispense date, one with today's date
+     * Combines both labels into a single PDF for convenient printing
+     * Updates the medication's next dose due date automatically
+     * 
+     * - Parameter medication: The dispensed medication to print dual labels for
+     */
     func printDualLabel(for medication: DispencedMedication) async {
         let originalMed = medication
         // Update next dose for the original medication
