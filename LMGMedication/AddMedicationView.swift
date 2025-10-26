@@ -116,7 +116,7 @@ struct AddMedicationView: View {
                                 Picker("Select Local Template", selection: $selectedLocalTemplate) {
                                     Text("Choose a medication...").tag(nil as Medication?)
                                     ForEach(localMedicationTemplates) { template in
-                                        Text(template.name ?? "Unknown").tag(template as Medication?)
+                                        Text(template.selectionDisplayValue).tag(template as Medication?)
                                     }
                                 }
                                 .pickerStyle(.menu)
@@ -150,7 +150,7 @@ struct AddMedicationView: View {
                                 Picker("Select Public Template", selection: $selectedCloudTemplate) {
                                     Text("Choose a medication...").tag(nil as CloudMedicationTemplate?)
                                     ForEach(cloudManager.publicMedicationTemplates) { template in
-                                        Text(template.name).tag(template as CloudMedicationTemplate?)
+                                        Text(template.selectionDisplayValue).tag(template as CloudMedicationTemplate?)
                                     }
                                 }
                                 .pickerStyle(.menu)
@@ -297,6 +297,13 @@ struct AddMedicationView: View {
                     }
                     .pickerStyle(.menu)
                     
+                    Picker("Frequency", selection: $dosingFrequency) {
+                        ForEach(DosingFrequency.allCases) { freq in
+                            Text(freq.rawValue).tag(freq)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    
                     DatePicker("Dispense Date", selection: $dispenceDate, displayedComponents: .date)
                     
                     DatePicker("Expiration Date", selection: $expirationDate, displayedComponents: .date)
@@ -304,14 +311,14 @@ struct AddMedicationView: View {
                     TextField("Lot Number", text: $lotNumber)
                 }
                 
-                Section(header: Text("Frequency")) {
-                    Picker("Frequency", selection: $dosingFrequency) {
-                        ForEach(DosingFrequency.allCases) { freq in
-                            Text(freq.rawValue).tag(freq)
-                        }
-                    }
-                    .pickerStyle(.menu)
-                }
+//                Section(header: Text("Frequency")) {
+//                    Picker("Frequency", selection: $dosingFrequency) {
+//                        ForEach(DosingFrequency.allCases) { freq in
+//                            Text(freq.rawValue).tag(freq)
+//                        }
+//                    }
+//                    .pickerStyle(.menu)
+//                }
                 
                 Section(header: Text("Directions")) {
                     Stepper("Amount each time: \(amtEachTime)", value: $amtEachTime, in: 1...10)

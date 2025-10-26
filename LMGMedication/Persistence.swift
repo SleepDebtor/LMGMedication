@@ -268,3 +268,52 @@ struct PersistenceController {
     }
 }
 
+// MARK: - Medication Extension
+
+extension Medication {
+    /// Computed property for template selection display in format "Medication name Pharmacy, Concentration 1/Concentration2"
+    var selectionDisplayValue: String {
+        var components: [String] = []
+        
+        // Add medication name
+        components.append(name ?? "Unknown Medication")
+        
+        // Add pharmacy if available
+        if let pharmacy = pharmacy, !pharmacy.isEmpty {
+            components.append(pharmacy)
+        }
+        
+        // Add concentrations in format "Concentration 1/Concentration2"
+        var concentrations: [String] = []
+        
+        if let ingredient1 = ingredient1, !ingredient1.isEmpty, concentration1 > 0 {
+            concentrations.append(String(format: "%.1f", concentration1))
+        }
+        
+        if let ingredient2 = ingredient2, !ingredient2.isEmpty, concentration2 > 0 {
+            concentrations.append(String(format: "%.1f", concentration2))
+        }
+        
+        if !concentrations.isEmpty {
+            components.append(concentrations.joined(separator: "/"))
+        }
+        
+        return components.joined(separator: ", ")
+    }
+    
+    /// Computed property providing detailed concentration information similar to CloudMedicationTemplate
+    var concentrationInfo: String {
+        var parts: [String] = []
+        
+        if let ingredient1 = ingredient1, !ingredient1.isEmpty, concentration1 > 0 {
+            parts.append("\(ingredient1): \(String(format: "%.1f", concentration1))")
+        }
+        
+        if let ingredient2 = ingredient2, !ingredient2.isEmpty, concentration2 > 0 {
+            parts.append("\(ingredient2): \(String(format: "%.1f", concentration2))")
+        }
+        
+        return parts.joined(separator: ", ")
+    }
+}
+

@@ -428,14 +428,8 @@ struct LocalMedicationTemplateRow: View {
                     }
                 }
                 
-                if let ingredient1 = medication.ingredient1, !ingredient1.isEmpty {
-                    Text("\(ingredient1): \(medication.concentration1, specifier: "%.1f")")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                }
-                
-                if let ingredient2 = medication.ingredient2, !ingredient2.isEmpty {
-                    Text("\(ingredient2): \(medication.concentration2, specifier: "%.1f")")
+                if !medication.concentrationInfo.isEmpty {
+                    Text(medication.concentrationInfo)
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                 }
