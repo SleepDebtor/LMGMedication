@@ -3,6 +3,7 @@
 //  LMGMedication
 //
 //  Created by Michael Lazar on 10/12/25.
+//  Updated: 10/27/25 - Added QR code generation and fixed 3"x2" sizing
 //
 
 import Foundation
@@ -53,7 +54,7 @@ class NonInjectableLabelPDFGenerator {
     }
     
     static func drawNonInjectableLabel(in rect: CGRect, for medication: DispencedMedication, context: CGContext, overrideDispenseDate: Date? = nil) {
-        let margin: CGFloat = 6
+        let margin: CGFloat = 4
         let contentRect = rect.insetBy(dx: margin, dy: margin)
         
         // Draw border (optional)
@@ -61,40 +62,56 @@ class NonInjectableLabelPDFGenerator {
         // context.setLineWidth(1)
         // context.stroke(rect.insetBy(dx: 0.5, dy: 0.5))
         
-        var currentY = contentRect.minY + 2
+        // QR code on the right side - will be positioned later to align with medication name
+        let qrCodeSize: CGFloat = 50
+        var qrCodeRect = CGRect(
+            x: contentRect.maxX - qrCodeSize,
+            y: contentRect.minY + 2, // Temporary position, will be updated
+            width: qrCodeSize,
+            height: qrCodeSize
+        )
+        // Text area - adjust for QR code
+        let textRect = CGRect(
+            x: contentRect.minX,
+            y: contentRect.minY,
+            width: contentRect.width - qrCodeSize - 6, // Leave space for QR code
+            height: contentRect.height
+        )
+        
+        var currentY = textRect.minY + 2
         
         // Practice header - centered and prominent
         currentY += drawText(
             "LAZAR MEDICAL GROUP",
-            font: UIFont.boldSystemFont(ofSize: 11),
+            font: UIFont.boldSystemFont(ofSize: 8),
             color: UIColor.black,
-            rect: CGRect(x: contentRect.minX, y: currentY, width: contentRect.width, height: 14),
+            rect: CGRect(x: contentRect.minX, y: currentY, width: contentRect.width, height: 10),
             context: context,
             alignment: .center
         )
         
-        // Practice address
+        // Practice address - centered
         currentY += drawText(
             "400 Market St, Suite 5, Williamsport, PA 17701",
-            font: UIFont.systemFont(ofSize: 8),
+            font: UIFont.systemFont(ofSize: 6),
             color: UIColor.black,
-            rect: CGRect(x: contentRect.minX, y: currentY, width: contentRect.width, height: 12),
+            rect: CGRect(x: contentRect.minX, y: currentY, width: contentRect.width, height: 8),
             context: context,
             alignment: .center
         )
         
-        // Phone number
+        // Phone number - centered
         currentY += drawText(
             "Phone: (570) 933-5507",
-            font: UIFont.systemFont(ofSize: 8),
+            font: UIFont.systemFont(ofSize: 6),
             color: UIColor.black,
-            rect: CGRect(x: contentRect.minX, y: currentY, width: contentRect.width, height: 12),
+            rect: CGRect(x: contentRect.minX, y: currentY, width: contentRect.width, height: 8),
             context: context,
             alignment: .center
         )
         
         // Add some space
-        currentY += 8
+        currentY += 4
         
         // Patient name - left aligned
         if let patient = medication.patient {
@@ -104,9 +121,9 @@ class NonInjectableLabelPDFGenerator {
             
             currentY += drawText(
                 patientName,
-                font: UIFont.boldSystemFont(ofSize: 10),
+                font: UIFont.boldSystemFont(ofSize: 8),
                 color: UIColor.black,
-                rect: CGRect(x: contentRect.minX, y: currentY, width: contentRect.width, height: 14),
+                rect: CGRect(x: textRect.minX, y: currentY, width: textRect.width, height: 10),
                 context: context
             )
         }
@@ -119,9 +136,9 @@ class NonInjectableLabelPDFGenerator {
             
             currentY += drawText(
                 dobText,
-                font: UIFont.systemFont(ofSize: 6),
+                font: UIFont.systemFont(ofSize: 5),
                 color: UIColor.black,
-                rect: CGRect(x: contentRect.minX, y: currentY, width: contentRect.width, height: 12),
+                rect: CGRect(x: textRect.minX, y: currentY, width: textRect.width, height: 7),
                 context: context
             )
         }
@@ -130,19 +147,22 @@ class NonInjectableLabelPDFGenerator {
         if let dispenseDate = overrideDispenseDate ?? medication.dispenceDate {
             let formatter = DateFormatter()
             formatter.dateStyle = .short
-            let dateText = "Date: \(formatter.string(from: dispenseDate))"
+            let dateText = "Rx Date: \(formatter.string(from: dispenseDate))"
             
             currentY += drawText(
                 dateText,
-                font: UIFont.systemFont(ofSize: 6),
+                font: UIFont.systemFont(ofSize: 5),
                 color: UIColor.black,
-                rect: CGRect(x: contentRect.minX, y: currentY, width: contentRect.width, height: 12),
+                rect: CGRect(x: textRect.minX, y: currentY, width: textRect.width, height: 7),
                 context: context
             )
         }
         
         // Add space before medication info
-        currentY += 6
+        currentY += 4
+        
+        // Store the Y position where medication name starts for QR code alignment
+        let medicationNameY = currentY
         
         // Medication name and strength - prominent
         let medicationName = medication.baseMedication?.name ?? "Unknown Medication"
@@ -152,10 +172,18 @@ class NonInjectableLabelPDFGenerator {
         
         currentY += drawText(
             medicationTitle,
-            font: UIFont.boldSystemFont(ofSize: 12),
+            font: UIFont.boldSystemFont(ofSize: 9),
             color: UIColor.black,
-            rect: CGRect(x: contentRect.minX, y: currentY, width: contentRect.width, height: 16),
+            rect: CGRect(x: textRect.minX, y: currentY, width: textRect.width, height: 11),
             context: context
+        )
+        
+        // Update QR code position to align with medication name
+        qrCodeRect = CGRect(
+            x: contentRect.maxX - qrCodeSize,
+            y: medicationNameY,
+            width: qrCodeSize,
+            height: qrCodeSize
         )
         
         // Generic name or secondary ingredient (if different)
@@ -165,9 +193,9 @@ class NonInjectableLabelPDFGenerator {
             let genericText = "Generic: \(ingredient1)"
             currentY += drawText(
                 genericText,
-                font: UIFont.italicSystemFont(ofSize: 9),
+                font: UIFont.italicSystemFont(ofSize: 7),
                 color: UIColor.darkGray,
-                rect: CGRect(x: contentRect.minX, y: currentY, width: contentRect.width, height: 12),
+                rect: CGRect(x: textRect.minX, y: currentY, width: textRect.width, height: 9),
                 context: context
             )
         }
@@ -179,9 +207,9 @@ class NonInjectableLabelPDFGenerator {
         
         currentY += drawText(
             quantityText,
-            font: UIFont.boldSystemFont(ofSize: 10),
+            font: UIFont.boldSystemFont(ofSize: 7),
             color: UIColor.black,
-            rect: CGRect(x: contentRect.minX, y: currentY, width: contentRect.width, height: 14),
+            rect: CGRect(x: textRect.minX, y: currentY, width: textRect.width, height: 9),
             context: context
         )
         
@@ -191,9 +219,9 @@ class NonInjectableLabelPDFGenerator {
         let dosingInstructions = sig + additionalSig
         currentY += drawText(
             dosingInstructions,
-            font: UIFont.boldSystemFont(ofSize: 10),
+            font: UIFont.boldSystemFont(ofSize: 7),
             color: UIColor.black,
-            rect: CGRect(x: contentRect.minX, y: currentY, width: contentRect.width, height: 14),
+            rect: CGRect(x: textRect.minX, y: currentY, width: textRect.width, height: 20),
             context: context
         )
         
@@ -206,20 +234,20 @@ class NonInjectableLabelPDFGenerator {
             
             currentY += drawText(
                 prescriberText,
-                font: UIFont.systemFont(ofSize: 9),
+                font: UIFont.systemFont(ofSize: 6),
                 color: UIColor.black,
-                rect: CGRect(x: contentRect.minX, y: currentY, width: contentRect.width, height: 12),
+                rect: CGRect(x: textRect.minX, y: currentY, width: textRect.width, height: 8),
                 context: context
             )
         }
         
-        // Pharmacy information (if available)
+        // Pharmacy information (if available) - moved closer to bottom
         if let pharmacy = medication.baseMedication?.pharmacy {
-            currentY += drawText(
+            drawText(
                 "Pharmacy: \(pharmacy)",
-                font: UIFont.systemFont(ofSize: 8),
+                font: UIFont.systemFont(ofSize: 6),
                 color: UIColor.black,
-                rect: CGRect(x: contentRect.minX, y: currentY, width: contentRect.width, height: 12),
+                rect: CGRect(x: textRect.minX, y: contentRect.maxY - 24, width: textRect.width, height: 8),
                 context: context
             )
         }
@@ -236,15 +264,20 @@ class NonInjectableLabelPDFGenerator {
         }
         if !bottomInfoParts.isEmpty {
             let bottomText = bottomInfoParts.joined(separator: " • ")
-            let bottomWidth: CGFloat = 130
+            let bottomWidth: CGFloat = 100
             drawText(
                 bottomText,
-                font: UIFont.systemFont(ofSize: 7),
+                font: UIFont.systemFont(ofSize: 5),
                 color: UIColor.darkGray,
-                rect: CGRect(x: contentRect.maxX - bottomWidth, y: contentRect.maxY - 12, width: bottomWidth, height: 10),
+                rect: CGRect(x: contentRect.maxX - bottomWidth, y: contentRect.maxY - 8, width: bottomWidth, height: 6),
                 context: context,
                 alignment: .right
             )
+        }
+        
+        // Draw QR code at its final position (aligned with medication name)
+        if let qrCodeImage = generateQRCode(for: medication, overrideDispenseDate: overrideDispenseDate) {
+            context.draw(qrCodeImage, in: qrCodeRect)
         }
     }
     
@@ -284,6 +317,37 @@ class NonInjectableLabelPDFGenerator {
         
         attributedString.draw(in: adjustedRect)
         
-        return boundingRect.height + 2 // Add some spacing
+        return boundingRect.height + 1 // Add minimal spacing for compact format
+    }
+    
+    private static func generateQRCode(for medication: DispencedMedication, overrideDispenseDate: Date? = nil) -> CGImage? {
+        // Prefer template URL if available; otherwise fall back to fixed medications page
+        let fallbackURL = "https://hushmedicalspa.com/medications"
+        let qrString: String
+        if let base = medication.baseMedication, let url = base.urlForQR, !url.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            // Use the template-provided URL
+            qrString = url
+        } else {
+            // No template or no URL provided: use the fixed medications page
+            qrString = fallbackURL
+        }
+        
+        guard let data = qrString.data(using: .utf8) else { return nil }
+        
+        let filter = CIFilter.qrCodeGenerator()
+        filter.setValue(data, forKey: "inputMessage")
+        filter.setValue("M", forKey: "inputCorrectionLevel") // Medium error correction for smaller QR codes
+        
+        // Create QR code by scaling up - smaller scale for compact labels
+        let transform = CGAffineTransform(scaleX: 4, y: 4)
+        
+        if let output = filter.outputImage?.transformed(by: transform) {
+            let context = CIContext()
+            if let cgImage = context.createCGImage(output, from: output.extent) {
+                return cgImage
+            }
+        }
+        
+        return nil
     }
 }
