@@ -64,6 +64,7 @@ struct PatientsListRootView: View {
     @State private var showingAddPatient = false
     @State private var showingMedicationTemplates = false
     @State private var showingProviders = false
+    @State private var showingAppInfo = false
     
     /// Error handling
     @State private var showingErrorAlert = false
@@ -103,10 +104,10 @@ struct PatientsListRootView: View {
      * 1. Filter to active patients with next dose dates
      * 2. Calculate week start date for each patient's next dose
      * 3. Group patients by week start date
-     * 4. Sort patients within each group by due date, then by name
-     * 5. Sort groups chronologically by week start date
+     * 4. Sort patients within each group by due date (latest first), then by name
+     * 5. Sort groups reverse chronologically by week start date (latest weeks first)
      * 
-     * - Returns: Array of (weekStart, patients) tuples sorted chronologically
+     * - Returns: Array of (weekStart, patients) tuples sorted with latest weeks first
      */
     private var groupedByWeek: [(weekStart: Date, patients: [Patient])] {
         let calendar = Calendar.current
@@ -123,21 +124,21 @@ struct PatientsListRootView: View {
         let grouped = Dictionary(grouping: pairs, by: { $0.0 })
             .map { (weekStart, entries) -> (Date, [Patient]) in
                 let uniquePatients = Array(Set(entries.map { $0.1 }))
-                // Sort patients in each section by their nextDoseDue date then name
+                // Sort patients in each section by their nextDoseDue date (latest first) then name
                 let sorted = uniquePatients.sorted { lhs, rhs in
-                    let lDate = nextDoseDueDate(for: lhs) ?? .distantFuture
-                    let rDate = nextDoseDueDate(for: rhs) ?? .distantFuture
+                    let lDate = nextDoseDueDate(for: lhs) ?? .distantPast
+                    let rDate = nextDoseDueDate(for: rhs) ?? .distantPast
                     if lDate == rDate {
                         let lLast = lhs.lastName ?? ""
                         let rLast = rhs.lastName ?? ""
                         if lLast == rLast { return (lhs.firstName ?? "") < (rhs.firstName ?? "") }
                         return lLast < rLast
                     }
-                    return lDate < rDate
+                    return lDate > rDate // Changed from < to > for latest first
                 }
                 return (weekStart, sorted)
             }
-            .sorted { $0.0 < $1.0 }
+            .sorted { $0.0 > $1.0 } // Changed from < to > for latest weeks first
         return grouped
     }
 
@@ -209,7 +210,7 @@ struct PatientsListRootView: View {
                             
                             // Action buttons
                             HStack(spacing: 12) {
-                                // Add Patient button
+                                // Add Patient button (remains as primary action)
                                 Button(action: { showingAddPatient = true }) {
                                     HStack {
                                         Image(systemName: "person.badge.plus")
@@ -232,36 +233,30 @@ struct PatientsListRootView: View {
                                     .shadow(color: goldColor.opacity(0.3), radius: 6, x: 0, y: 3)
                                 }
                                 
-                                // Medication Templates button
-                                Button(action: { showingMedicationTemplates = true }) {
-                                    HStack {
-                                        Image(systemName: "pills")
-                                            .font(.title3)
-                                        Text("Templates")
-                                            .font(.subheadline)
-                                            .fontWeight(.semibold)
+                                // Settings dropdown menu (Templates & Providers)
+                                Menu {
+                                    Button(action: { showingMedicationTemplates = true }) {
+                                        Label("Medication Templates", systemImage: "pills")
                                     }
-                                    .foregroundColor(goldColor)
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 12)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 12)
-                                            .stroke(goldColor, lineWidth: 1.5)
-                                            .background(
-                                                RoundedRectangle(cornerRadius: 12)
-                                                    .fill(Color.white.opacity(0.8))
-                                            )
-                                    )
-                                }
-                                
-                                // Providers button
-                                Button(action: { showingProviders = true }) {
+                                    
+                                    Button(action: { showingProviders = true }) {
+                                        Label("Providers", systemImage: "person.crop.circle.badge.plus")
+                                    }
+                                    
+                                    Divider()
+                                    
+                                    Button(action: { showingAppInfo = true }) {
+                                        Label("About App", systemImage: "info.circle")
+                                    }
+                                } label: {
                                     HStack {
-                                        Image(systemName: "person.crop.circle.badge.plus")
+                                        Image(systemName: "ellipsis.circle")
                                             .font(.title3)
-                                        Text("Providers")
+                                        Text("Settings")
                                             .font(.subheadline)
                                             .fontWeight(.semibold)
+                                        Image(systemName: "chevron.down")
+                                            .font(.caption)
                                     }
                                     .foregroundColor(goldColor)
                                     .frame(maxWidth: .infinity)
@@ -346,6 +341,9 @@ struct PatientsListRootView: View {
             }
             .sheet(isPresented: $showingProviders) {
                 ProvidersListView()
+            }
+            .sheet(isPresented: $showingAppInfo) {
+                AppInfoView()
             }
             .alert("Error", isPresented: $showingErrorAlert) {
                 Button("OK", role: .cancel) { }
@@ -625,6 +623,204 @@ struct PatientCardView: View {
         )
         .padding(.horizontal, 20)
         .shadow(color: goldColor.opacity(0.1), radius: 4, x: 0, y: 2)
+    }
+}
+
+/**
+ * AppInfoView
+ * 
+ * Information screen that provides users with a brief description of the app,
+ * its purpose, and key features. Displayed as a modal sheet from the settings menu.
+ */
+struct AppInfoView: View {
+    @Environment(\.dismiss) private var dismiss
+    
+    // Use the same theme colors as the main view
+    private let goldColor = Color(red: 0.6, green: 0.4, blue: 0.2)
+    private let darkGoldColor = Color(red: 0.45, green: 0.3, blue: 0.15)
+    private let lightBackgroundColor = Color(red: 0.99, green: 0.985, blue: 0.97)
+    private let textColor = Color.black
+    
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                lightBackgroundColor
+                    .ignoresSafeArea()
+                
+                ScrollView {
+                    VStack(spacing: 24) {
+                        // App icon and title
+                        VStack(spacing: 16) {
+                            ZStack {
+                                Circle()
+                                    .fill(
+                                        LinearGradient(
+                                            colors: [goldColor, darkGoldColor],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                    )
+                                    .frame(width: 80, height: 80)
+                                    .shadow(color: goldColor.opacity(0.4), radius: 8, x: 0, y: 4)
+                                
+                                Image(systemName: "pills.fill")
+                                    .font(.system(size: 36))
+                                    .foregroundColor(.white)
+                            }
+                            
+                            Text("LMG Medication")
+                                .font(.title)
+                                .fontWeight(.bold)
+                                .foregroundStyle(
+                                    LinearGradient(
+                                        colors: [goldColor, darkGoldColor],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                        }
+                        
+                        // App description
+                        VStack(alignment: .leading, spacing: 20) {
+                            Text("About This App")
+                                .font(.title2)
+                                .fontWeight(.semibold)
+                                .foregroundColor(goldColor)
+                            
+                            Text("LMG Medication is a comprehensive patient medication management system designed for healthcare professionals. The app helps you track patients, manage medication schedules, and maintain organized records for better patient care.")
+                                .font(.body)
+                                .foregroundColor(textColor)
+                                .lineSpacing(4)
+                            
+                            // Key features
+                            VStack(alignment: .leading, spacing: 12) {
+                                Text("Key Features")
+                                    .font(.headline)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(goldColor)
+                                
+                                FeatureRowView(
+                                    icon: "calendar",
+                                    title: "Schedule Tracking",
+                                    description: "Organize patients by medication due dates",
+                                    goldColor: goldColor
+                                )
+                                
+                                FeatureRowView(
+                                    icon: "person.3.fill",
+                                    title: "Patient Management",
+                                    description: "Add, edit, and track patient information",
+                                    goldColor: goldColor
+                                )
+                                
+                                FeatureRowView(
+                                    icon: "pills",
+                                    title: "Medication Templates",
+                                    description: "Pre-configured medication templates for efficiency",
+                                    goldColor: goldColor
+                                )
+                                
+                                FeatureRowView(
+                                    icon: "person.crop.circle.badge.plus",
+                                    title: "Provider Network",
+                                    description: "Manage healthcare provider information",
+                                    goldColor: goldColor
+                                )
+                                
+                                FeatureRowView(
+                                    icon: "doc.text",
+                                    title: "Professional Reports",
+                                    description: "Generate comprehensive medication reports",
+                                    goldColor: goldColor
+                                )
+                            }
+                            
+                            // Version info
+                            VStack(spacing: 8) {
+                                Divider()
+                                    .background(goldColor.opacity(0.3))
+                                
+                                HStack {
+                                    Text("Version 1.0")
+                                        .font(.caption)
+                                        .foregroundColor(textColor.opacity(0.6))
+                                    
+                                    Spacer()
+                                    
+                                    Text("© 2024 LMG Healthcare")
+                                        .font(.caption)
+                                        .foregroundColor(textColor.opacity(0.6))
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 16)
+                        .background(
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(Color.white.opacity(0.8))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 16)
+                                        .stroke(goldColor.opacity(0.2), lineWidth: 1)
+                                )
+                        )
+                        .padding(.horizontal, 20)
+                    }
+                    .padding(.vertical, 20)
+                }
+            }
+            .navigationTitle("App Information")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                    .foregroundColor(goldColor)
+                    .fontWeight(.semibold)
+                }
+            }
+        }
+    }
+}
+
+/**
+ * FeatureRowView
+ * 
+ * Reusable component for displaying app features in the info screen
+ */
+struct FeatureRowView: View {
+    let icon: String
+    let title: String
+    let description: String
+    let goldColor: Color
+    
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            ZStack {
+                Circle()
+                    .fill(goldColor.opacity(0.15))
+                    .frame(width: 32, height: 32)
+                
+                Image(systemName: icon)
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundColor(goldColor)
+            }
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.black)
+                
+                Text(description)
+                    .font(.caption)
+                    .foregroundColor(.black.opacity(0.7))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            
+            Spacer()
+        }
     }
 }
 
