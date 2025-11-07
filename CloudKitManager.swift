@@ -9,6 +9,7 @@ import Foundation
 import CloudKit
 import SwiftUI
 import Combine
+import CoreData
 
 @MainActor
 class CloudKitManager: ObservableObject {
@@ -504,6 +505,149 @@ class CloudKitManager: ObservableObject {
         } catch {
             print("Error setting up subscription: \(error)")
             await MainActor.run { self.lastErrorMessage = error.localizedDescription }
+        }
+    }
+    
+    // MARK: - Automatic Patient Sharing
+    
+    /// Automatically shares a patient with all active sharing groups
+    func autoSharePatient(_ patient: Patient) async {
+        guard isSignedInToiCloud else {
+            print("Not signed in to iCloud - skipping auto-share")
+            return
+        }
+        
+        // Fetch all active sharing groups from Core Data
+        let context = PersistenceController.shared.container.viewContext
+        let request: NSFetchRequest<SharingGroup> = SharingGroup.fetchRequest()
+        request.predicate = NSPredicate(format: "isActive == YES AND autoShareNewPatients == YES")
+        
+        do {
+            let sharingGroups = try context.fetch(request)
+            
+            for group in sharingGroups {
+                await sharePatientWithGroup(patient, group: group)
+            }
+        } catch {
+            print("Failed to fetch sharing groups: \(error)")
+            await MainActor.run { self.lastErrorMessage = error.localizedDescription }
+        }
+    }
+    
+    /// Shares a patient with a specific sharing group
+    private func sharePatientWithGroup(_ patient: Patient, group: SharingGroup) async {
+        let emails = group.participantEmailsArray
+        guard !emails.isEmpty else { return }
+        
+        do {
+            let participants = try await participants(forEmails: emails, permission: .readWrite)
+            let share = try await sharePatient(patient, with: participants)
+            print("Successfully auto-shared patient \(patient.displayName) with group \(group.displayName)")
+            
+            // Store the share URL or reference in Core Data if needed
+            await storePatientShareInfo(patient: patient, share: share, groupID: group.cloudKitRecordID)
+            
+        } catch {
+            print("Failed to auto-share patient \(patient.displayName) with group \(group.displayName): \(error)")
+        }
+    }
+    
+    /// Stores patient share information in Core Data for tracking
+    @MainActor
+    private func storePatientShareInfo(patient: Patient, share: CKShare, groupID: String?) async {
+        // You might want to create a PatientShare entity to track which patients are shared with which groups
+        // For now, we'll just log the successful share
+        print("Patient \(patient.displayName) shared successfully with URL: \(share.url?.absoluteString ?? "none")")
+    }
+    
+    /// Updates sharing when a sharing group is modified
+    func updateSharingForGroup(_ group: SharingGroup) async {
+        guard isSignedInToiCloud else { return }
+        
+        // If auto-sharing is enabled for this group, share all existing patients
+        if group.autoShareNewPatients {
+            await shareAllExistingPatientsWithGroup(group)
+        }
+    }
+    
+    /// Shares all existing active patients with a sharing group
+    private func shareAllExistingPatientsWithGroup(_ group: SharingGroup) async {
+        let context = PersistenceController.shared.container.viewContext
+        let request: NSFetchRequest<Patient> = Patient.fetchRequest()
+        request.predicate = NSPredicate(format: "isActive == YES")
+        
+        do {
+            let patients = try context.fetch(request)
+            
+            for patient in patients {
+                await sharePatientWithGroup(patient, group: group)
+                
+                // Add a small delay to avoid overwhelming CloudKit
+                try await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
+            }
+        } catch {
+            print("Failed to fetch patients for group sharing: \(error)")
+        }
+    }
+    
+    // MARK: - Sharing Group Management
+    
+    /// Creates a sharing group in CloudKit
+    func createSharingGroup(_ group: SharingGroup) async throws {
+        guard let recordID = group.cloudKitRecordID else {
+            throw CKError(.internalError)
+        }
+        
+        let record = CKRecord(recordType: "SharingGroup", recordID: CKRecord.ID(recordName: recordID))
+        record["name"] = group.name
+        record["participantEmails"] = group.participantEmails
+        record["isActive"] = group.isActive
+        record["autoShareNewPatients"] = group.autoShareNewPatients
+        record["createdDate"] = group.createdDate
+        
+        do {
+            _ = try await privateDatabase.save(record)
+            print("Successfully created sharing group in CloudKit")
+        } catch {
+            await MainActor.run { self.lastErrorMessage = error.localizedDescription }
+            throw error
+        }
+    }
+    
+    /// Updates a sharing group in CloudKit
+    func updateSharingGroup(_ group: SharingGroup) async throws {
+        guard let recordID = group.cloudKitRecordID else {
+            throw CKError(.internalError)
+        }
+        
+        do {
+            let record = try await privateDatabase.record(for: CKRecord.ID(recordName: recordID))
+            record["name"] = group.name
+            record["participantEmails"] = group.participantEmails
+            record["isActive"] = group.isActive
+            record["autoShareNewPatients"] = group.autoShareNewPatients
+            
+            _ = try await privateDatabase.save(record)
+            
+            // Update sharing for this group
+            await updateSharingForGroup(group)
+            
+        } catch {
+            await MainActor.run { self.lastErrorMessage = error.localizedDescription }
+            throw error
+        }
+    }
+    
+    /// Deletes a sharing group from CloudKit
+    func deleteSharingGroup(_ group: SharingGroup) async throws {
+        guard let recordID = group.cloudKitRecordID else { return }
+        
+        do {
+            try await privateDatabase.deleteRecord(withID: CKRecord.ID(recordName: recordID))
+            print("Successfully deleted sharing group from CloudKit")
+        } catch {
+            await MainActor.run { self.lastErrorMessage = error.localizedDescription }
+            throw error
         }
     }
     

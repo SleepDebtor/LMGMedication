@@ -65,6 +65,7 @@ struct PatientsListRootView: View {
     @State private var showingMedicationTemplates = false
     @State private var showingProviders = false
     @State private var showingAppInfo = false
+    @State private var showingSharingGroups = false
     
     /// Error handling
     @State private var showingErrorAlert = false
@@ -243,6 +244,10 @@ struct PatientsListRootView: View {
                                         Label("Providers", systemImage: "person.crop.circle.badge.plus")
                                     }
                                     
+                                    Button(action: { showingSharingGroups = true }) {
+                                        Label("Sharing Groups", systemImage: "person.3.fill")
+                                    }
+                                    
                                     Divider()
                                     
                                     Button(action: { showingAppInfo = true }) {
@@ -341,6 +346,9 @@ struct PatientsListRootView: View {
             }
             .sheet(isPresented: $showingProviders) {
                 ProvidersListView()
+            }
+            .sheet(isPresented: $showingSharingGroups) {
+                SharingGroupsView()
             }
             .sheet(isPresented: $showingAppInfo) {
                 AppInfoView()
@@ -698,6 +706,13 @@ struct AppInfoView: View {
                                     .font(.headline)
                                     .fontWeight(.semibold)
                                     .foregroundColor(goldColor)
+                                
+                                FeatureRowView(
+                                    icon: "person.3.fill",
+                                    title: "Automatic Sharing",
+                                    description: "Create sharing groups to automatically share patients with colleagues",
+                                    goldColor: goldColor
+                                )
                                 
                                 FeatureRowView(
                                     icon: "calendar",

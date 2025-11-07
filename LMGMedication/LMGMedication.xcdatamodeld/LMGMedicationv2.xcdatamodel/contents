@@ -53,6 +53,14 @@
         <relationship name="relationship" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="DispencedMedication" inverseName="prescriber" inverseEntity="DispencedMedication"/>
         <relationship name="stateLicenses" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="StateLicense" inverseName="provider" inverseEntity="StateLicense"/>
     </entity>
+    <entity name="SharingGroup" representedClassName="SharingGroup" syncable="YES">
+        <attribute name="autoShareNewPatients" attributeType="Boolean" defaultValueString="YES" usesScalarValueType="YES"/>
+        <attribute name="cloudKitRecordID" optional="YES" attributeType="String"/>
+        <attribute name="createdDate" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="isActive" attributeType="Boolean" defaultValueString="YES" usesScalarValueType="YES"/>
+        <attribute name="name" optional="YES" attributeType="String"/>
+        <attribute name="participantEmails" optional="YES" attributeType="String"/>
+    </entity>
     <entity name="StateLicense" representedClassName="StateLicense" syncable="YES">
         <attribute name="controlledSub" optional="YES" attributeType="String" allowsCloudEncryption="YES"/>
         <attribute name="number" optional="YES" attributeType="String" allowsCloudEncryption="YES"/>

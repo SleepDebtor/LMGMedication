@@ -44,6 +44,13 @@ public class Patient: Person {
         super.awakeFromInsert()
         self.isActive = true
         self.timeStamp = Date()
+        
+        // Trigger automatic sharing after the patient is fully created
+        DispatchQueue.main.async {
+            Task {
+                await CloudKitManager.shared.autoSharePatient(self)
+            }
+        }
     }
     
     /**

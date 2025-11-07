@@ -10,6 +10,7 @@ import SwiftUI
 import Combine
 import CloudKit
 import UIKit
+internal import CoreData
 
 // MARK: - Error Wrapper for ObservableObject Conformance
 
@@ -38,6 +39,134 @@ class SharingManager: ObservableObject {
     @Published var shareProgress: String = ""
     
     private init() {}
+    
+    // MARK: - Sharing Groups Integration
+    
+    /// Shares all existing patients with a newly created sharing group
+    func shareExistingPatientsWithGroup(_ group: SharingGroup) async throws {
+        guard cloudManager.isSignedInToiCloud else {
+            throw SharingError.notSignedInToiCloud
+        }
+        
+        guard group.autoShareNewPatients else { return }
+        
+        shareProgress = "Fetching existing patients..."
+        
+        // Use a background context for the patient fetch to avoid blocking UI
+        let backgroundContext = PersistenceController.shared.container.newBackgroundContext()
+        
+        await backgroundContext.perform {
+            let request: NSFetchRequest<Patient> = Patient.fetchRequest()
+            request.predicate = NSPredicate(format: "isActive == YES")
+            
+            do {
+                let patients = try backgroundContext.fetch(request)
+                
+                Task {
+                    await self.sharePatients(patients, with: group.participantEmailsArray)
+                }
+            } catch {
+                Task {
+                    await MainActor.run {
+                        self.lastError = SharingErrorWrapper(error)
+                    }
+                }
+            }
+        }
+    }
+    
+    /// Shares multiple patients with a list of email addresses
+    private func sharePatients(_ patients: [Patient], with emailAddresses: [String]) async {
+        guard !emailAddresses.isEmpty else { return }
+        
+        let totalPatients = patients.count
+        
+        for (index, patient) in patients.enumerated() {
+            shareProgress = "Sharing patient \(index + 1) of \(totalPatients)..."
+            
+            do {
+                _ = try await sharePatient(patient, with: emailAddresses)
+                
+                // Add delay to avoid overwhelming CloudKit
+                if index < patients.count - 1 {
+                    try await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
+                }
+            } catch {
+                print("Failed to share patient \(patient.displayName): \(error)")
+                // Continue with other patients rather than failing completely
+            }
+        }
+        
+        await MainActor.run {
+            shareProgress = ""
+            isSharing = false
+        }
+    }
+    
+    // MARK: - Sharing Groups Integration
+    
+    /// Shares all existing patients with a newly created sharing group
+    func shareExistingPatientsWithGroup2(_ group: SharingGroup) async throws {
+        guard cloudManager.isSignedInToiCloud else {
+            throw SharingError.notSignedInToiCloud
+        }
+        
+        guard group.autoShareNewPatients else { return }
+        
+        isSharing = true
+        shareProgress = "Fetching existing patients..."
+        
+        // Use a background context for the patient fetch to avoid blocking UI
+        let context = PersistenceController.shared.container.viewContext
+        let request: NSFetchRequest<Patient> = Patient.fetchRequest()
+        request.predicate = NSPredicate(format: "isActive == YES")
+        
+        do {
+            let patients = try context.fetch(request)
+            await sharePatients(patients, with: group.participantEmailsArray)
+        } catch {
+            await MainActor.run {
+                self.lastError = SharingErrorWrapper(error)
+                self.isSharing = false
+            }
+        }
+    }
+    
+    /// Shares multiple patients with a list of email addresses
+    private func sharePatients2(_ patients: [Patient], with emailAddresses: [String]) async {
+        guard !emailAddresses.isEmpty else {
+            await MainActor.run {
+                isSharing = false
+                shareProgress = ""
+            }
+            return
+        }
+        
+        let totalPatients = patients.count
+        
+        for (index, patient) in patients.enumerated() {
+            await MainActor.run {
+                shareProgress = "Sharing patient \(index + 1) of \(totalPatients)..."
+            }
+            
+            do {
+                _ = try await sharePatient(patient, with: emailAddresses)
+                
+                // Add delay to avoid overwhelming CloudKit
+                if index < patients.count - 1 {
+                    try await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
+                }
+            } catch {
+                print("Failed to share patient \(patient.displayName): \(error)")
+                // Continue with other patients rather than failing completely
+            }
+        }
+        
+        await MainActor.run {
+            shareProgress = ""
+            isSharing = false
+        }
+    }
     
     // MARK: - Patient Sharing
     

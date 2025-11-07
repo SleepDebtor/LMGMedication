@@ -37,7 +37,6 @@
 		BD59A1A62E92BA9900C4516C /* ParticipantSelectionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD59A1A52E92BA9900C4516C /* ParticipantSelectionView.swift */; };
 		BD59A1A82E92BAEB00C4516C /* MedicationLabelPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD59A1A72E92BAEB00C4516C /* MedicationLabelPreviewView.swift */; };
 		BD59A1AA2E92BAF600C4516C /* SharingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD59A1A92E92BAF600C4516C /* SharingTests.swift */; };
-		BD59A1AC2E92E5F500C4516C /* SharingTests 2.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD59A1AB2E92E5F500C4516C /* SharingTests 2.swift */; };
 		BD59A1AE2E92EE7600C4516C /* MedicationPrintManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD59A1AD2E92EE7600C4516C /* MedicationPrintManager.swift */; };
 		BD59A1B02E92FA4900C4516C /* QRCodeGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD59A1AF2E92FA4900C4516C /* QRCodeGenerator.swift */; };
 		BD59A1B22E92FAC200C4516C /* QRCodeTestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD59A1B12E92FAC200C4516C /* QRCodeTestView.swift */; };
@@ -46,6 +45,15 @@
 		BD59A1D62E93238300C4516C /* ProvidersListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD59A1D52E93238300C4516C /* ProvidersListView.swift */; };
 		BD59A1D82E936BFA00C4516C /* BiometricAuth.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD59A1D72E936BFA00C4516C /* BiometricAuth.swift */; };
 		BD59A1DA2E936BFC00C4516C /* AuthenticationGateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD59A1D92E936BFC00C4516C /* AuthenticationGateView.swift */; };
+		BD6C7F992EBE31280053DB2A /* SharingGroup+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD6C7F982EBE31280053DB2A /* SharingGroup+CoreDataClass.swift */; };
+		BD6C7F9B2EBE312D0053DB2A /* SharingGroup+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD6C7F9A2EBE312D0053DB2A /* SharingGroup+CoreDataProperties.swift */; };
+		BD6C7F9D2EBE31680053DB2A /* SharingGroupsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD6C7F9C2EBE31680053DB2A /* SharingGroupsView.swift */; };
+		BD6C7F9F2EBE318B0053DB2A /* SharingGroupEditView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD6C7F9E2EBE318B0053DB2A /* SharingGroupEditView.swift */; };
+		BD6C7FA12EBE319D0053DB2A /* SHARING_SETUP_GUIDE.md in Resources */ = {isa = PBXBuildFile; fileRef = BD6C7FA02EBE319D0053DB2A /* SHARING_SETUP_GUIDE.md */; };
+		BD6C7FA32EBE31BB0053DB2A /* SharingSettingsCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD6C7FA22EBE31BB0053DB2A /* SharingSettingsCard.swift */; };
+		BD6C7FAF2EBE332F0053DB2A /* AUTOMATIC_SHARING_SETUP.md in Resources */ = {isa = PBXBuildFile; fileRef = BD6C7FAE2EBE332F0053DB2A /* AUTOMATIC_SHARING_SETUP.md */; };
+		BD6C7FB12EBE33520053DB2A /* SharingIntegrationExample.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD6C7FB02EBE33520053DB2A /* SharingIntegrationExample.swift */; };
+		BD7BCA792EBE405B001295C7 /* SharingTests 2.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD59A1AB2E92E5F500C4516C /* SharingTests 2.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -108,6 +116,14 @@
 		BD5B529F2E89564F00DD14F1 /* LMGMedication.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LMGMedication.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		BD5B52B32E89565000DD14F1 /* LMGMedicationTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LMGMedicationTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		BD5B52BD2E89565000DD14F1 /* LMGMedicationUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LMGMedicationUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		BD6C7F982EBE31280053DB2A /* SharingGroup+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SharingGroup+CoreDataClass.swift"; sourceTree = "<group>"; };
+		BD6C7F9A2EBE312D0053DB2A /* SharingGroup+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SharingGroup+CoreDataProperties.swift"; sourceTree = "<group>"; };
+		BD6C7F9C2EBE31680053DB2A /* SharingGroupsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharingGroupsView.swift; sourceTree = "<group>"; };
+		BD6C7F9E2EBE318B0053DB2A /* SharingGroupEditView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharingGroupEditView.swift; sourceTree = "<group>"; };
+		BD6C7FA02EBE319D0053DB2A /* SHARING_SETUP_GUIDE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = SHARING_SETUP_GUIDE.md; sourceTree = "<group>"; };
+		BD6C7FA22EBE31BB0053DB2A /* SharingSettingsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharingSettingsCard.swift; sourceTree = "<group>"; };
+		BD6C7FAE2EBE332F0053DB2A /* AUTOMATIC_SHARING_SETUP.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = AUTOMATIC_SHARING_SETUP.md; sourceTree = "<group>"; };
+		BD6C7FB02EBE33520053DB2A /* SharingIntegrationExample.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharingIntegrationExample.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -212,6 +228,14 @@
 				BD28CB3A2EA8775200303D86 /* ARCHITECTURE.md */,
 				BD28CB3C2EA8778C00303D86 /* DEVELOPMENT_GUIDE.md */,
 				BD28CB3E2EA877B700303D86 /* DOCUMENTATION_REVIEW.md */,
+				BD6C7F982EBE31280053DB2A /* SharingGroup+CoreDataClass.swift */,
+				BD6C7F9A2EBE312D0053DB2A /* SharingGroup+CoreDataProperties.swift */,
+				BD6C7F9C2EBE31680053DB2A /* SharingGroupsView.swift */,
+				BD6C7F9E2EBE318B0053DB2A /* SharingGroupEditView.swift */,
+				BD6C7FA02EBE319D0053DB2A /* SHARING_SETUP_GUIDE.md */,
+				BD6C7FA22EBE31BB0053DB2A /* SharingSettingsCard.swift */,
+				BD6C7FAE2EBE332F0053DB2A /* AUTOMATIC_SHARING_SETUP.md */,
+				BD6C7FB02EBE33520053DB2A /* SharingIntegrationExample.swift */,
 			);
 			sourceTree = "<group>";
 		};
@@ -349,7 +373,9 @@
 				BD28CB3F2EA877B700303D86 /* DOCUMENTATION_REVIEW.md in Resources */,
 				BD080AF02EA1ABA300400DFD /* PrivacyPolicy.md in Resources */,
 				BD28CB3B2EA8775200303D86 /* ARCHITECTURE.md in Resources */,
+				BD6C7FAF2EBE332F0053DB2A /* AUTOMATIC_SHARING_SETUP.md in Resources */,
 				BD28CB392EA8770B00303D86 /* README.md in Resources */,
+				BD6C7FA12EBE319D0053DB2A /* SHARING_SETUP_GUIDE.md in Resources */,
 				BD59A1B42E92FB0100C4516C /* QR_Code_Implementation_README.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -377,6 +403,7 @@
 			files = (
 				BD080A382E9D382300400DFD /* StateLicense+CoreDataClass.swift in Sources */,
 				BD080A392E9D382300400DFD /* StateLicense+CoreDataProperties.swift in Sources */,
+				BD6C7FB12EBE33520053DB2A /* SharingIntegrationExample.swift in Sources */,
 				275592A22E8B5FCE00A524A7 /* Provider+CoreDataClass.swift in Sources */,
 				BD482A262E9B4DA800A52070 /* DispencedMedication+BusinessLogic.swift in Sources */,
 				275592A32E8B5FCE00A524A7 /* Person+CoreDataProperties.swift in Sources */,
@@ -387,14 +414,17 @@
 				BD59A1AA2E92BAF600C4516C /* SharingTests.swift in Sources */,
 				275592A42E8B5FCE00A524A7 /* Person+CoreDataClass.swift in Sources */,
 				275592A52E8B5FCE00A524A7 /* DispencedMedication+CoreDataProperties.swift in Sources */,
-				BD59A1AC2E92E5F500C4516C /* SharingTests 2.swift in Sources */,
+				BD6C7F9D2EBE31680053DB2A /* SharingGroupsView.swift in Sources */,
 				BD59A1B02E92FA4900C4516C /* QRCodeGenerator.swift in Sources */,
+				BD6C7FA32EBE31BB0053DB2A /* SharingSettingsCard.swift in Sources */,
+				BD6C7F992EBE31280053DB2A /* SharingGroup+CoreDataClass.swift in Sources */,
 				BD59A1A62E92BA9900C4516C /* ParticipantSelectionView.swift in Sources */,
 				BD59A1AE2E92EE7600C4516C /* MedicationPrintManager.swift in Sources */,
 				27BFA0F12E9C335C003B4292 /* EditProviderView.swift in Sources */,
 				BD080AF22EA2843700400DFD /* OfflinePatientManager.swift in Sources */,
 				BD28CAED2EA8450100303D86 /* DispencedMedication+DispenseUnit.swift in Sources */,
 				275592A62E8B5FCE00A524A7 /* Medication+CoreDataClass.swift in Sources */,
+				BD6C7F9B2EBE312D0053DB2A /* SharingGroup+CoreDataProperties.swift in Sources */,
 				275592A72E8B5FCE00A524A7 /* Provider+CoreDataProperties.swift in Sources */,
 				BD59A1B22E92FAC200C4516C /* QRCodeTestView.swift in Sources */,
 				275592A82E8B5FCE00A524A7 /* Medication+CoreDataProperties.swift in Sources */,
@@ -402,6 +432,7 @@
 				275592A92E8B5FCE00A524A7 /* DispencedMedication+CoreDataClass.swift in Sources */,
 				275592BD2E8B6F9C00A524A7 /* CloudKitManager.swift in Sources */,
 				275592AC2E8B60C700A524A7 /* Patient+CoreDataProperties.swift in Sources */,
+				BD6C7F9F2EBE318B0053DB2A /* SharingGroupEditView.swift in Sources */,
 				2702A9392EA065EE00B63BD1 /* DispencedMedication+Frequency.swift in Sources */,
 				275592AD2E8B60C700A524A7 /* Patient+CoreDataClass.swift in Sources */,
 				BD59A1DA2E936BFC00C4516C /* AuthenticationGateView.swift in Sources */,
@@ -415,6 +446,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BD7BCA792EBE405B001295C7 /* SharingTests 2.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
