@@ -2,8 +2,32 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key></key>
+            <string></string>
+        </dict>
+        <dict>
+            <key>CFBundleURLName</key>
+            <string>CloudKit Share</string>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <string>lmgmedication</string>
+            </array>
+        </dict>
+    </array>
 	<key>NSServices</key>
 	<array>
+		<dict>
+			<key>NSMessage</key>
+			<string></string>
+			<key>NSMenuItem</key>
+			<dict>
+				<key>default</key>
+				<string></string>
+			</dict>
+		</dict>
 		<dict/>
 	</array>
 	<key>UIBackgroundModes</key>

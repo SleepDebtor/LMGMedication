@@ -35,6 +35,38 @@ class CloudKitManager: ObservableObject {
         setupSubscriptions()
     }
     
+    // MARK: - Shared Database Access
+
+    /// Fetches shared patient records from the shared database
+    func fetchSharedPatients() async throws -> [CKRecord] {
+        let query = CKQuery(recordType: "Patient", predicate: NSPredicate(value: true))
+        query.sortDescriptors = [NSSortDescriptor(key: "createdDate", ascending: false)]
+        
+        let (matchResults, _) = try await sharedDatabase.records(matching: query)
+        
+        return matchResults.compactMap { _, result in
+            switch result {
+            case .success(let record):
+                return record
+            case .failure(let error):
+                print("Error fetching shared patient record: \(error)")
+                return nil
+            }
+        }
+    }
+
+    /// Accepts a CloudKit share from a URL
+    func acceptShare(from url: URL) async throws {
+        let metadata = try await container.shareMetadata(for: url)
+        let share = try await container.accept(metadata)
+        print("Successfully accepted share: \(share.url?.absoluteString ?? "unknown")")
+    }
+
+    /// Make container accessible for sharing operations
+    var shareContainer: CKContainer {
+        return container
+    }
+    
     // MARK: - Account Management
     
     func checkAccountStatus() {

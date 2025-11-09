@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Your existing Info.plist content goes here -->
+    
+    <!-- CloudKit Sharing URL Schemes Configuration -->
+    <key>CFBundleURLTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleURLName</key>
+            <string>CloudKit Share</string>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <!-- Replace 'lmgmedication' with your app's bundle identifier or preferred scheme -->
+                <string>lmgmedication</string>
+            </array>
+            <key>CFBundleURLIconFile</key>
+            <string>AppIcon</string>
+        </dict>
+        <!-- CloudKit Universal Links Support (Recommended) -->
+        <dict>
+            <key>CFBundleURLName</key>
+            <string>Universal Links</string>
+            <key>CFBundleURLSchemes</key>
+            <array>
+                <string>https</string>
+            </array>
+        </dict>
+    </array>
+    
+    <!-- Associated Domains for Universal Links (Optional but recommended) -->
+    <key>com.apple.developer.associated-domains</key>
+    <array>
+        <!-- Replace with your CloudKit container's associated domain if you have one -->
+        <string>applinks:your-domain.com</string>
+    </array>
+    
+    <!-- CloudKit Configuration -->
+    <key>CKSharingSupported</key>
+    <true/>
+    
+    <!-- Background Processing for CloudKit -->
+    <key>UIBackgroundModes</key>
+    <array>
+        <string>background-fetch</string>
+        <string>background-processing</string>
+    </array>
+    
+    <!-- Privacy Usage Descriptions -->
+    <key>NSCloudKitSharingDescription</key>
+    <string>This app uses CloudKit to share patient medication data securely between healthcare providers. Sharing allows you to collaborate with colleagues while maintaining patient privacy.</string>
+    
+    <!-- Additional CloudKit Privacy Description -->
+    <key>NSAppleScriptEnabled</key>
+    <false/>
+    
+</dict>
+</plist>

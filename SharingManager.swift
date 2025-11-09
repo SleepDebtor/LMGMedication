@@ -37,6 +37,8 @@ class SharingManager: ObservableObject {
     @Published var isSharing = false
     @Published var lastError: SharingErrorWrapper?
     @Published var shareProgress: String = ""
+    @Published var sharedPatients: [CKRecord] = []
+    @Published var hasSharedContent = false
     
     private init() {}
     
@@ -83,71 +85,6 @@ class SharingManager: ObservableObject {
         
         for (index, patient) in patients.enumerated() {
             shareProgress = "Sharing patient \(index + 1) of \(totalPatients)..."
-            
-            do {
-                _ = try await sharePatient(patient, with: emailAddresses)
-                
-                // Add delay to avoid overwhelming CloudKit
-                if index < patients.count - 1 {
-                    try await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
-                }
-            } catch {
-                print("Failed to share patient \(patient.displayName): \(error)")
-                // Continue with other patients rather than failing completely
-            }
-        }
-        
-        await MainActor.run {
-            shareProgress = ""
-            isSharing = false
-        }
-    }
-    
-    // MARK: - Sharing Groups Integration
-    
-    /// Shares all existing patients with a newly created sharing group
-    func shareExistingPatientsWithGroup2(_ group: SharingGroup) async throws {
-        guard cloudManager.isSignedInToiCloud else {
-            throw SharingError.notSignedInToiCloud
-        }
-        
-        guard group.autoShareNewPatients else { return }
-        
-        isSharing = true
-        shareProgress = "Fetching existing patients..."
-        
-        // Use a background context for the patient fetch to avoid blocking UI
-        let context = PersistenceController.shared.container.viewContext
-        let request: NSFetchRequest<Patient> = Patient.fetchRequest()
-        request.predicate = NSPredicate(format: "isActive == YES")
-        
-        do {
-            let patients = try context.fetch(request)
-            await sharePatients(patients, with: group.participantEmailsArray)
-        } catch {
-            await MainActor.run {
-                self.lastError = SharingErrorWrapper(error)
-                self.isSharing = false
-            }
-        }
-    }
-    
-    /// Shares multiple patients with a list of email addresses
-    private func sharePatients2(_ patients: [Patient], with emailAddresses: [String]) async {
-        guard !emailAddresses.isEmpty else {
-            await MainActor.run {
-                isSharing = false
-                shareProgress = ""
-            }
-            return
-        }
-        
-        let totalPatients = patients.count
-        
-        for (index, patient) in patients.enumerated() {
-            await MainActor.run {
-                shareProgress = "Sharing patient \(index + 1) of \(totalPatients)..."
-            }
             
             do {
                 _ = try await sharePatient(patient, with: emailAddresses)
@@ -223,6 +160,90 @@ class SharingManager: ObservableObject {
         return participants
     }
     
+    // MARK: - Shared Records Management
+    
+    /// Fetches shared patient records from the shared database
+    func fetchSharedPatients() async throws -> [CKRecord] {
+        guard cloudManager.isSignedInToiCloud else {
+            throw SharingError.notSignedInToiCloud
+        }
+        
+        let query = CKQuery(recordType: "Patient", predicate: NSPredicate(value: true))
+        query.sortDescriptors = [NSSortDescriptor(key: "createdDate", ascending: false)]
+        
+        do {
+            // Use CloudKitManager's method to access shared database
+            return try await cloudManager.fetchSharedPatients()
+        } catch {
+            print("Failed to fetch shared patients: \(error)")
+            throw error
+        }
+    }
+    
+    /// Accepts a share by processing the share URL
+    func acceptShare(from url: URL) async throws {
+        guard cloudManager.isSignedInToiCloud else {
+            throw SharingError.notSignedInToiCloud
+        }
+        
+        shareProgress = "Accepting share invitation..."
+        
+        do {
+            // Use CloudKitManager's method to accept shares
+            try await cloudManager.acceptShare(from: url)
+            print("Successfully accepted share: \(url.absoluteString)")
+            
+            // Refresh shared content after acceptance
+            await refreshSharedContent()
+            
+        } catch {
+            print("Failed to accept share: \(error)")
+            throw error
+        }
+    }
+    
+    /// Refreshes shared content from all accepted shares
+    private func refreshSharedContent() async {
+        do {
+            let sharedPatientRecords = try await fetchSharedPatients()
+            
+            await MainActor.run {
+                self.sharedPatients = sharedPatientRecords
+                self.hasSharedContent = !sharedPatientRecords.isEmpty
+                self.shareProgress = ""
+            }
+        } catch {
+            await MainActor.run {
+                self.lastError = SharingErrorWrapper(error)
+                self.shareProgress = ""
+            }
+        }
+    }
+    
+    /// Loads shared content on app startup
+    func loadSharedContent() async {
+        guard cloudManager.isSignedInToiCloud else { return }
+        
+        await refreshSharedContent()
+    }
+    
+    /// Converts a CloudKit patient record to displayable information
+    func patientInfo(from record: CKRecord) -> (name: String, id: String) {
+        let firstName = record["firstName"] as? String ?? ""
+        let lastName = record["lastName"] as? String ?? ""
+        let displayName = "\(firstName) \(lastName)".trimmingCharacters(in: .whitespaces)
+        let recordID = record.recordID.recordName
+        
+        return (name: displayName.isEmpty ? "Unknown Patient" : displayName, id: recordID)
+    }
+    
+    /// Checks if the current user can modify a shared record
+    func canModifySharedRecord(_ record: CKRecord) -> Bool {
+        // Check if the current user has write permissions
+        // This is a simplified check - you might need more sophisticated logic
+        return record.creatorUserRecordID != nil
+    }
+    
     // MARK: - Label PDF Sharing
     
     func shareLabelPDF(data: Data, for medication: DispencedMedication) async throws -> CKShare {
@@ -262,6 +283,8 @@ enum SharingError: LocalizedError {
     case pdfGenerationFailed
     case userNotFound(email: String)
     case participantCreationFailed
+    case shareAcceptanceFailed
+    case sharedContentUnavailable
     
     var errorDescription: String? {
         switch self {
@@ -277,6 +300,10 @@ enum SharingError: LocalizedError {
             return "User with email \(email) not found in iCloud"
         case .participantCreationFailed:
             return "Failed to create sharing participants"
+        case .shareAcceptanceFailed:
+            return "Failed to accept share invitation"
+        case .sharedContentUnavailable:
+            return "Shared content is not available"
         }
     }
 }
@@ -357,11 +384,205 @@ struct SharePatientButton: View {
     }
 }
 
+// MARK: - Share Invitation Acceptance View
+
+struct ShareInvitationView: View {
+    let shareURL: URL
+    @StateObject private var sharingManager = SharingManager.shared
+    @State private var showingAcceptanceResult = false
+    @State private var acceptanceSuccessful = false
+    
+    var body: some View {
+        VStack(spacing: 20) {
+            Image(systemName: "person.2.fill")
+                .font(.system(size: 60))
+                .foregroundColor(.blue)
+            
+            Text("Share Invitation")
+                .font(.title2)
+                .fontWeight(.semibold)
+            
+            Text("You've been invited to access shared patient data. Accept this invitation to collaborate with your colleagues.")
+                .multilineTextAlignment(.center)
+                .foregroundColor(.secondary)
+            
+            if sharingManager.isSharing {
+                ProgressView()
+                    .scaleEffect(1.2)
+                    .padding()
+            }
+            
+            HStack(spacing: 15) {
+                Button("Decline") {
+                    // Handle decline - just dismiss
+                }
+                .buttonStyle(.bordered)
+                
+                Button("Accept") {
+                    Task {
+                        await acceptInvitation()
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(sharingManager.isSharing)
+            }
+        }
+        .padding(30)
+        .background(Color(.systemBackground))
+        .cornerRadius(20)
+        .shadow(radius: 10)
+        .alert("Invitation Result", isPresented: $showingAcceptanceResult) {
+            Button("OK") { }
+        } message: {
+            Text(acceptanceSuccessful ? "Successfully joined the sharing group!" : "Failed to accept invitation. Please try again.")
+        }
+    }
+    
+    private func acceptInvitation() async {
+        do {
+            try await sharingManager.acceptShare(from: shareURL)
+            await MainActor.run {
+                acceptanceSuccessful = true
+                showingAcceptanceResult = true
+            }
+        } catch {
+            await MainActor.run {
+                acceptanceSuccessful = false
+                showingAcceptanceResult = true
+                sharingManager.lastError = SharingErrorWrapper(error)
+            }
+        }
+    }
+}
+
+// MARK: - Shared Patients View
+
+struct SharedPatientsView: View {
+    @StateObject private var sharingManager = SharingManager.shared
+    @State private var isLoading = false
+    
+    var body: some View {
+        NavigationView {
+            Group {
+                if isLoading {
+                    ProgressView("Loading shared patients...")
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else if sharingManager.sharedPatients.isEmpty {
+                    VStack(spacing: 20) {
+                        Image(systemName: "person.2.slash")
+                            .font(.system(size: 60))
+                            .foregroundColor(.secondary)
+                        
+                        Text("No Shared Patients")
+                            .font(.title2)
+                            .fontWeight(.semibold)
+                        
+                        Text("You haven't accepted any shared patient invitations yet.")
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                    }
+                    .padding()
+                } else {
+                    List {
+                        ForEach(sharingManager.sharedPatients, id: \.recordID.recordName) { record in
+                            SharedPatientRow(record: record)
+                        }
+                    }
+                }
+            }
+            .navigationTitle("Shared Patients")
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Refresh") {
+                        Task {
+                            await refreshSharedContent()
+                        }
+                    }
+                    .disabled(isLoading)
+                }
+            }
+        }
+        .onAppear {
+            Task {
+                await loadSharedPatients()
+            }
+        }
+        .alert("Error", isPresented: .constant(sharingManager.lastError != nil)) {
+            Button("OK") {
+                sharingManager.lastError = nil
+            }
+        } message: {
+            if let errorWrapper = sharingManager.lastError {
+                Text(errorWrapper.localizedDescription)
+            }
+        }
+    }
+    
+    private func loadSharedPatients() async {
+        isLoading = true
+        await sharingManager.loadSharedContent()
+        isLoading = false
+    }
+    
+    private func refreshSharedContent() async {
+        isLoading = true
+        await sharingManager.loadSharedContent()
+        isLoading = false
+    }
+}
+
+struct SharedPatientRow: View {
+    let record: CKRecord
+    @StateObject private var sharingManager = SharingManager.shared
+    
+    var body: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 4) {
+                let patientInfo = sharingManager.patientInfo(from: record)
+                
+                Text(patientInfo.name)
+                    .font(.headline)
+                
+                Text("Shared Patient")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                
+                if let modificationDate = record.modificationDate {
+                    Text("Modified: \(modificationDate, style: .relative)")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                }
+            }
+            
+            Spacer()
+            
+            VStack(alignment: .trailing, spacing: 4) {
+                Image(systemName: "person.2.fill")
+                    .foregroundColor(.blue)
+                
+                if sharingManager.canModifySharedRecord(record) {
+                    Text("Can Edit")
+                        .font(.caption2)
+                        .foregroundColor(.green)
+                } else {
+                    Text("Read Only")
+                        .font(.caption2)
+                        .foregroundColor(.orange)
+                }
+            }
+        }
+        .padding(.vertical, 4)
+    }
+}
+
+// MARK: - Share Label Button
+
 struct ShareLabelButton: View {
     let medication: DispencedMedication
     @StateObject private var sharingManager = SharingManager.shared
     @State private var shareURL: URL?
     @State private var showLocalShare = false
+    @State private var localPDFData: Data?
     
     var body: some View {
         Menu {
@@ -408,7 +629,7 @@ struct ShareLabelButton: View {
             ShareSheet(activityItems: [item.url])
         }
         .sheet(isPresented: $showLocalShare) {
-            if let pdfData = shareURL?.data {
+            if let pdfData = localPDFData {
                 ShareSheet(activityItems: [pdfData])
             }
         }
@@ -455,15 +676,8 @@ struct ShareLabelButton: View {
                 throw SharingError.pdfGenerationFailed
             }
             
-            // Create a temporary URL for local sharing
-            let tempURL = FileManager.default.temporaryDirectory
-                .appendingPathComponent("medication_label_\(UUID().uuidString)")
-                .appendingPathExtension("pdf")
-            
-            try pdfData.write(to: tempURL)
-            
             await MainActor.run {
-                shareURL = tempURL
+                localPDFData = pdfData
                 showLocalShare = true
             }
         } catch {
@@ -474,20 +688,23 @@ struct ShareLabelButton: View {
     }
 }
 
-// MARK: - Helper Types
+// MARK: - Helper Classes for Sharing
 
 struct ShareURLItem: Identifiable {
     let id = UUID()
     let url: URL
 }
 
+import UIKit
+
 struct ShareSheet: UIViewControllerRepresentable {
     let activityItems: [Any]
+    let applicationActivities: [UIActivity]? = nil
     
     func makeUIViewController(context: Context) -> UIActivityViewController {
         let controller = UIActivityViewController(
             activityItems: activityItems,
-            applicationActivities: nil
+            applicationActivities: applicationActivities
         )
         return controller
     }
@@ -496,12 +713,3 @@ struct ShareSheet: UIViewControllerRepresentable {
         // No updates needed
     }
 }
-
-// MARK: - URL Extension for PDF Data
-
-extension URL {
-    var data: Data? {
-        return try? Data(contentsOf: self)
-    }
-}
-

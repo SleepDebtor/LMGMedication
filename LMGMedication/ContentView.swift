@@ -377,7 +377,11 @@ struct PatientsListRootView: View {
                 }
             }
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
+                ToolbarItemGroup(placement: .navigationBarTrailing) {
+                    NavigationLink(destination: ShareTestView()) {
+                        Image(systemName: "square.and.arrow.up.circle")
+                            .foregroundColor(.blue)
+                    }
                     EnvironmentBadgeView()
                 }
             }

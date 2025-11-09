@@ -123,6 +123,11 @@ struct AddPatientView: View {
             print("Successfully created patient: \(newPatient.displayName)")
             #endif
             
+            // Auto-share with sharing groups if enabled
+            Task {
+                await shareWithAutoSharingGroups(patient: newPatient)
+            }
+            
             // Dismiss on success
             DispatchQueue.main.async {
                 self.dismiss()
@@ -218,6 +223,38 @@ struct AddPatientView: View {
             print("Validation error key: \(validationErrorKey)")
         }
         #endif
+    }
+    
+    /// Automatically shares the new patient with any sharing groups that have auto-sharing enabled
+    private func shareWithAutoSharingGroups(patient: Patient) async {
+        // Fetch sharing groups with auto-sharing enabled
+        let request: NSFetchRequest<SharingGroup> = SharingGroup.fetchRequest()
+        request.predicate = NSPredicate(format: "isActive == YES AND autoShareNewPatients == YES")
+        
+        do {
+            let autoSharingGroups = try viewContext.fetch(request)
+            
+            if !autoSharingGroups.isEmpty {
+                print("🔄 Auto-sharing new patient '\(patient.displayName)' with \(autoSharingGroups.count) sharing group(s)")
+                
+                let sharingManager = SharingManager.shared
+                
+                for group in autoSharingGroups {
+                    do {
+                        print("📤 Sharing patient with group: \(group.displayName)")
+                        _ = try await sharingManager.sharePatient(patient, with: group.participantEmailsArray)
+                        print("✅ Successfully shared patient with group: \(group.displayName)")
+                    } catch {
+                        print("❌ Failed to share patient with group '\(group.displayName)': \(error.localizedDescription)")
+                        // Continue with other groups rather than failing completely
+                    }
+                }
+            } else {
+                print("ℹ️ No auto-sharing groups found for new patient")
+            }
+        } catch {
+            print("❌ Failed to fetch sharing groups: \(error.localizedDescription)")
+        }
     }
 }
 
