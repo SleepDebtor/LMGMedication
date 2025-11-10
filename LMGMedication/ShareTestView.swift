@@ -18,6 +18,25 @@ struct ShareTestView: View {
                 .font(.title2)
                 .fontWeight(.bold)
             
+            #if targetEnvironment(simulator)
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Image(systemName: "info.circle.fill")
+                        .foregroundColor(.blue)
+                    Text("Simulator Mode")
+                        .font(.headline)
+                        .foregroundColor(.blue)
+                }
+                
+                Text("You may see sandbox extension errors in the simulator. This is normal and doesn't affect functionality on real devices.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            .padding()
+            .background(Color.blue.opacity(0.1))
+            .cornerRadius(8)
+            #endif
+            
             Text("Paste your CloudKit share URL here to test the invitation flow:")
                 .multilineTextAlignment(.center)
                 .foregroundColor(.secondary)
@@ -30,6 +49,8 @@ struct ShareTestView: View {
             Button("Test Share Invitation") {
                 if let url = URL(string: testURLString.trimmingCharacters(in: .whitespacesAndNewlines)) {
                     Task {
+                        print("🧪 Testing URL: \(url.absoluteString)")
+                        print("🧪 Note: Sandbox extension errors are expected in simulator")
                         await urlHandler.handleIncomingURL(url)
                     }
                 }

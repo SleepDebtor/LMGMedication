@@ -6,6 +6,7 @@
 //
 
 import CoreData
+import Foundation
 
 /**
  * PersistenceController
@@ -14,7 +15,7 @@ import CoreData
  * Provides both production and preview configurations with comprehensive error handling.
  * 
  * Key Features:
- * - CloudKit synchronization with iCloud.LMGMedication container
+ * - CloudKit synchronization with iCloud.LMGMedications container
  * - Automatic lightweight migration support
  * - Robust error handling with recovery mechanisms
  * - Preview data generation for SwiftUI previews and testing
@@ -170,7 +171,7 @@ struct PersistenceController {
             if !inMemory {
                 // Configure CloudKit container options
                 description.cloudKitContainerOptions = NSPersistentCloudKitContainerOptions(
-                    containerIdentifier: "iCloud.LMGMedication"
+                    containerIdentifier: CloudKitConstants.containerIdentifier
                 )
             }
         }

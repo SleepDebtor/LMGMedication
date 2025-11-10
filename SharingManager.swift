@@ -112,11 +112,42 @@ class SharingManager: ObservableObject {
             throw SharingError.notSignedInToiCloud
         }
         
+        print("🔄 SharingManager: Starting to share patient \(patient.displayName) with \(emailAddresses.count) email(s)")
+        
         shareProgress = "Creating participants..."
         let participants = try await createParticipants(from: emailAddresses)
         
         shareProgress = "Creating share..."
-        return try await cloudManager.sharePatient(patient, with: participants)
+        do {
+            let share = try await cloudManager.sharePatient(patient, with: participants)
+            print("✅ SharingManager: Successfully created share for patient \(patient.displayName)")
+            return share
+        } catch {
+            print("❌ SharingManager: Failed to share patient \(patient.displayName): \(error)")
+            
+            // Provide more specific error messages
+            if let ckError = error as? CKError {
+                switch ckError.code {
+                case .quotaExceeded:
+                    throw SharingError.quotaExceeded
+                case .networkUnavailable, .networkFailure:
+                    throw SharingError.networkError
+                case .partialFailure:
+                    // Get details about what failed
+                    var failureDetails = "Unknown partial failure"
+                    if let partialErrors = ckError.userInfo[CKPartialErrorsByItemIDKey] as? [CKRecord.ID: Error] {
+                        let errorCount = partialErrors.count
+                        failureDetails = "\(errorCount) record(s) failed to save"
+                    }
+                    throw SharingError.partialFailure(details: failureDetails)
+                case .unknownItem:
+                    throw SharingError.recordNotFound
+                default:
+                    throw error
+                }
+            }
+            throw error
+        }
     }
     
     func generatePatientShareLink(_ patient: Patient, with emailAddresses: [String] = []) async throws -> URL {
@@ -128,7 +159,7 @@ class SharingManager: ObservableObject {
     }
     
     private func createParticipants(from emailAddresses: [String]) async throws -> [CKShare.Participant] {
-        let container = CKContainer(identifier: "iCloud.LMGMedications")
+        let container = CKContainer(identifier: CloudKitConstants.containerIdentifier)
         var participants: [CKShare.Participant] = []
         
         func fetchParticipant(for email: String) async throws -> CKShare.Participant {
@@ -186,18 +217,49 @@ class SharingManager: ObservableObject {
             throw SharingError.notSignedInToiCloud
         }
         
+        print("🔗 Attempting to accept share from URL: \(url.absoluteString)")
         shareProgress = "Accepting share invitation..."
         
         do {
+            // Try to get access to the URL first
+            if url.startAccessingSecurityScopedResource() {
+                defer { url.stopAccessingSecurityScopedResource() }
+                print("✅ Successfully gained access to security-scoped resource")
+            } else {
+                print("⚠️ Could not access security-scoped resource, continuing anyway...")
+            }
+            
             // Use CloudKitManager's method to accept shares
             try await cloudManager.acceptShare(from: url)
-            print("Successfully accepted share: \(url.absoluteString)")
+            print("✅ Successfully accepted share: \(url.absoluteString)")
             
             // Refresh shared content after acceptance
             await refreshSharedContent()
             
         } catch {
-            print("Failed to accept share: \(error)")
+            print("❌ Failed to accept share: \(error)")
+            
+            // Handle specific sandbox/security errors
+            if let nsError = error as NSError? {
+                if nsError.domain == "NSCocoaErrorDomain" && nsError.code == 257 {
+                    // Sandbox extension error
+                    throw SharingError.shareAcceptanceFailed
+                }
+            }
+            
+            if let ckError = error as? CKError {
+                switch ckError.code {
+                case .networkUnavailable, .networkFailure:
+                    throw SharingError.networkError
+                case .quotaExceeded:
+                    throw SharingError.quotaExceeded
+                case .unknownItem:
+                    throw SharingError.recordNotFound
+                default:
+                    throw error
+                }
+            }
+            
             throw error
         }
     }
@@ -285,6 +347,10 @@ enum SharingError: LocalizedError {
     case participantCreationFailed
     case shareAcceptanceFailed
     case sharedContentUnavailable
+    case recordNotFound
+    case networkError
+    case quotaExceeded
+    case partialFailure(details: String)
     
     var errorDescription: String? {
         switch self {
@@ -304,6 +370,14 @@ enum SharingError: LocalizedError {
             return "Failed to accept share invitation"
         case .sharedContentUnavailable:
             return "Shared content is not available"
+        case .recordNotFound:
+            return "Patient record not found in iCloud. Please try syncing first."
+        case .networkError:
+            return "Network connection required for sharing. Please check your connection."
+        case .quotaExceeded:
+            return "iCloud storage limit reached. Please free up space or upgrade your plan."
+        case .partialFailure(let details):
+            return "Some records couldn't be shared: \(details)"
         }
     }
 }

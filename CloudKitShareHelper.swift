@@ -51,7 +51,7 @@ class CloudKitShareHelper {
     
     /// Creates a custom URL scheme version of an iCloud share URL to avoid sandbox issues
     static func convertToCustomScheme(_ iCloudURL: URL) -> URL? {
-        guard let urlComponents = URLComponents(url: iCloudURL, resolvingAgagetBaseURL: false) else {
+        guard let urlComponents = URLComponents(url: iCloudURL, resolvingAgainstBaseURL: false) else {
             return nil
         }
         

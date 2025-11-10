@@ -54,6 +54,10 @@
 		BD6C7FAF2EBE332F0053DB2A /* AUTOMATIC_SHARING_SETUP.md in Resources */ = {isa = PBXBuildFile; fileRef = BD6C7FAE2EBE332F0053DB2A /* AUTOMATIC_SHARING_SETUP.md */; };
 		BD6C7FB12EBE33520053DB2A /* SharingIntegrationExample.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD6C7FB02EBE33520053DB2A /* SharingIntegrationExample.swift */; };
 		BD7BCA792EBE405B001295C7 /* SharingTests 2.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD59A1AB2E92E5F500C4516C /* SharingTests 2.swift */; };
+		BDACE5B72EC122170087DC63 /* CloudKitShareHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDACE5B62EC122170087DC63 /* CloudKitShareHelper.swift */; };
+		BDACE5B92EC122B00087DC63 /* CloudKitConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDACE5B82EC122B00087DC63 /* CloudKitConstants.swift */; };
+		BDACE5BD2EC16CE80087DC63 /* iCloudStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDACE5BC2EC16CE80087DC63 /* iCloudStatusView.swift */; };
+		BDACE5BF2EC177C80087DC63 /* DevShareHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDACE5BE2EC177C80087DC63 /* DevShareHelper.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -124,6 +128,10 @@
 		BD6C7FA22EBE31BB0053DB2A /* SharingSettingsCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharingSettingsCard.swift; sourceTree = "<group>"; };
 		BD6C7FAE2EBE332F0053DB2A /* AUTOMATIC_SHARING_SETUP.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = AUTOMATIC_SHARING_SETUP.md; sourceTree = "<group>"; };
 		BD6C7FB02EBE33520053DB2A /* SharingIntegrationExample.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharingIntegrationExample.swift; sourceTree = "<group>"; };
+		BDACE5B62EC122170087DC63 /* CloudKitShareHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitShareHelper.swift; sourceTree = "<group>"; };
+		BDACE5B82EC122B00087DC63 /* CloudKitConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitConstants.swift; sourceTree = "<group>"; };
+		BDACE5BC2EC16CE80087DC63 /* iCloudStatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = iCloudStatusView.swift; sourceTree = "<group>"; };
+		BDACE5BE2EC177C80087DC63 /* DevShareHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DevShareHelper.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -236,6 +244,10 @@
 				BD6C7FA22EBE31BB0053DB2A /* SharingSettingsCard.swift */,
 				BD6C7FAE2EBE332F0053DB2A /* AUTOMATIC_SHARING_SETUP.md */,
 				BD6C7FB02EBE33520053DB2A /* SharingIntegrationExample.swift */,
+				BDACE5B62EC122170087DC63 /* CloudKitShareHelper.swift */,
+				BDACE5B82EC122B00087DC63 /* CloudKitConstants.swift */,
+				BDACE5BC2EC16CE80087DC63 /* iCloudStatusView.swift */,
+				BDACE5BE2EC177C80087DC63 /* DevShareHelper.swift */,
 			);
 			sourceTree = "<group>";
 		};
@@ -403,6 +415,7 @@
 			files = (
 				BD080A382E9D382300400DFD /* StateLicense+CoreDataClass.swift in Sources */,
 				BD080A392E9D382300400DFD /* StateLicense+CoreDataProperties.swift in Sources */,
+				BDACE5BD2EC16CE80087DC63 /* iCloudStatusView.swift in Sources */,
 				BD6C7FB12EBE33520053DB2A /* SharingIntegrationExample.swift in Sources */,
 				275592A22E8B5FCE00A524A7 /* Provider+CoreDataClass.swift in Sources */,
 				BD482A262E9B4DA800A52070 /* DispencedMedication+BusinessLogic.swift in Sources */,
@@ -416,6 +429,8 @@
 				275592A52E8B5FCE00A524A7 /* DispencedMedication+CoreDataProperties.swift in Sources */,
 				BD6C7F9D2EBE31680053DB2A /* SharingGroupsView.swift in Sources */,
 				BD59A1B02E92FA4900C4516C /* QRCodeGenerator.swift in Sources */,
+				BDACE5BF2EC177C80087DC63 /* DevShareHelper.swift in Sources */,
+				BDACE5B72EC122170087DC63 /* CloudKitShareHelper.swift in Sources */,
 				BD6C7FA32EBE31BB0053DB2A /* SharingSettingsCard.swift in Sources */,
 				BD6C7F992EBE31280053DB2A /* SharingGroup+CoreDataClass.swift in Sources */,
 				BD59A1A62E92BA9900C4516C /* ParticipantSelectionView.swift in Sources */,
@@ -432,6 +447,7 @@
 				275592A92E8B5FCE00A524A7 /* DispencedMedication+CoreDataClass.swift in Sources */,
 				275592BD2E8B6F9C00A524A7 /* CloudKitManager.swift in Sources */,
 				275592AC2E8B60C700A524A7 /* Patient+CoreDataProperties.swift in Sources */,
+				BDACE5B92EC122B00087DC63 /* CloudKitConstants.swift in Sources */,
 				BD6C7F9F2EBE318B0053DB2A /* SharingGroupEditView.swift in Sources */,
 				2702A9392EA065EE00B63BD1 /* DispencedMedication+Frequency.swift in Sources */,
 				275592AD2E8B60C700A524A7 /* Patient+CoreDataClass.swift in Sources */,

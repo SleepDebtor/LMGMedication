@@ -26,6 +26,12 @@ class ShareURLHandler: ObservableObject {
         // Check if this is a CloudKit share URL
         if isCloudKitShareURL(url) {
             print("✅ ShareURLHandler: Detected as CloudKit share URL")
+            
+            // Handle sandbox extension issues for simulator
+            #if targetEnvironment(simulator)
+            print("🧪 Running in simulator - attempting to work around sandbox extension issues")
+            #endif
+            
             pendingShareURL = url
             showingShareInvitation = true
         } else {
