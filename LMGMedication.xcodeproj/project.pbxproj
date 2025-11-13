@@ -23,6 +23,8 @@
 		278823182E9DC90200BCBD57 /* Degree.swift in Sources */ = {isa = PBXBuildFile; fileRef = 278823172E9DC90200BCBD57 /* Degree.swift */; };
 		2788231A2E9FD50500BCBD57 /* EnvironmentInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 278823192E9FD50500BCBD57 /* EnvironmentInfo.swift */; };
 		27BFA0F12E9C335C003B4292 /* EditProviderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27BFA0F02E9C335C003B4292 /* EditProviderView.swift */; };
+		27D9C9692EC64F71008C1B94 /* MedicationPatientListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27D9C9682EC64F71008C1B94 /* MedicationPatientListView.swift */; };
+		27F62E392EC65894009965B6 /* AlphabeticalPatientListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27F62E382EC65894009965B6 /* AlphabeticalPatientListView.swift */; };
 		BD080A382E9D382300400DFD /* StateLicense+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD080A362E9D382300400DFD /* StateLicense+CoreDataClass.swift */; };
 		BD080A392E9D382300400DFD /* StateLicense+CoreDataProperties.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD080A372E9D382300400DFD /* StateLicense+CoreDataProperties.swift */; };
 		BD080AF02EA1ABA300400DFD /* PrivacyPolicy.md in Resources */ = {isa = PBXBuildFile; fileRef = BD080AEF2EA1ABA300400DFD /* PrivacyPolicy.md */; };
@@ -94,6 +96,8 @@
 		278823172E9DC90200BCBD57 /* Degree.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Degree.swift; sourceTree = "<group>"; };
 		278823192E9FD50500BCBD57 /* EnvironmentInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnvironmentInfo.swift; sourceTree = "<group>"; };
 		27BFA0F02E9C335C003B4292 /* EditProviderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditProviderView.swift; sourceTree = "<group>"; };
+		27D9C9682EC64F71008C1B94 /* MedicationPatientListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicationPatientListView.swift; sourceTree = "<group>"; };
+		27F62E382EC65894009965B6 /* AlphabeticalPatientListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlphabeticalPatientListView.swift; sourceTree = "<group>"; };
 		BD080A362E9D382300400DFD /* StateLicense+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StateLicense+CoreDataClass.swift"; sourceTree = "<group>"; };
 		BD080A372E9D382300400DFD /* StateLicense+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StateLicense+CoreDataProperties.swift"; sourceTree = "<group>"; };
 		BD080AEF2EA1ABA300400DFD /* PrivacyPolicy.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = PrivacyPolicy.md; sourceTree = "<group>"; };
@@ -248,6 +252,8 @@
 				BDACE5B82EC122B00087DC63 /* CloudKitConstants.swift */,
 				BDACE5BC2EC16CE80087DC63 /* iCloudStatusView.swift */,
 				BDACE5BE2EC177C80087DC63 /* DevShareHelper.swift */,
+				27D9C9682EC64F71008C1B94 /* MedicationPatientListView.swift */,
+				27F62E382EC65894009965B6 /* AlphabeticalPatientListView.swift */,
 			);
 			sourceTree = "<group>";
 		};
@@ -423,9 +429,11 @@
 				BD59A1A82E92BAEB00C4516C /* MedicationLabelPreviewView.swift in Sources */,
 				BD59A1D42E93232E00C4516C /* AddProviderView.swift in Sources */,
 				BD59A1A42E92BA8600C4516C /* MedicationLabelPDFGenerator.swift in Sources */,
+				27D9C9692EC64F71008C1B94 /* MedicationPatientListView.swift in Sources */,
 				275592BF2E8B702800A524A7 /* SharingManager.swift in Sources */,
 				BD59A1AA2E92BAF600C4516C /* SharingTests.swift in Sources */,
 				275592A42E8B5FCE00A524A7 /* Person+CoreDataClass.swift in Sources */,
+				27F62E392EC65894009965B6 /* AlphabeticalPatientListView.swift in Sources */,
 				275592A52E8B5FCE00A524A7 /* DispencedMedication+CoreDataProperties.swift in Sources */,
 				BD6C7F9D2EBE31680053DB2A /* SharingGroupsView.swift in Sources */,
 				BD59A1B02E92FA4900C4516C /* QRCodeGenerator.swift in Sources */,

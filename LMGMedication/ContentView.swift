@@ -66,6 +66,8 @@ struct PatientsListRootView: View {
     @State private var showingProviders = false
     @State private var showingAppInfo = false
     @State private var showingSharingGroups = false
+    @State private var showingMedicationPatientList = false
+    @State private var showingAlphabeticalPatientList = false
     
     /// Error handling
     @State private var showingErrorAlert = false
@@ -236,6 +238,16 @@ struct PatientsListRootView: View {
                                 
                                 // Settings dropdown menu (Templates & Providers)
                                 Menu {
+                                    Button(action: { showingAlphabeticalPatientList = true }) {
+                                        Label("Alphabetical Patient List", systemImage: "list.bullet.indent")
+                                    }
+                                    
+                                    Button(action: { showingMedicationPatientList = true }) {
+                                        Label("Patients by Medication", systemImage: "list.bullet.rectangle.portrait")
+                                    }
+                                    
+                                    Divider()
+                                    
                                     Button(action: { showingMedicationTemplates = true }) {
                                         Label("Medication Templates", systemImage: "pills")
                                     }
@@ -352,6 +364,12 @@ struct PatientsListRootView: View {
             }
             .sheet(isPresented: $showingAppInfo) {
                 AppInfoView()
+            }
+            .sheet(isPresented: $showingMedicationPatientList) {
+                MedicationPatientListView()
+            }
+            .sheet(isPresented: $showingAlphabeticalPatientList) {
+                AlphabeticalPatientListView()
             }
             .alert("Error", isPresented: $showingErrorAlert) {
                 Button("OK", role: .cancel) { }

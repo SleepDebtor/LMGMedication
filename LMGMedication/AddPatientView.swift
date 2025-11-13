@@ -26,6 +26,17 @@ struct AddPatientView: View {
         !lastName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
     
+    private var potentialDuplicate: Patient? {
+        let trimmedFirstName = firstName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedLastName = lastName.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        guard !trimmedFirstName.isEmpty && !trimmedLastName.isEmpty else {
+            return nil
+        }
+        
+        return checkForDuplicatePatient(firstName: trimmedFirstName, lastName: trimmedLastName, birthdate: birthdate)
+    }
+    
     var body: some View {
         NavigationView {
             Form {
@@ -47,7 +58,24 @@ struct AddPatientView: View {
                 }
                 
                 Section {
-                    if !isValidInput {
+                    if let duplicate = potentialDuplicate {
+                        HStack(alignment: .top, spacing: 8) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundColor(.orange)
+                                .font(.body)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Possible Duplicate Patient")
+                                    .font(.subheadline)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(.orange)
+                                let middleNameText = duplicate.middleName.map { " \($0)" } ?? ""
+                                Text("A patient named \(duplicate.firstName ?? "")\(middleNameText) \(duplicate.lastName ?? "") with birthdate \(formatDate(duplicate.birthdate)) already exists.")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        .padding(.vertical, 4)
+                    } else if !isValidInput {
                         Text("Please enter both first and last name")
                             .foregroundColor(.secondary)
                             .font(.caption)
@@ -67,7 +95,7 @@ struct AddPatientView: View {
                     Button("Save") {
                         savePatient()
                     }
-                    .disabled(!isValidInput || isSaving)
+                    .disabled(!isValidInput || isSaving || potentialDuplicate != nil)
                 }
             }
             .alert("Error", isPresented: $showingErrorAlert) {
@@ -92,6 +120,15 @@ struct AddPatientView: View {
         guard !trimmedFirstName.isEmpty, !trimmedLastName.isEmpty else {
             isSaving = false
             errorMessage = "Please enter both first and last name"
+            showingErrorAlert = true
+            return
+        }
+        
+        // Check for duplicate patient
+        if let duplicate = checkForDuplicatePatient(firstName: trimmedFirstName, lastName: trimmedLastName, birthdate: birthdate) {
+            isSaving = false
+            let middleNameText = duplicate.middleName.map { " \($0)" } ?? ""
+            errorMessage = "A patient with the name \(duplicate.firstName ?? "")\(middleNameText) \(duplicate.lastName ?? "") and birthdate \(formatDate(duplicate.birthdate)) already exists."
             showingErrorAlert = true
             return
         }
@@ -223,6 +260,53 @@ struct AddPatientView: View {
             print("Validation error key: \(validationErrorKey)")
         }
         #endif
+    }
+    
+    /// Checks if a patient with the same name and birthdate already exists
+    /// - Parameters:
+    ///   - firstName: The patient's first name
+    ///   - lastName: The patient's last name
+    ///   - birthdate: The patient's date of birth
+    /// - Returns: The duplicate Patient if found, nil otherwise
+    private func checkForDuplicatePatient(firstName: String, lastName: String, birthdate: Date) -> Patient? {
+        let request: NSFetchRequest<Patient> = Patient.fetchRequest()
+        
+        // Normalize the birthdate to start of day to avoid time component issues
+        let calendar = Calendar.current
+        let startOfDay = calendar.startOfDay(for: birthdate)
+        let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay)!
+        
+        // Search for active patients with matching first name, last name, and birthdate
+        // Using case-insensitive comparison for names
+        request.predicate = NSPredicate(
+            format: "isActive == YES AND firstName ==[c] %@ AND lastName ==[c] %@ AND birthdate >= %@ AND birthdate < %@",
+            firstName,
+            lastName,
+            startOfDay as NSDate,
+            endOfDay as NSDate
+        )
+        request.fetchLimit = 1
+        
+        do {
+            let results = try viewContext.fetch(request)
+            return results.first
+        } catch {
+            #if DEBUG
+            print("Error checking for duplicate patient: \(error)")
+            #endif
+            return nil
+        }
+    }
+    
+    /// Formats a date for display in error messages
+    /// - Parameter date: The date to format (optional)
+    /// - Returns: Formatted date string or "Unknown" if date is nil
+    private func formatDate(_ date: Date?) -> String {
+        guard let date = date else { return "Unknown" }
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .none
+        return formatter.string(from: date)
     }
     
     /// Automatically shares the new patient with any sharing groups that have auto-sharing enabled
