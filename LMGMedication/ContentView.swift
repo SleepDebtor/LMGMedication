@@ -12,12 +12,31 @@ import CoreData
  * ContentView
  * 
  * Root view container that displays the main patients list interface.
- * Acts as a simple wrapper around PatientsListRootView.
+ * Provides a toggle to switch between viewing patients by next dose due or alphabetically.
  */
 struct ContentView: View {
+    @State private var viewMode: PatientViewMode = .byNextDose
+    
     var body: some View {
-        PatientsListRootView()
+        Group {
+            switch viewMode {
+            case .byNextDose:
+                PatientsListRootView(viewMode: $viewMode)
+            case .alphabetical:
+                AlphabeticalPatientListMainView(viewMode: $viewMode)
+            }
+        }
     }
+}
+
+/**
+ * PatientViewMode
+ * 
+ * Enum to represent different viewing modes for the patient list
+ */
+enum PatientViewMode {
+    case byNextDose
+    case alphabetical
 }
 
 /**
@@ -40,6 +59,7 @@ struct ContentView: View {
  */
 struct PatientsListRootView: View {
     @Environment(\.managedObjectContext) private var viewContext
+    @Binding var viewMode: PatientViewMode
     
     // MARK: - Core Data Fetch Requests
     
@@ -72,6 +92,9 @@ struct PatientsListRootView: View {
     /// Error handling
     @State private var showingErrorAlert = false
     @State private var errorMessage: String = ""
+    
+    /// Search functionality
+    @State private var searchText = ""
     
     // MARK: - Theme Colors
     
@@ -161,6 +184,53 @@ struct PatientsListRootView: View {
                 return lLast < rLast
             }
     }
+    
+    /**
+     * Checks if a patient matches the search text
+     * Searches in first name, last name, and medications
+     */
+    private func patientMatchesSearch(_ patient: Patient) -> Bool {
+        guard !searchText.isEmpty else { return true }
+        
+        let searchLower = searchText.lowercased()
+        let firstName = (patient.firstName ?? "").lowercased()
+        let lastName = (patient.lastName ?? "").lowercased()
+        
+        // Search in patient name
+        if firstName.contains(searchLower) || lastName.contains(searchLower) {
+            return true
+        }
+        
+        // Search in medication names
+        let medications = patient.dispensedMedicationsArray
+            .filter { $0.isActive }
+            .compactMap { $0.baseMedication?.name?.lowercased() }
+        
+        return medications.contains { $0.contains(searchLower) }
+    }
+    
+    /**
+     * Filtered version of groupedByWeek that applies search text
+     */
+    private var filteredGroupedByWeek: [(weekStart: Date, patients: [Patient])] {
+        guard !searchText.isEmpty else { return groupedByWeek }
+        
+        return groupedByWeek.compactMap { group in
+            let matchingPatients = group.patients.filter { patientMatchesSearch($0) }
+            if matchingPatients.isEmpty {
+                return nil
+            }
+            return (weekStart: group.weekStart, patients: matchingPatients)
+        }
+    }
+    
+    /**
+     * Filtered version of noNextDosePatients that applies search text
+     */
+    private var filteredNoNextDosePatients: [Patient] {
+        guard !searchText.isEmpty else { return noNextDosePatients }
+        return noNextDosePatients.filter { patientMatchesSearch($0) }
+    }
 
     /**
      * Toggles a patient's active status with animation and error handling
@@ -195,6 +265,15 @@ struct PatientsListRootView: View {
                     LazyVStack(spacing: 16) {
                         // Header section
                         VStack(spacing: 20) {
+                            // View mode picker
+                            Picker("View Mode", selection: $viewMode) {
+                                Text("By Next Dose").tag(PatientViewMode.byNextDose)
+                                Text("Alphabetical").tag(PatientViewMode.alphabetical)
+                            }
+                            .pickerStyle(.segmented)
+                            .padding(.horizontal, 20)
+                            .padding(.top, 10)
+                            
                             HStack {
                                 Text("Patients by Week")
                                     .font(.largeTitle)
@@ -209,7 +288,6 @@ struct PatientsListRootView: View {
                                 Spacer()
                             }
                             .padding(.horizontal, 20)
-                            .padding(.top, 10)
                             
                             // Action buttons
                             HStack(spacing: 12) {
@@ -292,7 +370,7 @@ struct PatientsListRootView: View {
                         }
                         
                         // Sections for each week
-                        ForEach(groupedByWeek, id: \.weekStart) { section in
+                        ForEach(filteredGroupedByWeek, id: \.weekStart) { section in
                             WeekSectionView(
                                 weekStart: section.weekStart,
                                 patients: section.patients,
@@ -310,14 +388,14 @@ struct PatientsListRootView: View {
                         }
                         
                         // Section for patients without a scheduled next dose
-                        if !noNextDosePatients.isEmpty {
+                        if !filteredNoNextDosePatients.isEmpty {
                             NoNextDoseSectionView(
-                                patients: noNextDosePatients,
+                                patients: filteredNoNextDosePatients,
                                 goldColor: goldColor,
                                 darkGoldColor: darkGoldColor,
                                 textColor: textColor,
                                 onDelete: { offsets in
-                                    deletePatientsFromSection(noNextDosePatients, offsets: offsets)
+                                    deletePatientsFromSection(filteredNoNextDosePatients, offsets: offsets)
                                 },
                                 onToggleActive: { patient, active in
                                     togglePatientActive(patient, active: active)
@@ -325,18 +403,18 @@ struct PatientsListRootView: View {
                             )
                         }
                         
-                        if groupedByWeek.isEmpty && noNextDosePatients.isEmpty {
+                        if filteredGroupedByWeek.isEmpty && filteredNoNextDosePatients.isEmpty {
                             VStack(spacing: 16) {
-                                Image(systemName: "person.3.fill")
+                                Image(systemName: searchText.isEmpty ? "person.3.fill" : "magnifyingglass")
                                     .font(.system(size: 60))
                                     .foregroundColor(goldColor.opacity(0.6))
                                 
-                                Text("No Patients Yet")
+                                Text(searchText.isEmpty ? "No Patients Yet" : "No Results Found")
                                     .font(.title2)
                                     .fontWeight(.semibold)
                                     .foregroundColor(goldColor)
                                 
-                                Text("Tap 'Add Patient' above to get started")
+                                Text(searchText.isEmpty ? "Tap 'Add Patient' above to get started" : "Try adjusting your search terms")
                                     .font(.body)
                                     .foregroundColor(textColor.opacity(0.6))
                                     .multilineTextAlignment(.center)
@@ -348,6 +426,7 @@ struct PatientsListRootView: View {
                     .padding(.bottom, 20)
                 }
             }
+            .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .automatic), prompt: "Search patients or medications")
             .id(dataVersion)
             .animation(.easeInOut, value: dataVersion)
             .sheet(isPresented: $showingAddPatient) {
@@ -858,6 +937,387 @@ struct FeatureRowView: View {
             
             Spacer()
         }
+    }
+}
+
+/**
+ * AlphabeticalPatientListMainView
+ * 
+ * Main view wrapper for the alphabetical patient list
+ * Adapted to work as a primary view instead of a sheet
+ */
+struct AlphabeticalPatientListMainView: View {
+    @Environment(\.managedObjectContext) private var viewContext
+    @Binding var viewMode: PatientViewMode
+    
+    // MARK: - Core Data Fetch Requests
+    
+    /// Fetches all active patients sorted by last name
+    @FetchRequest(
+        sortDescriptors: [
+            NSSortDescriptor(keyPath: \Patient.lastName, ascending: true),
+            NSSortDescriptor(keyPath: \Patient.firstName, ascending: true)
+        ],
+        predicate: NSPredicate(format: "isActive == YES"),
+        animation: .default)
+    private var patients: FetchedResults<Patient>
+    
+    // MARK: - State Management
+    
+    @State private var searchText = ""
+    @State private var showingAddPatient = false
+    @State private var showingMedicationTemplates = false
+    @State private var showingProviders = false
+    @State private var showingAppInfo = false
+    @State private var showingSharingGroups = false
+    @State private var showingMedicationPatientList = false
+    
+    // MARK: - Theme Colors
+    
+    private let goldColor = Color(red: 0.6, green: 0.4, blue: 0.2)
+    private let darkGoldColor = Color(red: 0.45, green: 0.3, blue: 0.15)
+    private let lightBackgroundColor = Color(red: 0.99, green: 0.985, blue: 0.97)
+    private let textColor = Color.black
+    
+    // MARK: - Computed Properties
+    
+    /**
+     * Groups patients by the first letter of their last name
+     * Returns sorted array of letters with their associated patients
+     */
+    private var groupedByLetter: [(letter: String, patients: [Patient])] {
+        // Create dictionary grouping by first letter
+        var groups: [String: [Patient]] = [:]
+        
+        for patient in patients {
+            let lastName = patient.lastName ?? ""
+            let firstLetter = String(lastName.prefix(1)).uppercased()
+            
+            // Use "#" for patients without a last name or non-alphabetic characters
+            let isLetter = !firstLetter.isEmpty && firstLetter.rangeOfCharacter(from: CharacterSet.letters) != nil
+            let letter = isLetter ? firstLetter : "#"
+            
+            if groups[letter] == nil {
+                groups[letter] = []
+            }
+            groups[letter]?.append(patient)
+        }
+        
+        // Sort patients within each group by last name, then first name
+        for (key, value) in groups {
+            groups[key] = value.sorted { lhs, rhs in
+                let lLastName = lhs.lastName ?? ""
+                let rLastName = rhs.lastName ?? ""
+                
+                if lLastName == rLastName {
+                    return (lhs.firstName ?? "") < (rhs.firstName ?? "")
+                }
+                return lLastName < rLastName
+            }
+        }
+        
+        // Convert to sorted array - # comes last, then A-Z
+        let sortedGroups = groups.map { (letter: $0.key, patients: $0.value) }
+            .sorted { lhs, rhs in
+                // Put "#" at the end
+                if lhs.letter == "#" { return false }
+                if rhs.letter == "#" { return true }
+                return lhs.letter < rhs.letter
+            }
+        
+        return sortedGroups
+    }
+    
+    /**
+     * Filters grouped patients based on search text
+     */
+    private var filteredGroups: [(letter: String, patients: [Patient])] {
+        guard !searchText.isEmpty else { return groupedByLetter }
+        
+        return groupedByLetter.compactMap { group in
+            let matchingPatients = group.patients.filter { patient in
+                let searchLower = searchText.lowercased()
+                let firstName = (patient.firstName ?? "").lowercased()
+                let lastName = (patient.lastName ?? "").lowercased()
+                
+                // Search in patient name
+                if firstName.contains(searchLower) || lastName.contains(searchLower) {
+                    return true
+                }
+                
+                // Search in medication names
+                let medications = patient.dispensedMedicationsArray
+                    .filter { $0.isActive }
+                    .compactMap { $0.baseMedication?.name?.lowercased() }
+                
+                return medications.contains { $0.contains(searchLower) }
+            }
+            
+            if matchingPatients.isEmpty {
+                return nil
+            }
+            
+            return (letter: group.letter, patients: matchingPatients)
+        }
+    }
+    
+    private var totalPatientCount: Int {
+        filteredGroups.reduce(0) { $0 + $1.patients.count }
+    }
+    
+    // MARK: - Body
+    
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                lightBackgroundColor
+                    .ignoresSafeArea()
+                
+                ScrollView {
+                    LazyVStack(spacing: 16) {
+                        // Header section
+                        VStack(spacing: 20) {
+                            // View mode picker
+                            Picker("View Mode", selection: $viewMode) {
+                                Text("By Next Dose").tag(PatientViewMode.byNextDose)
+                                Text("Alphabetical").tag(PatientViewMode.alphabetical)
+                            }
+                            .pickerStyle(.segmented)
+                            .padding(.horizontal, 20)
+                            .padding(.top, 10)
+                            
+                            HStack {
+                                Text("Alphabetical Patient List")
+                                    .font(.largeTitle)
+                                    .fontWeight(.bold)
+                                    .foregroundStyle(
+                                        LinearGradient(
+                                            colors: [goldColor, darkGoldColor],
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        )
+                                    )
+                                Spacer()
+                            }
+                            .padding(.horizontal, 20)
+                            
+                            // Action buttons
+                            HStack(spacing: 12) {
+                                // Add Patient button (remains as primary action)
+                                Button(action: { showingAddPatient = true }) {
+                                    HStack {
+                                        Image(systemName: "person.badge.plus")
+                                            .font(.title3)
+                                        Text("Add Patient")
+                                            .font(.subheadline)
+                                            .fontWeight(.semibold)
+                                    }
+                                    .foregroundColor(.black)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 12)
+                                    .background(
+                                        LinearGradient(
+                                            colors: [goldColor, darkGoldColor],
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        )
+                                    )
+                                    .cornerRadius(12)
+                                    .shadow(color: goldColor.opacity(0.3), radius: 6, x: 0, y: 3)
+                                }
+                                
+                                // Settings dropdown menu
+                                Menu {
+                                    Button(action: { showingMedicationPatientList = true }) {
+                                        Label("Patients by Medication", systemImage: "list.bullet.rectangle.portrait")
+                                    }
+                                    
+                                    Divider()
+                                    
+                                    Button(action: { showingMedicationTemplates = true }) {
+                                        Label("Medication Templates", systemImage: "pills")
+                                    }
+                                    
+                                    Button(action: { showingProviders = true }) {
+                                        Label("Providers", systemImage: "person.crop.circle.badge.plus")
+                                    }
+                                    
+                                    Button(action: { showingSharingGroups = true }) {
+                                        Label("Sharing Groups", systemImage: "person.3.fill")
+                                    }
+                                    
+                                    Divider()
+                                    
+                                    Button(action: { showingAppInfo = true }) {
+                                        Label("About App", systemImage: "info.circle")
+                                    }
+                                } label: {
+                                    HStack {
+                                        Image(systemName: "ellipsis.circle")
+                                            .font(.title3)
+                                        Text("Settings")
+                                            .font(.subheadline)
+                                            .fontWeight(.semibold)
+                                        Image(systemName: "chevron.down")
+                                            .font(.caption)
+                                    }
+                                    .foregroundColor(goldColor)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 12)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .stroke(goldColor, lineWidth: 1.5)
+                                            .background(
+                                                RoundedRectangle(cornerRadius: 12)
+                                                    .fill(Color.white.opacity(0.8))
+                                            )
+                                    )
+                                }
+                            }
+                            .padding(.horizontal, 20)
+                        }
+                        
+                        // Summary card
+                        summaryCard
+                        
+                        // Letter sections
+                        if filteredGroups.isEmpty {
+                            emptyStateView
+                        } else {
+                            ForEach(filteredGroups, id: \.letter) { group in
+                                LetterSectionView(
+                                    letter: group.letter,
+                                    patients: group.patients,
+                                    goldColor: goldColor,
+                                    darkGoldColor: darkGoldColor,
+                                    textColor: textColor
+                                )
+                            }
+                        }
+                    }
+                    .padding(.bottom, 20)
+                }
+            }
+            .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .automatic), prompt: "Search patients or medications")
+            .sheet(isPresented: $showingAddPatient) {
+                AddPatientView()
+            }
+            .sheet(isPresented: $showingMedicationTemplates) {
+                MedicationTemplatesView()
+            }
+            .sheet(isPresented: $showingProviders) {
+                ProvidersListView()
+            }
+            .sheet(isPresented: $showingSharingGroups) {
+                SharingGroupsView()
+            }
+            .sheet(isPresented: $showingAppInfo) {
+                AppInfoView()
+            }
+            .sheet(isPresented: $showingMedicationPatientList) {
+                MedicationPatientListView()
+            }
+            .toolbar {
+                ToolbarItemGroup(placement: .navigationBarTrailing) {
+                    NavigationLink(destination: ShareTestView()) {
+                        Image(systemName: "square.and.arrow.up.circle")
+                            .foregroundColor(.blue)
+                    }
+                    EnvironmentBadgeView()
+                }
+            }
+        }
+    }
+    
+    // MARK: - View Components
+    
+    private var summaryCard: some View {
+        VStack(spacing: 12) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Total Patients")
+                        .font(.caption)
+                        .foregroundColor(textColor.opacity(0.7))
+                    Text("\(totalPatientCount)")
+                        .font(.title)
+                        .fontWeight(.bold)
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [goldColor, darkGoldColor],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                }
+                
+                Spacer()
+                
+                VStack(alignment: .trailing, spacing: 4) {
+                    Text("Letter Groups")
+                        .font(.caption)
+                        .foregroundColor(textColor.opacity(0.7))
+                    Text("\(filteredGroups.count)")
+                        .font(.title)
+                        .fontWeight(.bold)
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [goldColor, darkGoldColor],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                }
+            }
+        }
+        .padding(20)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color.white.opacity(0.9),
+                            Color.white.opacity(0.7)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(
+                            LinearGradient(
+                                colors: [goldColor.opacity(0.3), goldColor.opacity(0.1)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 1
+                        )
+                )
+        )
+        .padding(.horizontal, 20)
+        .shadow(color: goldColor.opacity(0.1), radius: 4, x: 0, y: 2)
+    }
+    
+    private var emptyStateView: some View {
+        VStack(spacing: 16) {
+            Image(systemName: "person.3.fill")
+                .font(.system(size: 60))
+                .foregroundColor(goldColor.opacity(0.6))
+            
+            Text(searchText.isEmpty ? "No Active Patients" : "No Results Found")
+                .font(.title2)
+                .fontWeight(.semibold)
+                .foregroundColor(goldColor)
+            
+            Text(searchText.isEmpty ?
+                 "Tap 'Add Patient' above to get started" :
+                 "Try adjusting your search terms")
+                .font(.body)
+                .foregroundColor(textColor.opacity(0.6))
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 40)
+        }
+        .padding(.top, 60)
     }
 }
 

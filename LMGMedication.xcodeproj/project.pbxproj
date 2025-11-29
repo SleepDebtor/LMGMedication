@@ -23,6 +23,11 @@
 		278823182E9DC90200BCBD57 /* Degree.swift in Sources */ = {isa = PBXBuildFile; fileRef = 278823172E9DC90200BCBD57 /* Degree.swift */; };
 		2788231A2E9FD50500BCBD57 /* EnvironmentInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 278823192E9FD50500BCBD57 /* EnvironmentInfo.swift */; };
 		27BFA0F12E9C335C003B4292 /* EditProviderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27BFA0F02E9C335C003B4292 /* EditProviderView.swift */; };
+		27C5A5F82EDB6F9E0015F0E8 /* UPDATE_NOTES.md in Resources */ = {isa = PBXBuildFile; fileRef = 27C5A5F72EDB6F9E0015F0E8 /* UPDATE_NOTES.md */; };
+		27C5A5FA2EDB7E250015F0E8 /* SEARCH_FEATURE_NOTES.md in Resources */ = {isa = PBXBuildFile; fileRef = 27C5A5F92EDB7E250015F0E8 /* SEARCH_FEATURE_NOTES.md */; };
+		27C5A5FC2EDB81AC0015F0E8 /* LAB_LABEL_FEATURE_NOTES.md in Resources */ = {isa = PBXBuildFile; fileRef = 27C5A5FB2EDB81AC0015F0E8 /* LAB_LABEL_FEATURE_NOTES.md */; };
+		27C5A5FE2EDB857C0015F0E8 /* LAB_LABEL_PRINT_FIX.md in Resources */ = {isa = PBXBuildFile; fileRef = 27C5A5FD2EDB857C0015F0E8 /* LAB_LABEL_PRINT_FIX.md */; };
+		27C5A6002EDB86DE0015F0E8 /* LAB_LABEL_INITIALS_REMOVAL.md in Resources */ = {isa = PBXBuildFile; fileRef = 27C5A5FF2EDB86DE0015F0E8 /* LAB_LABEL_INITIALS_REMOVAL.md */; };
 		27D9C9692EC64F71008C1B94 /* MedicationPatientListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27D9C9682EC64F71008C1B94 /* MedicationPatientListView.swift */; };
 		27F62E392EC65894009965B6 /* AlphabeticalPatientListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27F62E382EC65894009965B6 /* AlphabeticalPatientListView.swift */; };
 		BD080A382E9D382300400DFD /* StateLicense+CoreDataClass.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD080A362E9D382300400DFD /* StateLicense+CoreDataClass.swift */; };
@@ -96,6 +101,11 @@
 		278823172E9DC90200BCBD57 /* Degree.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Degree.swift; sourceTree = "<group>"; };
 		278823192E9FD50500BCBD57 /* EnvironmentInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnvironmentInfo.swift; sourceTree = "<group>"; };
 		27BFA0F02E9C335C003B4292 /* EditProviderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditProviderView.swift; sourceTree = "<group>"; };
+		27C5A5F72EDB6F9E0015F0E8 /* UPDATE_NOTES.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = UPDATE_NOTES.md; sourceTree = "<group>"; };
+		27C5A5F92EDB7E250015F0E8 /* SEARCH_FEATURE_NOTES.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = SEARCH_FEATURE_NOTES.md; sourceTree = "<group>"; };
+		27C5A5FB2EDB81AC0015F0E8 /* LAB_LABEL_FEATURE_NOTES.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = LAB_LABEL_FEATURE_NOTES.md; sourceTree = "<group>"; };
+		27C5A5FD2EDB857C0015F0E8 /* LAB_LABEL_PRINT_FIX.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = LAB_LABEL_PRINT_FIX.md; sourceTree = "<group>"; };
+		27C5A5FF2EDB86DE0015F0E8 /* LAB_LABEL_INITIALS_REMOVAL.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = LAB_LABEL_INITIALS_REMOVAL.md; sourceTree = "<group>"; };
 		27D9C9682EC64F71008C1B94 /* MedicationPatientListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicationPatientListView.swift; sourceTree = "<group>"; };
 		27F62E382EC65894009965B6 /* AlphabeticalPatientListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlphabeticalPatientListView.swift; sourceTree = "<group>"; };
 		BD080A362E9D382300400DFD /* StateLicense+CoreDataClass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StateLicense+CoreDataClass.swift"; sourceTree = "<group>"; };
@@ -254,6 +264,11 @@
 				BDACE5BE2EC177C80087DC63 /* DevShareHelper.swift */,
 				27D9C9682EC64F71008C1B94 /* MedicationPatientListView.swift */,
 				27F62E382EC65894009965B6 /* AlphabeticalPatientListView.swift */,
+				27C5A5F72EDB6F9E0015F0E8 /* UPDATE_NOTES.md */,
+				27C5A5F92EDB7E250015F0E8 /* SEARCH_FEATURE_NOTES.md */,
+				27C5A5FB2EDB81AC0015F0E8 /* LAB_LABEL_FEATURE_NOTES.md */,
+				27C5A5FD2EDB857C0015F0E8 /* LAB_LABEL_PRINT_FIX.md */,
+				27C5A5FF2EDB86DE0015F0E8 /* LAB_LABEL_INITIALS_REMOVAL.md */,
 			);
 			sourceTree = "<group>";
 		};
@@ -389,12 +404,17 @@
 			files = (
 				BD28CB3D2EA8778C00303D86 /* DEVELOPMENT_GUIDE.md in Resources */,
 				BD28CB3F2EA877B700303D86 /* DOCUMENTATION_REVIEW.md in Resources */,
+				27C5A5F82EDB6F9E0015F0E8 /* UPDATE_NOTES.md in Resources */,
 				BD080AF02EA1ABA300400DFD /* PrivacyPolicy.md in Resources */,
 				BD28CB3B2EA8775200303D86 /* ARCHITECTURE.md in Resources */,
 				BD6C7FAF2EBE332F0053DB2A /* AUTOMATIC_SHARING_SETUP.md in Resources */,
 				BD28CB392EA8770B00303D86 /* README.md in Resources */,
+				27C5A5FA2EDB7E250015F0E8 /* SEARCH_FEATURE_NOTES.md in Resources */,
+				27C5A6002EDB86DE0015F0E8 /* LAB_LABEL_INITIALS_REMOVAL.md in Resources */,
 				BD6C7FA12EBE319D0053DB2A /* SHARING_SETUP_GUIDE.md in Resources */,
+				27C5A5FC2EDB81AC0015F0E8 /* LAB_LABEL_FEATURE_NOTES.md in Resources */,
 				BD59A1B42E92FB0100C4516C /* QR_Code_Implementation_README.md in Resources */,
+				27C5A5FE2EDB857C0015F0E8 /* LAB_LABEL_PRINT_FIX.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

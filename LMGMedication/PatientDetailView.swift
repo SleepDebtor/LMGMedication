@@ -48,6 +48,7 @@ struct PatientDetailView: View {
     @State private var showingBulkPrint = false
     @State private var selectedMedicationsForPrint: Set<DispencedMedication> = []
     @State private var showingEditPatient = false
+    @State private var showingLabLabelPrint = false
     
     @State private var isSharing = false
     @State private var shareErrorMessage: String?
@@ -261,11 +262,27 @@ struct PatientDetailView: View {
         .navigationBarTitleDisplayMode(.large)
         .toolbarBackground(lightBackgroundColor, for: .navigationBar)
         .toolbarColorScheme(.light, for: .navigationBar)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button(action: { showingLabLabelPrint = true }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "testtube.2")
+                            .font(.body)
+                        Text("Lab Label")
+                            .font(.subheadline)
+                    }
+                    .foregroundColor(goldColor)
+                }
+            }
+        }
         .sheet(isPresented: $showingAddMedication) {
             AddMedicationView(patient: patient)
         }
         .sheet(isPresented: $showingEditPatient) {
             EditPatientView(patient: patient)
+        }
+        .sheet(isPresented: $showingLabLabelPrint) {
+            LabLabelPrintView(patient: patient)
         }
         .sheet(isPresented: $showingBulkPrint) {
             BulkPrintSelectionView(
@@ -745,6 +762,387 @@ struct BulkPrintSelectionView: View {
         }
     }
 }
+
+/**
+ * LabLabelPrintView
+ * 
+ * View for printing blood draw test tube labels (2" x 1")
+ * Displays patient information formatted for lab specimen labels
+ * 
+ * Label Format:
+ * - Line 1: Patient name (Last, First)
+ * - Line 2: Date of Birth
+ * - Line 3: Drawn on: [current date]
+ * - Line 4: Lazar Medical Group
+ */
+struct LabLabelPrintView: View {
+    @Environment(\.dismiss) private var dismiss
+    @ObservedObject var patient: Patient
+    
+    @State private var showingPrintPreview = false
+    
+    // Custom colors - matching patient detail view
+    private let goldColor = Color(red: 0.6, green: 0.4, blue: 0.2)
+    private let darkGoldColor = Color(red: 0.45, green: 0.3, blue: 0.15)
+    private let lightBackgroundColor = Color(red: 0.99, green: 0.985, blue: 0.97)
+    private let textColor = Color.black
+    
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                lightBackgroundColor
+                    .ignoresSafeArea()
+                
+                ScrollView {
+                    VStack(spacing: 24) {
+                        // Info header
+                        VStack(spacing: 12) {
+                            Image(systemName: "testtube.2")
+                                .font(.system(size: 50))
+                                .foregroundStyle(
+                                    LinearGradient(
+                                        colors: [goldColor, darkGoldColor],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                            
+                            Text("Lab Draw Label")
+                                .font(.title2)
+                                .fontWeight(.bold)
+                                .foregroundColor(goldColor)
+                            
+                            Text("Print a label for blood draw test tubes")
+                                .font(.subheadline)
+                                .foregroundColor(textColor.opacity(0.7))
+                                .multilineTextAlignment(.center)
+                        }
+                        .padding(.top, 20)
+                        
+                        // Label preview
+                        VStack(spacing: 16) {
+                            Text("Label Preview")
+                                .font(.headline)
+                                .foregroundColor(goldColor)
+                            
+                            LabLabelPreview(patient: patient, textColor: textColor)
+                                .padding()
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(Color.white)
+                                        .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 4)
+                                )
+                        }
+                        .padding(.horizontal, 20)
+                        
+                        // Print button
+                        Button(action: {
+                            printLabLabel()
+                        }) {
+                            HStack {
+                                Image(systemName: "printer.fill")
+                                    .font(.title3)
+                                Text("Print Lab Label")
+                                    .font(.headline)
+                                    .fontWeight(.semibold)
+                            }
+                            .foregroundColor(.black)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
+                            .background(
+                                LinearGradient(
+                                    colors: [goldColor, darkGoldColor],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .cornerRadius(12)
+                            .shadow(color: goldColor.opacity(0.3), radius: 6, x: 0, y: 3)
+                        }
+                        .padding(.horizontal, 20)
+                        
+                        // Info section
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Label Specifications")
+                                .font(.headline)
+                                .foregroundColor(goldColor)
+                            
+                            InfoRow(icon: "ruler", text: "Size: 2 inches × 1 inch")
+                            InfoRow(icon: "paintbrush", text: "Format: Blood draw specimen label")
+                            InfoRow(icon: "checkmark.circle", text: "Includes patient name, DOB, and draw date")
+                        }
+                        .padding(20)
+                        .background(
+                            RoundedRectangle(cornerRadius: 12)
+                                .fill(Color.white.opacity(0.8))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(goldColor.opacity(0.2), lineWidth: 1)
+                                )
+                        )
+                        .padding(.horizontal, 20)
+                    }
+                    .padding(.bottom, 40)
+                }
+            }
+            .navigationTitle("Lab Draw Label")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                    .foregroundColor(goldColor)
+                }
+            }
+        }
+    }
+    
+    private func printLabLabel() {
+        Task {
+            let success = await LabLabelPrintManager.shared.printLabLabel(for: patient)
+            // Only dismiss if print was completed successfully
+            if success {
+                dismiss()
+            }
+        }
+    }
+}
+
+/**
+ * LabLabelPreview
+ * 
+ * Preview component showing how the lab label will appear when printed
+ * Matches the 2" x 1" label format
+ */
+struct LabLabelPreview: View {
+    let patient: Patient
+    let textColor: Color
+    
+    private var currentDate: String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .short
+        return formatter.string(from: Date())
+    }
+    
+    private var birthDateString: String {
+        guard let birthdate = patient.birthdate else { return "N/A" }
+        let formatter = DateFormatter()
+        formatter.dateStyle = .short
+        return formatter.string(from: birthdate)
+    }
+    
+    var body: some View {
+        // Simulating a 2" x 1" label (144 pts x 72 pts at 72 DPI)
+        // Using a 2:1 aspect ratio
+        VStack(alignment: .leading, spacing: 4) {
+            // Line 1: Patient name
+            Text("\(patient.lastName ?? "Unknown"), \(patient.firstName ?? "Unknown")")
+                .font(.system(size: 14, weight: .bold))
+                .foregroundColor(textColor)
+            
+            // Line 2: Date of birth
+            Text("DOB: \(birthDateString)")
+                .font(.system(size: 12))
+                .foregroundColor(textColor)
+            
+            // Line 3: Drawn on date
+            Text("Drawn on: \(currentDate)")
+                .font(.system(size: 12))
+                .foregroundColor(textColor)
+            
+            Divider()
+                .padding(.vertical, 2)
+            
+            // Line 4: Lazar Medical Group
+            Text("Lazar Medical Group")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundColor(textColor)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(8)
+        .background(
+            RoundedRectangle(cornerRadius: 4)
+                .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+        )
+    }
+}
+
+/**
+ * InfoRow
+ * 
+ * Helper view for displaying specification information
+ */
+struct InfoRow: View {
+    let icon: String
+    let text: String
+    
+    private let goldColor = Color(red: 0.6, green: 0.4, blue: 0.2)
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.body)
+                .foregroundColor(goldColor)
+                .frame(width: 20)
+            
+            Text(text)
+                .font(.subheadline)
+                .foregroundColor(.black.opacity(0.8))
+            
+            Spacer()
+        }
+    }
+}
+
+/**
+ * LabLabelPrintManager
+ * 
+ * Manages printing of lab draw specimen labels
+ * Formats labels to 2" x 1" size for blood draw test tubes
+ */
+class LabLabelPrintManager {
+    static let shared = LabLabelPrintManager()
+    
+    private init() {}
+    
+    @MainActor
+    func printLabLabel(for patient: Patient) async -> Bool {
+        #if os(iOS)
+        return await withCheckedContinuation { continuation in
+            let printController = UIPrintInteractionController.shared
+            let printInfo = UIPrintInfo.printInfo()
+            
+            printInfo.outputType = .general
+            printInfo.jobName = "Lab Label - \(patient.displayName)"
+            printInfo.duplex = .none
+            
+            // Create the label renderer
+            let renderer = LabLabelRenderer(patient: patient)
+            
+            printController.printInfo = printInfo
+            printController.printFormatter = nil
+            printController.printPageRenderer = renderer
+            
+            printController.present(animated: true) { _, completed, error in
+                if let error = error {
+                    print("Print error: \(error.localizedDescription)")
+                    continuation.resume(returning: false)
+                } else {
+                    continuation.resume(returning: completed)
+                }
+            }
+        }
+        #else
+        return false
+        #endif
+    }
+}
+
+#if os(iOS)
+/**
+ * LabLabelRenderer
+ * 
+ * Custom page renderer for lab draw labels
+ * Formats content to fit 2" x 1" label dimensions
+ */
+class LabLabelRenderer: UIPrintPageRenderer {
+    let patient: Patient
+    
+    init(patient: Patient) {
+        self.patient = patient
+        super.init()
+        
+        // 2 inches x 1 inch at 72 points per inch = 144 x 72 points
+        let labelWidth: CGFloat = 144
+        let labelHeight: CGFloat = 72
+        
+        // Set paper rect to label size
+        let paperRect = CGRect(x: 0, y: 0, width: labelWidth, height: labelHeight)
+        setValue(NSValue(cgRect: paperRect), forKey: "paperRect")
+        
+        // Printable rect with small margins
+        let printableRect = CGRect(x: 4, y: 4, width: labelWidth - 8, height: labelHeight - 8)
+        setValue(NSValue(cgRect: printableRect), forKey: "printableRect")
+    }
+    
+    override func drawPage(at pageIndex: Int, in printableRect: CGRect) {
+        guard let context = UIGraphicsGetCurrentContext() else { return }
+        
+        // Set up fonts
+        let nameFontSize: CGFloat = 11
+        let regularFontSize: CGFloat = 9
+        let smallFontSize: CGFloat = 8
+        
+        let nameFont = UIFont.boldSystemFont(ofSize: nameFontSize)
+        let regularFont = UIFont.systemFont(ofSize: regularFontSize)
+        let smallFont = UIFont.systemFont(ofSize: smallFontSize)
+        let boldFont = UIFont.boldSystemFont(ofSize: regularFontSize)
+        
+        let textColor = UIColor.black
+        
+        var yPosition: CGFloat = printableRect.minY
+        let lineSpacing: CGFloat = 2
+        
+        // Line 1: Patient name (Last, First)
+        let patientName = "\(patient.lastName ?? "Unknown"), \(patient.firstName ?? "Unknown")"
+        let nameAttributes: [NSAttributedString.Key: Any] = [
+            .font: nameFont,
+            .foregroundColor: textColor
+        ]
+        let nameString = NSAttributedString(string: patientName, attributes: nameAttributes)
+        nameString.draw(at: CGPoint(x: printableRect.minX, y: yPosition))
+        yPosition += nameFontSize + lineSpacing
+        
+        // Line 2: Date of Birth
+        let dobString: String
+        if let birthdate = patient.birthdate {
+            let formatter = DateFormatter()
+            formatter.dateStyle = .short
+            dobString = "DOB: \(formatter.string(from: birthdate))"
+        } else {
+            dobString = "DOB: N/A"
+        }
+        let dobAttributes: [NSAttributedString.Key: Any] = [
+            .font: regularFont,
+            .foregroundColor: textColor
+        ]
+        let dobAttributedString = NSAttributedString(string: dobString, attributes: dobAttributes)
+        dobAttributedString.draw(at: CGPoint(x: printableRect.minX, y: yPosition))
+        yPosition += regularFontSize + lineSpacing
+        
+        // Line 3: Drawn on date
+        let currentDate = Date()
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateStyle = .short
+        let drawnOnString = "Drawn on: \(dateFormatter.string(from: currentDate))"
+        let drawnAttributes: [NSAttributedString.Key: Any] = [
+            .font: regularFont,
+            .foregroundColor: textColor
+        ]
+        let drawnAttributedString = NSAttributedString(string: drawnOnString, attributes: drawnAttributes)
+        drawnAttributedString.draw(at: CGPoint(x: printableRect.minX, y: yPosition))
+        yPosition += regularFontSize + lineSpacing + 2
+        
+        // Draw separator line
+        context.setStrokeColor(UIColor.lightGray.cgColor)
+        context.setLineWidth(0.5)
+        context.move(to: CGPoint(x: printableRect.minX, y: yPosition))
+        context.addLine(to: CGPoint(x: printableRect.maxX, y: yPosition))
+        context.strokePath()
+        yPosition += 3
+        
+        // Line 4: Lazar Medical Group
+        let groupString = "Lazar Medical Group"
+        let groupAttributes: [NSAttributedString.Key: Any] = [
+            .font: boldFont,
+            .foregroundColor: textColor
+        ]
+        let groupAttributedString = NSAttributedString(string: groupString, attributes: groupAttributes)
+        groupAttributedString.draw(at: CGPoint(x: printableRect.minX, y: yPosition))
+    }
+}
+#endif
 
 
 #Preview {
