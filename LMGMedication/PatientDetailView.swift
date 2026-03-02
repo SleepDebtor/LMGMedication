@@ -958,6 +958,11 @@ struct LabLabelPreview: View {
             Text("Lazar Medical Group")
                 .font(.system(size: 11, weight: .semibold))
                 .foregroundColor(textColor)
+            
+            // Line 5: Initials line
+            Text("Initials: ________")
+                .font(.system(size: 11))
+                .foregroundColor(textColor)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(8)
@@ -1140,6 +1145,16 @@ class LabLabelRenderer: UIPrintPageRenderer {
         ]
         let groupAttributedString = NSAttributedString(string: groupString, attributes: groupAttributes)
         groupAttributedString.draw(at: CGPoint(x: printableRect.minX, y: yPosition))
+        
+        // Line 5: Initials line
+        yPosition += regularFontSize + lineSpacing
+        let initialsString = "Initials: ________"
+        let initialsAttributes: [NSAttributedString.Key: Any] = [
+            .font: regularFont,
+            .foregroundColor: textColor
+        ]
+        let initialsAttributedString = NSAttributedString(string: initialsString, attributes: initialsAttributes)
+        initialsAttributedString.draw(at: CGPoint(x: printableRect.minX, y: yPosition))
     }
 }
 #endif
