@@ -9,7 +9,7 @@ import SwiftUI
 import PDFKit
 
 struct LabelPreviewView: View {
-    let medication: DispencedMedication
+    @ObservedObject var medication: DispencedMedication
     @State private var pdfDocument: PDFDocument?
     @State private var isLoading = true
     

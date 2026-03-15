@@ -10,7 +10,7 @@ import PDFKit
 import CoreData
 
 struct MedicationLabelView: View {
-    let medication: DispencedMedication
+    @ObservedObject var medication: DispencedMedication
     @Environment(\.managedObjectContext) private var viewContext
     
     @State private var showingPrintPreview = false
@@ -514,7 +514,7 @@ struct MedicationLabelView: View {
 }
 
 struct InjectableLabelPreview: View {
-    let medication: DispencedMedication
+    @ObservedObject var medication: DispencedMedication
 
     private var qrUIImage: UIImage? {
         // Prefer stored QR image if available
@@ -697,7 +697,7 @@ struct InjectableLabelPreview: View {
 }
 
 struct NonInjectableLabelPreview: View {
-    let medication: DispencedMedication
+    @ObservedObject var medication: DispencedMedication
     
     var body: some View {
         ZStack {
@@ -858,7 +858,7 @@ struct NonInjectableLabelPreview: View {
 
 
 struct PrintPreviewView: View {
-    let medication: DispencedMedication
+    @ObservedObject var medication: DispencedMedication
     @Environment(\.dismiss) private var dismiss
     @Environment(\.managedObjectContext) private var viewContext
     @State private var isPrinting = false

@@ -10,7 +10,7 @@ import PDFKit
 import CoreData
 
 struct MedicationLabelPreviewView: View {
-    let medication: DispencedMedication
+    @ObservedObject var medication: DispencedMedication
     @State private var pdfDocument: PDFDocument?
     @State private var isGenerating = false
     @State private var generationError: String?

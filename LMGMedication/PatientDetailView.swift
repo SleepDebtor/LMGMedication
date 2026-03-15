@@ -467,7 +467,7 @@ struct PatientHeaderCard: View {
 }
 
 struct MedicationCardView: View {
-    let medication: DispencedMedication
+    @ObservedObject var medication: DispencedMedication
     let goldColor: Color
     let darkGoldColor: Color
     let textColor: Color
@@ -597,7 +597,7 @@ struct MedicationCardView: View {
 }
 
 struct PatientMedicationRow: View {
-    let medication: DispencedMedication
+    @ObservedObject var medication: DispencedMedication
     let onPrintTapped: () -> Void
     
     var body: some View {
