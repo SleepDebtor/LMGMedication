@@ -926,10 +926,18 @@ struct LabLabelPreview: View {
     }
     
     private var birthDateString: String {
-        guard let birthdate = patient.birthdate else { return "N/A" }
-        let formatter = DateFormatter()
-        formatter.dateStyle = .short
-        return formatter.string(from: birthdate)
+        if let birthdate = patient.birthdate {
+            let formatter = DateFormatter()
+            formatter.dateStyle = .short
+            return formatter.string(from: birthdate)
+        }
+        return "N/A"
+    }
+    
+    private var patientName: String {
+        let last = patient.lastName ?? "Unknown"
+        let first = patient.firstName ?? "Unknown"
+        return "\(last), \(first)"
     }
     
     var body: some View {
@@ -937,7 +945,7 @@ struct LabLabelPreview: View {
         // Using a 2:1 aspect ratio
         VStack(alignment: .leading, spacing: 4) {
             // Line 1: Patient name
-            Text("\(patient.lastName ?? "Unknown"), \(patient.firstName ?? "Unknown")")
+            Text(patientName)
                 .font(.system(size: 14, weight: .bold))
                 .foregroundColor(textColor)
             
@@ -959,10 +967,7 @@ struct LabLabelPreview: View {
                 .font(.system(size: 11, weight: .semibold))
                 .foregroundColor(textColor)
             
-            // Line 5: Initials line
-            Text("Initials: ________")
-                .font(.system(size: 11))
-                .foregroundColor(textColor)
+            // Removed initials line for label consistency
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(8)
@@ -1025,6 +1030,10 @@ class LabLabelPrintManager {
             // Create the label renderer
             let renderer = LabLabelRenderer(patient: patient)
             
+            // Paper size is controlled by LabLabelRenderer via paperRect/printableRect; printController.printPaper is read-only.
+            printController.showsNumberOfCopies = false
+            printController.showsPaperSelectionForLoadedPapers = false
+            
             printController.printInfo = printInfo
             printController.printFormatter = nil
             printController.printPageRenderer = renderer
@@ -1069,9 +1078,15 @@ class LabLabelRenderer: UIPrintPageRenderer {
         // Printable rect with small margins
         let printableRect = CGRect(x: 4, y: 4, width: labelWidth - 8, height: labelHeight - 8)
         setValue(NSValue(cgRect: printableRect), forKey: "printableRect")
+        
+        // Debug prints for paperRect and printableRect
+        print("LabLabelRenderer initialized with paperRect: \(paperRect), printableRect: \(printableRect)")
     }
     
     override func drawPage(at pageIndex: Int, in printableRect: CGRect) {
+        print("LabLabelRenderer drawPage called for page \(pageIndex)")
+        print("Printable rect: \(printableRect)")
+        
         guard let context = UIGraphicsGetCurrentContext() else { return }
         
         // Set up fonts
@@ -1089,8 +1104,12 @@ class LabLabelRenderer: UIPrintPageRenderer {
         var yPosition: CGFloat = printableRect.minY
         let lineSpacing: CGFloat = 2
         
+        // Safe unwrap patient properties with fallbacks
+        let lastName = patient.lastName ?? "Unknown"
+        let firstName = patient.firstName ?? "Unknown"
+        let patientName = "\(lastName), \(firstName)"
+        
         // Line 1: Patient name (Last, First)
-        let patientName = "\(patient.lastName ?? "Unknown"), \(patient.firstName ?? "Unknown")"
         let nameAttributes: [NSAttributedString.Key: Any] = [
             .font: nameFont,
             .foregroundColor: textColor
@@ -1146,15 +1165,7 @@ class LabLabelRenderer: UIPrintPageRenderer {
         let groupAttributedString = NSAttributedString(string: groupString, attributes: groupAttributes)
         groupAttributedString.draw(at: CGPoint(x: printableRect.minX, y: yPosition))
         
-        // Line 5: Initials line
-        yPosition += regularFontSize + lineSpacing
-        let initialsString = "Initials: ________"
-        let initialsAttributes: [NSAttributedString.Key: Any] = [
-            .font: regularFont,
-            .foregroundColor: textColor
-        ]
-        let initialsAttributedString = NSAttributedString(string: initialsString, attributes: initialsAttributes)
-        initialsAttributedString.draw(at: CGPoint(x: printableRect.minX, y: yPosition))
+        // Removed initials line drawing for label consistency
     }
 }
 #endif
@@ -1163,6 +1174,7 @@ class LabLabelRenderer: UIPrintPageRenderer {
 #Preview {
     let context = PersistenceController.preview.container.viewContext
     let patient = Patient(context: context)
+    // Using fallbacks in preview for patient name and birthdate
     patient.firstName = "Brittany"
     patient.lastName = "Kratzer"
     patient.birthdate = Calendar.current.date(byAdding: .year, value: -35, to: Date())
