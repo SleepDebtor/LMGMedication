@@ -77,11 +77,11 @@ public class DispencedMedication: NSManagedObject {
         var info: [String] = []
         
         if let ingredient1 = medication.ingredient1, !ingredient1.isEmpty, medication.concentration1 > 0 {
-            info.append("\(ingredient1) \(medication.concentration1)mg")
+            info.append("\(ingredient1): \(String(format: "%.1f", medication.concentration1)) mg/mL")
         }
         
         if let ingredient2 = medication.ingredient2, !ingredient2.isEmpty, medication.concentration2 > 0 {
-            info.append("\(ingredient2) \(medication.concentration2)mg")
+            info.append("\(ingredient2): \(String(format: "%.1f", medication.concentration2)) mg/mL")
         }
         
         return info.joined(separator: ", ")
@@ -114,4 +114,3 @@ public class DispencedMedication: NSManagedObject {
         return baseMedication?.pharmacy ?? ""
     }
 }
-

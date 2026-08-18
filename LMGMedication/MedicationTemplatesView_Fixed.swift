@@ -89,19 +89,60 @@ struct MedicationTemplatesView: View {
         Color(.systemGray6)
     }
     
+    private func sortedPublicTemplates(_ templates: [CloudMedicationTemplate]) -> [CloudMedicationTemplate] {
+        templates.sorted { lhs, rhs in
+            let nameComparison = lhs.name.localizedCaseInsensitiveCompare(rhs.name)
+            if nameComparison != .orderedSame {
+                return nameComparison == .orderedAscending
+            }
+            
+            if lhs.concentration1 != rhs.concentration1 {
+                return lhs.concentration1 < rhs.concentration1
+            }
+            
+            if lhs.concentration2 != rhs.concentration2 {
+                return lhs.concentration2 < rhs.concentration2
+            }
+            
+            return (lhs.pharmacy ?? "").localizedCaseInsensitiveCompare(rhs.pharmacy ?? "") == .orderedAscending
+        }
+    }
+    
+    private func sortedLocalMedications(_ medications: [Medication]) -> [Medication] {
+        medications.sorted { lhs, rhs in
+            let lhsName = lhs.name ?? ""
+            let rhsName = rhs.name ?? ""
+            let nameComparison = lhsName.localizedCaseInsensitiveCompare(rhsName)
+            if nameComparison != .orderedSame {
+                return nameComparison == .orderedAscending
+            }
+            
+            if lhs.concentration1 != rhs.concentration1 {
+                return lhs.concentration1 < rhs.concentration1
+            }
+            
+            if lhs.concentration2 != rhs.concentration2 {
+                return lhs.concentration2 < rhs.concentration2
+            }
+            
+            return (lhs.pharmacy ?? "").localizedCaseInsensitiveCompare(rhs.pharmacy ?? "") == .orderedAscending
+        }
+    }
+    
     // MARK: - Computed Properties
     
     /// Filtered public templates based on search criteria
     /// Searches across template name and both ingredient fields
     var filteredPublicTemplates: [CloudMedicationTemplate] {
         if searchText.isEmpty {
-            return cloudManager.publicMedicationTemplates
+            return sortedPublicTemplates(cloudManager.publicMedicationTemplates)
         } else {
-            return cloudManager.publicMedicationTemplates.filter { template in
+            return sortedPublicTemplates(cloudManager.publicMedicationTemplates.filter { template in
                 template.name.localizedCaseInsensitiveContains(searchText) ||
                 (template.ingredient1?.localizedCaseInsensitiveContains(searchText) ?? false) ||
-                (template.ingredient2?.localizedCaseInsensitiveContains(searchText) ?? false)
-            }
+                (template.ingredient2?.localizedCaseInsensitiveContains(searchText) ?? false) ||
+                template.concentrationInfo.localizedCaseInsensitiveContains(searchText)
+            })
         }
     }
     
@@ -109,13 +150,14 @@ struct MedicationTemplatesView: View {
     /// Searches across medication name and both ingredient fields
     var filteredLocalMedications: [Medication] {
         if searchText.isEmpty {
-            return Array(localMedications)
+            return sortedLocalMedications(Array(localMedications))
         } else {
-            return localMedications.filter { medication in
+            return sortedLocalMedications(localMedications.filter { medication in
                 (medication.name?.localizedCaseInsensitiveContains(searchText) ?? false) ||
                 (medication.ingredient1?.localizedCaseInsensitiveContains(searchText) ?? false) ||
-                (medication.ingredient2?.localizedCaseInsensitiveContains(searchText) ?? false)
-            }
+                (medication.ingredient2?.localizedCaseInsensitiveContains(searchText) ?? false) ||
+                medication.concentrationInfo.localizedCaseInsensitiveContains(searchText)
+            })
         }
     }
     
@@ -344,9 +386,16 @@ struct CloudMedicationTemplateRow: View {
                 }
                 
                 if !template.concentrationInfo.isEmpty {
-                    Text(template.concentrationInfo)
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        Image(systemName: "ruler")
+                            .font(.caption)
+                            .foregroundColor(.blue)
+                        
+                        Text(template.concentrationInfo)
+                            .font(.callout)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.primary)
+                    }
                 }
                 
                 if let pharmacy = template.pharmacy, !pharmacy.isEmpty {
@@ -429,9 +478,16 @@ struct LocalMedicationTemplateRow: View {
                 }
                 
                 if !medication.concentrationInfo.isEmpty {
-                    Text(medication.concentrationInfo)
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        Image(systemName: "ruler")
+                            .font(.caption)
+                            .foregroundColor(.blue)
+                        
+                        Text(medication.concentrationInfo)
+                            .font(.callout)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.primary)
+                    }
                 }
                 
                 if let pharmacy = medication.pharmacy, !pharmacy.isEmpty {
@@ -544,7 +600,7 @@ struct EditMedicationTemplateView: View {
                             .foregroundColor(.secondary)
                         TextField("Ingredient name", text: $ingredient1)
                         HStack {
-                            Text("Concentration:")
+                            Text("Concentration (mg/mL):")
                             TextField("0.0", value: $concentration1, format: .number)
                                 .keyboardType(.decimalPad)
                                 .textFieldStyle(RoundedBorderTextFieldStyle())
@@ -557,7 +613,7 @@ struct EditMedicationTemplateView: View {
                             .foregroundColor(.secondary)
                         TextField("Ingredient name", text: $ingredient2)
                         HStack {
-                            Text("Concentration:")
+                            Text("Concentration (mg/mL):")
                             TextField("0.0", value: $concentration2, format: .number)
                                 .keyboardType(.decimalPad)
                                 .textFieldStyle(RoundedBorderTextFieldStyle())
@@ -750,7 +806,7 @@ struct AddMedicationTemplateView: View {
                             .foregroundColor(.secondary)
                         TextField("Ingredient name", text: $ingredient1)
                         HStack {
-                            Text("Concentration:")
+                            Text("Concentration (mg/mL):")
                             TextField("0.0", value: $concentration1, format: .number)
                                 .keyboardType(.decimalPad)
                                 .textFieldStyle(RoundedBorderTextFieldStyle())
@@ -763,7 +819,7 @@ struct AddMedicationTemplateView: View {
                             .foregroundColor(.secondary)
                         TextField("Ingredient name", text: $ingredient2)
                         HStack {
-                            Text("Concentration:")
+                            Text("Concentration (mg/mL):")
                             TextField("0.0", value: $concentration2, format: .number)
                                 .keyboardType(.decimalPad)
                                 .textFieldStyle(RoundedBorderTextFieldStyle())
@@ -957,7 +1013,7 @@ struct AddCloudMedicationTemplateView: View {
                                 .foregroundColor(.secondary)
                             TextField("Ingredient name", text: $ingredient1)
                             HStack {
-                                Text("Concentration:")
+                                Text("Concentration (mg/mL):")
                                 TextField("0.0", value: $concentration1, format: .number)
                                     .keyboardType(.decimalPad)
                                     .textFieldStyle(RoundedBorderTextFieldStyle())
@@ -970,7 +1026,7 @@ struct AddCloudMedicationTemplateView: View {
                                 .foregroundColor(.secondary)
                             TextField("Ingredient name", text: $ingredient2)
                             HStack {
-                                Text("Concentration:")
+                                Text("Concentration (mg/mL):")
                                 TextField("0.0", value: $concentration2, format: .number)
                                     .keyboardType(.decimalPad)
                                     .textFieldStyle(RoundedBorderTextFieldStyle())
@@ -1179,7 +1235,7 @@ struct CloudMedicationTemplateDetailView: View {
                             HStack {
                                 Text(ingredient1)
                                 Spacer()
-                                Text("\(template.concentration1, specifier: "%.1f")")
+                                Text("\(template.concentration1, specifier: "%.1f") mg/mL")
                                     .foregroundColor(.secondary)
                             }
                         }
@@ -1188,7 +1244,7 @@ struct CloudMedicationTemplateDetailView: View {
                             HStack {
                                 Text(ingredient2)
                                 Spacer()
-                                Text("\(template.concentration2, specifier: "%.1f")")
+                                Text("\(template.concentration2, specifier: "%.1f") mg/mL")
                                     .foregroundColor(.secondary)
                             }
                         }
@@ -1310,7 +1366,7 @@ struct EditCloudMedicationTemplateView: View {
                             .foregroundColor(.secondary)
                         TextField("Ingredient name", text: $ingredient1)
                         HStack {
-                            Text("Concentration:")
+                            Text("Concentration (mg/mL):")
                             TextField("0.0", value: $concentration1, format: .number)
                                 .keyboardType(.decimalPad)
                                 .textFieldStyle(RoundedBorderTextFieldStyle())
@@ -1323,7 +1379,7 @@ struct EditCloudMedicationTemplateView: View {
                             .foregroundColor(.secondary)
                         TextField("Ingredient name", text: $ingredient2)
                         HStack {
-                            Text("Concentration:")
+                            Text("Concentration (mg/mL):")
                             TextField("0.0", value: $concentration2, format: .number)
                                 .keyboardType(.decimalPad)
                                 .textFieldStyle(RoundedBorderTextFieldStyle())
@@ -1485,4 +1541,3 @@ struct EditCloudMedicationTemplateView: View {
     return MedicationTemplatesView()
         .environment(\.managedObjectContext, context)
 }
-

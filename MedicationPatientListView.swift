@@ -67,19 +67,22 @@ struct MedicationPatientListView: View {
         for dispensed in dispensedMedications {
             guard let patient = dispensed.patient, patient.isActive else { continue }
             let medicationName = dispensed.baseMedication?.name ?? "Unknown Medication"
+            let concentrationInfo = dispensed.baseMedication?.concentrationInfo ?? ""
+            let medicationDisplayName = concentrationInfo.isEmpty ? medicationName : "\(medicationName) - \(concentrationInfo)"
             
             let entry = MedicationPatientEntry(
                 medicationName: medicationName,
+                concentrationInfo: concentrationInfo,
                 patientFirstName: patient.firstName ?? "",
                 patientLastName: patient.lastName ?? "",
                 patientBirthdate: patient.birthdate,
                 dispensedMedication: dispensed
             )
             
-            if groups[medicationName] == nil {
-                groups[medicationName] = []
+            if groups[medicationDisplayName] == nil {
+                groups[medicationDisplayName] = []
             }
-            groups[medicationName]?.append(entry)
+            groups[medicationDisplayName]?.append(entry)
         }
         
         // Sort patients within each medication group by last name, then first name
@@ -308,7 +311,7 @@ struct MedicationPatientListView: View {
      * Generates CSV content from grouped medication data
      */
     private func generateCSVContent() -> String {
-        var csv = "Medication Name,Patient First Name,Patient Last Name,Date of Birth\n"
+        var csv = "Medication Name,Concentration,Patient First Name,Patient Last Name,Date of Birth\n"
         
         for group in groupedByMedication {
             for entry in group.entries {
@@ -316,11 +319,12 @@ struct MedicationPatientListView: View {
                     formatDateForCSV(entry.patientBirthdate!) : ""
                 
                 // Escape values that might contain commas or quotes
-                let medicationName = escapeCSVField(group.medicationName)
+                let medicationName = escapeCSVField(entry.medicationName)
+                let concentration = escapeCSVField(entry.concentrationInfo)
                 let firstName = escapeCSVField(entry.patientFirstName)
                 let lastName = escapeCSVField(entry.patientLastName)
                 
-                csv += "\(medicationName),\(firstName),\(lastName),\(dateString)\n"
+                csv += "\(medicationName),\(concentration),\(firstName),\(lastName),\(dateString)\n"
             }
         }
         
@@ -400,6 +404,7 @@ struct MedicationGroupView: View {
                     .font(.title3)
                     .fontWeight(.bold)
                     .foregroundColor(goldColor)
+                    .fixedSize(horizontal: false, vertical: true)
                 
                 Spacer()
                 
@@ -526,6 +531,7 @@ struct MedicationPatientRow: View {
 struct MedicationPatientEntry: Identifiable {
     let id = UUID()
     let medicationName: String
+    let concentrationInfo: String
     let patientFirstName: String
     let patientLastName: String
     let patientBirthdate: Date?

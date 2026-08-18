@@ -58,6 +58,84 @@ struct AddMedicationView: View {
     
     @State private var selectedProvider: Provider?
     
+    private var medicationDetailsSectionTitle: String {
+        useTemplate && hasValidTemplate ? "Medication Details" : "New Medication Details"
+    }
+    
+    private var ingredientsSectionTitle: String {
+        useTemplate && hasValidTemplate ? "Ingredients" : "New Medication Ingredients"
+    }
+    
+    private var primarySaveButtonTitle: String {
+        useTemplate ? "Save Medication" : "Create & Dispense"
+    }
+    
+    private var sortedLocalMedicationTemplates: [Medication] {
+        Array(localMedicationTemplates).sorted { lhs, rhs in
+            let lhsName = lhs.name ?? ""
+            let rhsName = rhs.name ?? ""
+            let nameComparison = lhsName.localizedCaseInsensitiveCompare(rhsName)
+            if nameComparison != .orderedSame {
+                return nameComparison == .orderedAscending
+            }
+            
+            if lhs.concentration1 != rhs.concentration1 {
+                return lhs.concentration1 < rhs.concentration1
+            }
+            
+            if lhs.concentration2 != rhs.concentration2 {
+                return lhs.concentration2 < rhs.concentration2
+            }
+            
+            return (lhs.pharmacy ?? "").localizedCaseInsensitiveCompare(rhs.pharmacy ?? "") == .orderedAscending
+        }
+    }
+    
+    private var sortedPublicMedicationTemplates: [CloudMedicationTemplate] {
+        cloudManager.publicMedicationTemplates.sorted { lhs, rhs in
+            let nameComparison = lhs.name.localizedCaseInsensitiveCompare(rhs.name)
+            if nameComparison != .orderedSame {
+                return nameComparison == .orderedAscending
+            }
+            
+            if lhs.concentration1 != rhs.concentration1 {
+                return lhs.concentration1 < rhs.concentration1
+            }
+            
+            if lhs.concentration2 != rhs.concentration2 {
+                return lhs.concentration2 < rhs.concentration2
+            }
+            
+            return (lhs.pharmacy ?? "").localizedCaseInsensitiveCompare(rhs.pharmacy ?? "") == .orderedAscending
+        }
+    }
+    
+    private var selectedTemplateConcentrationInfo: String? {
+        guard useTemplate else { return nil }
+        
+        let concentrationInfo: String?
+        if templateSource == 0, let template = selectedLocalTemplate {
+            concentrationInfo = template.concentrationInfo
+        } else if templateSource == 1, let template = selectedCloudTemplate {
+            concentrationInfo = template.concentrationInfo
+        } else {
+            return nil
+        }
+        
+        let trimmedInfo = concentrationInfo?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return trimmedInfo.isEmpty ? "No concentration entered" : trimmedInfo
+    }
+    
+    private var selectedTemplatePharmacyInfo: String? {
+        guard useTemplate else { return nil }
+        
+        if templateSource == 0 {
+            return selectedLocalTemplate?.pharmacy
+        } else {
+            return selectedCloudTemplate?.pharmacy
+        }
+    }
+    
     private var hasValidTemplate: Bool {
         if templateSource == 0 {
             return selectedLocalTemplate != nil
@@ -92,8 +170,12 @@ struct AddMedicationView: View {
     
     var body: some View {
         Form {
-                Section(header: Text("Medication Source")) {
-                    Toggle("Use Medication Template", isOn: $useTemplate)
+                Section(header: Text("Medication")) {
+                    Picker("Medication Entry", selection: $useTemplate) {
+                        Text("Select Template").tag(true)
+                        Text("Create New").tag(false)
+                    }
+                    .pickerStyle(.segmented)
                     
                     if useTemplate {
                         Picker("Template Source", selection: $templateSource) {
@@ -104,7 +186,7 @@ struct AddMedicationView: View {
                         
                         if templateSource == 0 {
                             // Local templates
-                            if localMedicationTemplates.isEmpty {
+                            if sortedLocalMedicationTemplates.isEmpty {
                                 VStack(alignment: .leading, spacing: 8) {
                                     Text("No local templates available")
                                         .foregroundColor(.secondary)
@@ -115,7 +197,7 @@ struct AddMedicationView: View {
                             } else {
                                 Picker("Select Local Template", selection: $selectedLocalTemplate) {
                                     Text("Choose a medication...").tag(nil as Medication?)
-                                    ForEach(localMedicationTemplates) { template in
+                                    ForEach(sortedLocalMedicationTemplates) { template in
                                         Text(template.selectionDisplayValue).tag(template as Medication?)
                                     }
                                 }
@@ -138,7 +220,7 @@ struct AddMedicationView: View {
                                         .font(.caption)
                                         .foregroundColor(.secondary)
                                 }
-                            } else if cloudManager.publicMedicationTemplates.isEmpty {
+                            } else if sortedPublicMedicationTemplates.isEmpty {
                                 VStack(alignment: .leading, spacing: 8) {
                                     Text("No public templates available")
                                         .foregroundColor(.secondary)
@@ -149,19 +231,37 @@ struct AddMedicationView: View {
                             } else {
                                 Picker("Select Public Template", selection: $selectedCloudTemplate) {
                                     Text("Choose a medication...").tag(nil as CloudMedicationTemplate?)
-                                    ForEach(cloudManager.publicMedicationTemplates) { template in
+                                    ForEach(sortedPublicMedicationTemplates) { template in
                                         Text(template.selectionDisplayValue).tag(template as CloudMedicationTemplate?)
                                     }
                                 }
                                 .pickerStyle(.menu)
                             }
                         }
+                        
+                        if let concentrationInfo = selectedTemplateConcentrationInfo {
+                            SelectedTemplateConcentrationSummaryView(
+                                concentrationInfo: concentrationInfo,
+                                pharmacy: selectedTemplatePharmacyInfo
+                            )
+                        }
+                        
+                        Button(action: prepareNewMedicationEntry) {
+                            Label("Create New Medication", systemImage: "plus.circle.fill")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(.green)
+                    } else {
+                        Label("Creating New Medication", systemImage: "plus.circle.fill")
+                            .font(.headline)
+                            .foregroundColor(.green)
                     }
                 }
                 
-                Section(header: Text("Medication Details")) {
+                Section(header: Text(medicationDetailsSectionTitle)) {
                     if !useTemplate || (templateSource == 0 && selectedLocalTemplate == nil) || (templateSource == 1 && selectedCloudTemplate == nil) {
-                        TextField("Medication Name", text: $medicationName)
+                        TextField(useTemplate ? "Medication Name" : "New Medication Name", text: $medicationName)
                     } else {
                         HStack {
                             Text("Medication Name")
@@ -226,17 +326,17 @@ struct AddMedicationView: View {
                 }
                 
                 if !useTemplate || !hasValidTemplate {
-                    Section(header: Text("Ingredients")) {
+                    Section(header: Text(ingredientsSectionTitle)) {
                         HStack {
                             TextField("Ingredient 1", text: $ingredient1)
-                            TextField("mg", value: $concentration1, format: .number)
+                            TextField("mg/mL", value: $concentration1, format: .number)
                                 .keyboardType(.decimalPad)
                                 .frame(width: 80)
                         }
                         
                         HStack {
                             TextField("Ingredient 2 (optional)", text: $ingredient2)
-                            TextField("mg", value: $concentration2, format: .number)
+                            TextField("mg/mL", value: $concentration2, format: .number)
                                 .keyboardType(.decimalPad)
                                 .frame(width: 80)
                         }
@@ -249,7 +349,7 @@ struct AddMedicationView: View {
                                     HStack {
                                         Text(ingredient1)
                                         Spacer()
-                                        Text("\(template.concentration1, specifier: "%.1f")")
+                                        Text("\(template.concentration1, specifier: "%.1f") mg/mL")
                                             .foregroundColor(.secondary)
                                     }
                                 }
@@ -258,7 +358,7 @@ struct AddMedicationView: View {
                                     HStack {
                                         Text(ingredient2)
                                         Spacer()
-                                        Text("\(template.concentration2, specifier: "%.1f")")
+                                        Text("\(template.concentration2, specifier: "%.1f") mg/mL")
                                             .foregroundColor(.secondary)
                                     }
                                 }
@@ -269,7 +369,7 @@ struct AddMedicationView: View {
                                     HStack {
                                         Text(ingredient1)
                                         Spacer()
-                                        Text("\(template.concentration1, specifier: "%.1f")")
+                                        Text("\(template.concentration1, specifier: "%.1f") mg/mL")
                                             .foregroundColor(.secondary)
                                     }
                                 }
@@ -278,7 +378,7 @@ struct AddMedicationView: View {
                                     HStack {
                                         Text(ingredient2)
                                         Spacer()
-                                        Text("\(template.concentration2, specifier: "%.1f")")
+                                        Text("\(template.concentration2, specifier: "%.1f") mg/mL")
                                             .foregroundColor(.secondary)
                                     }
                                 }
@@ -393,7 +493,7 @@ struct AddMedicationView: View {
                     }) {
                         HStack {
                             Image(systemName: "checkmark.circle.fill")
-                            Text("Save Medication")
+                            Text(primarySaveButtonTitle)
                         }
                         .font(.headline)
                         .foregroundColor(.white)
@@ -431,12 +531,24 @@ struct AddMedicationView: View {
                     loadFromCloudTemplate(template)
                 }
             }
+            .onChange(of: useTemplate) { _, newValue in
+                if newValue {
+                    selectDefaultTemplateIfNeeded()
+                } else {
+                    prepareNewMedicationEntry()
+                }
+            }
+            .onChange(of: templateSource) { _, _ in
+                if useTemplate {
+                    selectDefaultTemplateIfNeeded()
+                }
+            }
             .onAppear {
                 // Auto-switch to manual entry if no templates exist
-                if localMedicationTemplates.isEmpty {
+                if sortedLocalMedicationTemplates.isEmpty {
                     useTemplate = false
                 } else if useTemplate && templateSource == 0 {
-                    selectedLocalTemplate = localMedicationTemplates.first
+                    selectDefaultTemplateIfNeeded()
                 }
                 
                 // Ensure a provider exists and default-select the first one
@@ -457,6 +569,37 @@ struct AddMedicationView: View {
             } message: {
                 Text(errorMessage)
             }
+    }
+    
+    private func selectDefaultTemplateIfNeeded() {
+        if templateSource == 0 {
+            let template = selectedLocalTemplate ?? sortedLocalMedicationTemplates.first
+            selectedLocalTemplate = template
+            
+            if let template = template {
+                loadFromLocalTemplate(template)
+            }
+        } else {
+            let template = selectedCloudTemplate ?? sortedPublicMedicationTemplates.first
+            selectedCloudTemplate = template
+            
+            if let template = template {
+                loadFromCloudTemplate(template)
+            }
+        }
+    }
+    
+    private func prepareNewMedicationEntry() {
+        useTemplate = false
+        selectedLocalTemplate = nil
+        selectedCloudTemplate = nil
+        medicationName = ""
+        ingredient1 = ""
+        concentration1 = 0
+        ingredient2 = ""
+        concentration2 = 0
+        injectable = false
+        pharmacy = "Beaker Pharmacy"
     }
     
     private func loadFromLocalTemplate(_ template: Medication) {
@@ -540,32 +683,51 @@ struct AddMedicationView: View {
     }
     
     private func findOrCreateMedication() -> Medication {
-        // Try to find existing medication with the same name
+        let normalizedMedicationName = normalizedMedicationText(medicationName)
         let request: NSFetchRequest<Medication> = Medication.fetchRequest()
-        request.predicate = NSPredicate(format: "name == %@", medicationName)
+        request.predicate = NSPredicate(format: "name ==[c] %@", normalizedMedicationName)
         
-        if let existingMedication = try? viewContext.fetch(request).first {
-            // Update existing medication if needed
-            existingMedication.ingredient1 = ingredient1.isEmpty ? nil : ingredient1
-            existingMedication.concentration1 = concentration1
-            existingMedication.ingredient2 = ingredient2.isEmpty ? nil : ingredient2
-            existingMedication.concentration2 = concentration2
-            existingMedication.pharmacy = pharmacy
-            existingMedication.injectable = injectable
+        if let existingMedication = (try? viewContext.fetch(request))?.first(where: medicationMatchesCurrentEntry) {
             return existingMedication
-        } else {
-            // Create new medication
-            let newMedication = Medication(context: viewContext)
-            newMedication.name = medicationName
-            newMedication.ingredient1 = ingredient1.isEmpty ? nil : ingredient1
-            newMedication.concentration1 = concentration1
-            newMedication.ingredient2 = ingredient2.isEmpty ? nil : ingredient2
-            newMedication.concentration2 = concentration2
-            newMedication.pharmacy = pharmacy
-            newMedication.injectable = injectable
-            newMedication.timestamp = Date()
-            return newMedication
         }
+        
+        let newMedication = Medication(context: viewContext)
+        newMedication.name = normalizedMedicationName
+        newMedication.ingredient1 = normalizedOptionalMedicationText(ingredient1)
+        newMedication.concentration1 = concentration1
+        newMedication.ingredient2 = normalizedOptionalMedicationText(ingredient2)
+        newMedication.concentration2 = concentration2
+        newMedication.pharmacy = normalizedOptionalMedicationText(pharmacy)
+        newMedication.injectable = injectable
+        newMedication.timestamp = Date()
+        return newMedication
+    }
+    
+    private func medicationMatchesCurrentEntry(_ medication: Medication) -> Bool {
+        normalizedMedicationComparisonText(medication.name) == normalizedMedicationComparisonText(medicationName) &&
+        normalizedMedicationComparisonText(medication.pharmacy) == normalizedMedicationComparisonText(pharmacy) &&
+        normalizedMedicationComparisonText(medication.ingredient1) == normalizedMedicationComparisonText(ingredient1) &&
+        normalizedMedicationComparisonText(medication.ingredient2) == normalizedMedicationComparisonText(ingredient2) &&
+        medication.injectable == injectable &&
+        concentrationsMatch(medication.concentration1, concentration1) &&
+        concentrationsMatch(medication.concentration2, concentration2)
+    }
+    
+    private func concentrationsMatch(_ lhs: Double, _ rhs: Double) -> Bool {
+        abs(lhs - rhs) < 0.0001
+    }
+    
+    private func normalizedOptionalMedicationText(_ value: String) -> String? {
+        let normalizedValue = normalizedMedicationText(value)
+        return normalizedValue.isEmpty ? nil : normalizedValue
+    }
+    
+    private func normalizedMedicationComparisonText(_ value: String?) -> String {
+        normalizedMedicationText(value).lowercased()
+    }
+    
+    private func normalizedMedicationText(_ value: String?) -> String {
+        (value ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
     }
     
     private func findOrCreateProvider() -> Provider {
@@ -594,6 +756,32 @@ struct AddMedicationView: View {
         } catch {
             print("Failed to create default provider: \(error)")
         }
+    }
+}
+
+private struct SelectedTemplateConcentrationSummaryView: View {
+    let concentrationInfo: String
+    let pharmacy: String?
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Selected Concentration")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            
+            Text(concentrationInfo)
+                .font(.headline)
+                .fontWeight(.semibold)
+                .foregroundColor(.primary)
+                .fixedSize(horizontal: false, vertical: true)
+            
+            if let pharmacy = pharmacy, !pharmacy.isEmpty {
+                Text(pharmacy)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+        }
+        .padding(.vertical, 4)
     }
 }
 
